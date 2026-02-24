@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoesisFood</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --card:#0f1622; --card2:#0c121c; --text:#e8eef7; --muted:#9fb0c3;
+      --line:rgba(255,255,255,.08); --accent:#7bd4ff; --btn:#131c2a; --btn2:#1a2740;
+      --shadow: 0 12px 40px rgba(0,0,0,.55);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(123,212,255,.14), transparent 60%),
+                  radial-gradient(900px 700px at 80% 0%, rgba(110,255,190,.08), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 22px 16px 60px;
+    }
+    .top{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      margin-bottom: 16px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+    }
+    .logo{
+      width:42px; height:42px; border-radius:12px;
+      background: linear-gradient(145deg, rgba(123,212,255,.95), rgba(110,255,190,.75));
+      box-shadow: var(--shadow);
+    }
+    .title{
+      display:flex; flex-direction:column; line-height:1.05;
+    }
+    .title b{font-size:18px}
+    .title span{font-size:12px; color:var(--muted)}
+    .step{
+      font-size:12px;
+      color:var(--muted);
+      display:flex; align-items:center; gap:10px;
+    }
+    .bar{
+      width:160px; height:8px; border-radius:999px; background: rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+    .bar > i{
+      display:block; height:100%; width:0%;
+      background: linear-gradient(90deg, rgba(123,212,255,.95), rgba(110,255,190,.9));
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .inner{padding:18px}
+    .row{display:flex; gap:14px; flex-wrap:wrap}
+    .col{flex:1 1 320px}
+    .section{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius: 16px;
+      padding:14px;
+      margin-top: 12px;
+    }
+    .sectionTitle{
+      font-weight:800;
+      letter-spacing:.2px;
+      margin-bottom: 10px;
+    }
+    .mini{font-size:12px;color:var(--muted);line-height:1.3}
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    button{
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight:700;
+    }
+    button:hover{border-color: rgba(123,212,255,.35)}
+    button.primary{
+      background: linear-gradient(180deg, rgba(123,212,255,.32), rgba(123,212,255,.12));
+      border-color: rgba(123,212,255,.35);
+    }
+    button.ghost{
+      background: rgba(255,255,255,.02);
+    }
+    input{
+      width:100%;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      padding:12px 12px;
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+    }
+    input:focus{border-color: rgba(123,212,255,.45)}
+    .pillRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    .pill{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(232,238,247,.92);
+    }
+    .err{
+      background: rgba(255,60,60,.08);
+      border:1px solid rgba(255,60,60,.24);
+      color: rgba(255,210,210,.95);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-size:13px;
+      margin-top: 10px;
+    }
+    .ok{
+      background: rgba(110,255,190,.08);
+      border:1px solid rgba(110,255,190,.22);
+      color: rgba(210,255,235,.95);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-size:13px;
+      margin-top: 10px;
+    }
+    .prodHead{
+      display:flex; gap:12px; align-items:center;
+    }
+    .prodImg{
+      width:72px; height:72px; border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      object-fit: cover;
+      flex:0 0 auto;
+    }
+    .prodMeta b{display:block; font-size:16px}
+    .prodMeta span{display:block; color:var(--muted); font-size:12px; margin-top:2px}
+    .scoreWrap{display:flex; align-items:center; justify-content:space-between; gap:12px}
+    .score{
+      font-size:42px; font-weight:900; letter-spacing:-.8px;
+    }
+    .tier{
+      font-size:12px; font-weight:800;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px}
+    .kv{
+      padding:10px 10px;
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+    }
+    .kv small{display:block; color:var(--muted); font-size:11px}
+    .kv b{display:block; margin-top:4px; font-size:13px}
+    .whyGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:8px;
+    }
+    .whyRow{
+      padding:10px 10px;
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-size:13px;
+    }
+    .whyRow span{color: rgba(232,238,247,.92); font-weight:800}
+    .whyFoot{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .camWrap{
+      border-radius: 18px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      position: relative;
+      height: 300px;
+    }
+    video{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+    }
+    .overlay{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:none;
+    }
+    .overlayDim{
+      position:absolute; inset:0;
+      background: radial-gradient(circle at center, rgba(0,0,0,.05), rgba(0,0,0,.55));
+    }
+    .frame{
+      width: 75%;
+      max-width: 360px;
+      aspect-ratio: 1.8 / 1;
+      border-radius: 16px;
+      border:2px solid rgba(123,212,255,.55);
+      box-shadow: 0 0 0 999px rgba(0,0,0,.22);
+      position:relative;
+    }
+    .corner{
+      position:absolute; width:18px; height:18px;
+      border:3px solid rgba(110,255,190,.85);
+    }
+    .c1{left:-2px; top:-2px; border-right:none; border-bottom:none; border-top-left-radius:14px}
+    .c2{right:-2px; top:-2px; border-left:none; border-bottom:none; border-top-right-radius:14px}
+    .c3{left:-2px; bottom:-2px; border-right:none; border-top:none; border-bottom-left-radius:14px}
+    .c4{right:-2px; bottom:-2px; border-left:none; border-top:none; border-bottom-right-radius:14px}
+    .modeRow{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .modeBtn{
+      font-size:12px; padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color: rgba(232,238,247,.92);
+      font-weight:800;
+      cursor:pointer;
+    }
+    .modeBtn.active{
+      border-color: rgba(123,212,255,.45);
+      background: rgba(123,212,255,.12);
+    }
+    .tiny{
+      font-size:11px; color: rgba(159,176,195,.92);
+      margin-top:10px;
+      line-height:1.35;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo"></div>
+        <div class="title">
+          <b>NoesisFood</b>
+          <span>VitaScore Hybrid • Advanced MVP</span>
+        </div>
+      </div>
+      <div class="step">
+        <span id="stepTxt">1/4</span>
+        <div class="bar"><i id="barFill"></i></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="inner" id="app"></div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------
+    // State
+    // -------------------------
+    let step = 1;
+    let scanMode = "manual"; // "manual" or "camera"
+    let state = {
+      key: "",
+      loading: false,
+      error: "",
+      data: null,
+      lastScanSource: "",
+    };
+
+    const app = document.getElementById("app");
+    const stepTxt = document.getElementById("stepTxt");
+    const barFill = document.getElementById("barFill");
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+    const fmtNum = (x) => {
+      if (x === null || x === undefined || Number.isNaN(Number(x))) return "—";
+      const n = Number(x);
+      return (Math.round(n * 10) / 10).toString();
+    };
+
+    function tierFromScore(score){
+      if (score === null || score === undefined) return {label:"N/A", cls:"tier"};
+      if (score >= 80) return {label:"Excellent", cls:"tier", color:"rgba(110,255,190,.18)", border:"rgba(110,255,190,.35)"};
+      if (score >= 60) return {label:"Good", cls:"tier", color:"rgba(123,212,255,.14)", border:"rgba(123,212,255,.35)"};
+      if (score >= 40) return {label:"Okay", cls:"tier", color:"rgba(255,210,110,.12)", border:"rgba(255,210,110,.32)"};
+      return {label:"Caution", cls:"tier", color:"rgba(255,120,120,.12)", border:"rgba(255,120,120,.32)"};
+    }
+
+    function whoServingBlock(data){
+      const who = data?.who_impact;
+      if (!who) return ``;
+
+      const sugar = who.sugar_per_serving_g;
+      const pctIdeal = who.percent_of_ideal;
+      const pctUpper = who.percent_of_upper;
+
+      const flags = [];
+      if (who.exceeds_ideal) flags.push(`<span class="pill">Exceeds ideal 25g</span>`);
+      if (who.exceeds_upper) flags.push(`<span class="pill">Exceeds upper 50g</span>`);
+
+      return `
+        <div class="section">
+          <div class="sectionTitle">WHO sugar impact</div>
+          <div class="grid2">
+            <div class="kv"><small>Sugar per serving</small><b>${fmtNum(sugar)} g</b></div>
+            <div class="kv"><small>% of ideal (25g/day)</small><b>${fmtNum(pctIdeal)}%</b></div>
+            <div class="kv"><small>% of upper (50g/day)</small><b>${fmtNum(pctUpper)}%</b></div>
+            <div class="kv"><small>Limits</small><b>25g ideal • 50g upper</b></div>
+          </div>
+          ${flags.length ? `<div class="pillRow">${flags.join("")}</div>` : ``}
+          <div class="whyFoot">Per-serving calculation based on declared serving size.</div>
+        </div>
+      `;
+    }
+
+    // ✅ UPDATED: use backend bullets (why_this_score / tips)
+    function buildWhyScoreHTML(data){
+      const why = Array.isArray(data?.why_this_score) ? data.why_this_score : [];
+      const tips = Array.isArray(data?.tips) ? data.tips : [];
+
+      if (!why.length && !tips.length){
+        return `
+          <div class="section">
+            <div class="sectionTitle">Why this score?</div>
+            <div class="mini">No explanation available.</div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="section">
+          <div class="sectionTitle">Why this score?</div>
+
+          <div class="whyGrid">
+            ${why.map(line => `
+              <div class="whyRow">
+                <span style="color:rgba(232,238,247,.95); font-weight:800;">
+                  ${line}
+                </span>
+              </div>
+            `).join("")}
+          </div>
+
+          ${
+            tips.length
+            ? `
+              <div class="whyFoot" style="margin-top:12px;">
+                <b>Tips</b><br/>
+                ${tips.map(t => `• ${t}`).join("<br/>")}
+              </div>
+            `
+            : ``
+          }
+
+          <div class="whyFoot" style="margin-top:12px;">
+            Based on WHO guidance & EU reference intakes.
+            Educational tool — not medical advice.
+          </div>
+        </div>
+      `;
+    }
+
+    function render(){
+      stepTxt.textContent = `${step}/4`;
+      barFill.style.width = `${(step/4)*100}%`;
+
+      // Screen 1
+      if (step === 1){
+        const modeManualCls = scanMode === "manual" ? "modeBtn active" : "modeBtn";
+        const modeCamCls = scanMode === "camera" ? "modeBtn active" : "modeBtn";
+
+        const camUI = (scanMode === "camera") ? `
+          <div class="section">
+            <div class="sectionTitle">Scan barcode</div>
+
+            ${state.error ? `<div class="err">${state.error}</div>` : ``}
+
+            <div class="camWrap">
+              <video id="cam" playsinline muted></video>
+              <div class="overlay">
+                <div class="overlayDim"></div>
+                <div class="frame">
+                  <div class="corner c1"></div><div class="corner c2"></div>
+                  <div class="corner c3"></div><div class="corner c4"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tiny">
+              Tip: Χρησιμοποίησε πίσω κάμερα. Κράτα σταθερά. Το barcode να είναι μέσα στο πλαίσιο.
+            </div>
+
+            <div class="btns">
+              <button class="primary" id="startCamBtn">Start camera</button>
+              <button class="ghost" id="stopCamBtn">Stop</button>
+            </div>
+          </div>
+        ` : ``;
+
+        app.innerHTML = `
+          <div class="row">
+            <div class="col">
+              <div class="section">
+                <div class="sectionTitle">Scan</div>
+                <div class="mini">Βάλε product id ή barcode (OpenFoodFacts fallback).</div>
+
+                <div class="modeRow">
+                  <div class="${modeManualCls}" id="modeManual">Manual</div>
+                  <div class="${modeCamCls}" id="modeCamera">Camera</div>
+                </div>
+
+                ${scanMode === "manual" ? `
+                  ${state.error ? `<div class="err">${state.error}</div>` : ``}
+                  <div style="margin-top:10px;">
+                    <input id="keyInput" placeholder="π.χ. 5449000000996" value="${state.key || ""}"/>
+                  </div>
+                  <div class="btns">
+                    <button class="primary" id="scanBtn">${state.loading ? "Scanning..." : "Scan"}</button>
+                  </div>
+                ` : ``}
+
+                ${camUI}
+              </div>
+            </div>
+
+            <div class="col">
+              <div class="section">
+                <div class="sectionTitle">How it works</div>
+                <div class="mini">
+                  • 1 fetch per scan<br/>
+                  • Hybrid scoring (per 100g/100ml + serving sugar penalty + protein bonus for solids)<br/>
+                  • WHO sugar impact per serving<br/>
+                  • OpenFoodFacts fallback with normalization
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Bind mode toggles
+        document.getElementById("modeManual").onclick = () => { scanMode = "manual"; state.error=""; render(); };
+        document.getElementById("modeCamera").onclick = () => { scanMode = "camera"; state.error=""; render(); };
+
+        // Manual scan
+        const scanBtn = document.getElementById("scanBtn");
+        const keyInput = document.getElementById("keyInput");
+        if (scanBtn && keyInput){
+          scanBtn.onclick = () => doScan(keyInput.value);
+          keyInput.onkeydown = (e) => {
+            if (e.key === "Enter") doScan(keyInput.value);
+          };
+        }
+
+        // Camera controls (kept as-is)
+        const startCamBtn = document.getElementById("startCamBtn");
+        const stopCamBtn = document.getElementById("stopCamBtn");
+        if (startCamBtn) startCamBtn.onclick = () => startCamera();
+        if (stopCamBtn) stopCamBtn.onclick = () => stopCamera();
+
+        return;
+      }
+
+      // Screen 2
+      if (step === 2){
+        const d = state.data;
+        const score = d?.vitascore;
+        const t = tierFromScore(score);
+
+        app.innerHTML = `
+          <div class="section">
+            <div class="prodHead">
+              ${d?.image_url ? `<img class="prodImg" src="${d.image_url}" alt="product"/>` : `<div class="prodImg"></div>`}
+              <div class="prodMeta">
+                <b>${d?.name || "Unknown Product"}</b>
+                <span>${d?.brand ? d.brand + " • " : ""}${d?.source || ""}</span>
+              </div>
+            </div>
+
+            <div class="section" style="margin-top:12px;">
+              <div class="scoreWrap">
+                <div>
+                  <div class="mini">VitaScore</div>
+                  <div class="score">${score ?? "—"}</div>
+                </div>
+                <div class="tier" style="background:${t.color}; border-color:${t.border};">${t.label}</div>
+              </div>
+
+              <div class="grid2">
+                <div class="kv"><small>Sugar</small><b>${fmtNum(d?.nutrition_per_100?.sugar_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
+                <div class="kv"><small>Salt</small><b>${fmtNum(d?.nutrition_per_100?.salt_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
+                <div class="kv"><small>Sat. fat</small><b>${fmtNum(d?.nutrition_per_100?.sat_fat_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
+                <div class="kv"><small>Protein</small><b>${fmtNum(d?.nutrition_per_100?.protein_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
+              </div>
+            </div>
+
+            ${buildWhyScoreHTML(d)}
+            ${whoServingBlock(d)}
+
+            <div class="btns">
+              <button class="ghost" id="backBtn">Back</button>
+              <button class="primary" id="nextBtn">Next</button>
+            </div>
+          </div>
+        `;
+
+        document.getElementById("backBtn").onclick = () => { step = 1; render(); };
+        document.getElementById("nextBtn").onclick = () => { step = 3; render(); };
+        return;
+      }
+
+      // Screen 3
+      if (step === 3){
+        const d = state.data;
+        const ings = Array.isArray(d?.ingredients) ? d.ingredients : [];
+        app.innerHTML = `
+          <div class="section">
+            <div class="sectionTitle">Ingredients Intelligence</div>
+            <div class="mini">Quick read of ingredients list (from source).</div>
+
+            <div class="section" style="margin-top:12px;">
+              ${ings.length ? `
+                ${ings.map(i => `<div class="whyRow">${i?.name || "—"} <span>${i?.class || ""}</span></div>`).join("")}
+              ` : `<div class="mini">No ingredients.</div>`}
+            </div>
+
+            <div class="btns">
+              <button class="ghost" id="backBtn">Back</button>
+              <button class="primary" id="nextBtn">Next</button>
+            </div>
+          </div>
+        `;
+        document.getElementById("backBtn").onclick = () => { step = 2; render(); };
+        document.getElementById("nextBtn").onclick = () => { step = 4; render(); };
+        return;
+      }
+
+      // Screen 4
+      if (step === 4){
+        const d = state.data;
+        const alerts = Array.isArray(d?.alerts) ? d.alerts : [];
+        const dq = d?.data_quality;
+
+        app.innerHTML = `
+          <div class="section">
+            <div class="sectionTitle">Safety & Trust</div>
+
+            ${alerts.length ? `
+              <div class="err">
+                <b>Alerts:</b><br/>
+                ${alerts.map(a => `• ${a}`).join("<br/>")}
+              </div>
+            ` : `
+              <div class="ok"><b>No alerts found.</b></div>
+            `}
+
+            <div class="section" style="margin-top:12px;">
+              <div class="sectionTitle">Data quality</div>
+              <div class="mini">
+                Source: <b>${dq?.source || "—"}</b><br/>
+                Confidence: <b>${dq?.confidence || "—"}</b><br/>
+                Serving inferred: <b>${dq?.serving_size_inferred ? "yes" : "no"}</b><br/>
+                Beverage: <b>${dq?.is_beverage ? "yes" : "no"}</b><br/>
+                Beverage inferred: <b>${dq?.is_beverage_inferred ? "yes" : "no"}</b><br/>
+                Reason: <b>${dq?.beverage_inference_reason || "—"}</b>
+              </div>
+            </div>
+
+            <div class="btns">
+              <button class="ghost" id="backBtn">Back</button>
+              <button class="primary" id="againBtn">Scan another</button>
+            </div>
+          </div>
+        `;
+        document.getElementById("backBtn").onclick = () => { step = 3; render(); };
+        document.getElementById("againBtn").onclick = () => {
+          step = 1;
+          state.error = "";
+          state.data = null;
+          render();
+        };
+        return;
+      }
+    }
+
+    // -------------------------
+    // Scan + API
+    // -------------------------
+    async function doScan(key){
+      state.key = (key || "").trim();
+      if (!state.key){
+        state.error = "Please enter a product id or barcode.";
+        render();
+        return;
+      }
+
+      state.loading = true;
+      state.error = "";
+      render();
+
+      try{
+        const res = await fetch(`/scan/${encodeURIComponent(state.key)}`);
+        const data = await res.json();
+        if (!res.ok || data?.error){
+          state.error = data?.error || `Request failed (${res.status})`;
+          state.loading = false;
+          render();
+          return;
+        }
+        state.data = data;
+        state.loading = false;
+        step = 2;
+        render();
+      }catch(e){
+        state.error = "Network error. Is the server running?";
+        state.loading = false;
+        render();
+      }
+    }
+
+    // -------------------------
+    // Camera (kept minimal / dev)
+    // -------------------------
+    let stream = null;
+
+    async function startCamera(){
+      try{
+        stopCamera();
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        const video = document.getElementById("cam");
+        if (video){
+          video.srcObject = stream;
+          await video.play();
+        }
+      }catch(e){
+        state.error = "Camera blocked or not available (HTTPS required on mobile).";
+        render();
+      }
+    }
+
+    function stopCamera(){
+      try{
+        if (stream){
+          stream.getTracks().forEach(t => t.stop());
+          stream = null;
+        }
+      }catch(_){}
+    }
+
+    render();
+  </script>
+</body>
+</html>

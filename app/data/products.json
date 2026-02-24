@@ -1,0 +1,22 @@
+{
+  "1234": {
+    "name": "Example Product 1",
+    "nutrients": {
+      "calories": 200,
+      "sugar": 10,
+      "fat": 5,
+      "salt": 0.5
+    },
+    "alerts": []
+  },
+  "5678": {
+    "name": "Example Product 2",
+    "nutrients": {
+      "calories": 300,
+      "sugar": 25,
+      "fat": 15,
+      "salt": 1.2
+    },
+    "alerts": ["Allergen: Nuts"]
+  }
+}
