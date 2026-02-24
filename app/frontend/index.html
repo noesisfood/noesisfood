@@ -151,6 +151,20 @@
     .score{
       font-size:42px; font-weight:900; letter-spacing:-.8px;
     }
+
+    /* ✅ Premium score: show "/100" next to the value */
+    .scoreLine{
+      display:flex;
+      align-items:baseline;
+      gap:8px;
+    }
+    .scoreMax{
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:-.2px;
+      color:rgba(159,176,195,.95);
+    }
+
     .tier{
       font-size:12px; font-weight:800;
       padding:6px 10px; border-radius:999px;
@@ -270,26 +284,14 @@
   </div>
 
   <script>
-    // -------------------------
-    // State
-    // -------------------------
     let step = 1;
-    let scanMode = "manual"; // "manual" or "camera"
-    let state = {
-      key: "",
-      loading: false,
-      error: "",
-      data: null,
-      lastScanSource: "",
-    };
+    let scanMode = "manual";
+    let state = { key:"", loading:false, error:"", data:null, lastScanSource:"" };
 
     const app = document.getElementById("app");
     const stepTxt = document.getElementById("stepTxt");
     const barFill = document.getElementById("barFill");
 
-    // -------------------------
-    // Helpers
-    // -------------------------
     const fmtNum = (x) => {
       if (x === null || x === undefined || Number.isNaN(Number(x))) return "—";
       const n = Number(x);
@@ -331,7 +333,6 @@
       `;
     }
 
-    // ✅ UPDATED: use backend bullets (why_this_score / tips)
     function buildWhyScoreHTML(data){
       const why = Array.isArray(data?.why_this_score) ? data.why_this_score : [];
       const tips = Array.isArray(data?.tips) ? data.tips : [];
@@ -382,7 +383,6 @@
       stepTxt.textContent = `${step}/4`;
       barFill.style.width = `${(step/4)*100}%`;
 
-      // Screen 1
       if (step === 1){
         const modeManualCls = scanMode === "manual" ? "modeBtn active" : "modeBtn";
         const modeCamCls = scanMode === "camera" ? "modeBtn active" : "modeBtn";
@@ -455,21 +455,16 @@
           </div>
         `;
 
-        // Bind mode toggles
         document.getElementById("modeManual").onclick = () => { scanMode = "manual"; state.error=""; render(); };
         document.getElementById("modeCamera").onclick = () => { scanMode = "camera"; state.error=""; render(); };
 
-        // Manual scan
         const scanBtn = document.getElementById("scanBtn");
         const keyInput = document.getElementById("keyInput");
         if (scanBtn && keyInput){
           scanBtn.onclick = () => doScan(keyInput.value);
-          keyInput.onkeydown = (e) => {
-            if (e.key === "Enter") doScan(keyInput.value);
-          };
+          keyInput.onkeydown = (e) => { if (e.key === "Enter") doScan(keyInput.value); };
         }
 
-        // Camera controls (kept as-is)
         const startCamBtn = document.getElementById("startCamBtn");
         const stopCamBtn = document.getElementById("stopCamBtn");
         if (startCamBtn) startCamBtn.onclick = () => startCamera();
@@ -478,7 +473,6 @@
         return;
       }
 
-      // Screen 2
       if (step === 2){
         const d = state.data;
         const score = d?.vitascore;
@@ -498,7 +492,11 @@
               <div class="scoreWrap">
                 <div>
                   <div class="mini">VitaScore</div>
-                  <div class="score">${score ?? "—"}</div>
+                  <!-- ✅ ΜΟΝΙΜΟ /100 -->
+                  <div class="scoreLine">
+                    <div class="score">${score ?? "—"}</div>
+                    <div class="scoreMax">/100</div>
+                  </div>
                 </div>
                 <div class="tier" style="background:${t.color}; border-color:${t.border};">${t.label}</div>
               </div>
@@ -526,7 +524,6 @@
         return;
       }
 
-      // Screen 3
       if (step === 3){
         const d = state.data;
         const ings = Array.isArray(d?.ingredients) ? d.ingredients : [];
@@ -552,7 +549,6 @@
         return;
       }
 
-      // Screen 4
       if (step === 4){
         const d = state.data;
         const alerts = Array.isArray(d?.alerts) ? d.alerts : [];
@@ -600,9 +596,6 @@
       }
     }
 
-    // -------------------------
-    // Scan + API
-    // -------------------------
     async function doScan(key){
       state.key = (key || "").trim();
       if (!state.key){
@@ -635,9 +628,6 @@
       }
     }
 
-    // -------------------------
-    // Camera (kept minimal / dev)
-    // -------------------------
     let stream = null;
 
     async function startCamera(){
