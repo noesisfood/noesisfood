@@ -274,3 +274,34 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
             "serving_size": float(serving),
         },
     }
+    # -------------------------
+# Backward-compatible alias expected by scanner_service imports
+# -------------------------
+from typing import Optional, Dict, Any
+
+def normalize_product(raw: Dict[str, Any], source: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Compatibility wrapper.
+    - For OpenFoodFacts payloads -> normalize_openfoodfacts
+    - For local payloads (already close to normalized) -> return as-is best-effort
+    """
+    if source == "openfoodfacts":
+        try:
+            barcode = str(raw.get("code") or raw.get("barcode") or raw.get("off_code") or "") or None
+        except Exception:
+            barcode = None
+        return normalize_openfoodfacts(raw, barcode=barcode)
+
+    # If it's clearly an OFF-like payload even without source
+    if isinstance(raw, dict) and ("product" in raw or "nutriments" in raw):
+        try:
+            barcode = str(raw.get("code") or "") or None
+        except Exception:
+            barcode = None
+        try:
+            return normalize_openfoodfacts(raw, barcode=barcode)
+        except Exception:
+            pass
+
+    # fallback: return raw as-is (for local DB)
+    return raw
