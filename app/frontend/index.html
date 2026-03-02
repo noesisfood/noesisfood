@@ -20,41 +20,20 @@
                   var(--bg);
       color:var(--text);
     }
-    .wrap{
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 22px 16px 60px;
-    }
-    .top{
-      display:flex; gap:14px; align-items:center; justify-content:space-between;
-      margin-bottom: 16px;
-    }
-    .brand{
-      display:flex; align-items:center; gap:10px;
-    }
+    .wrap{max-width: 920px; margin: 0 auto; padding: 22px 16px 60px;}
+    .top{display:flex; gap:14px; align-items:center; justify-content:space-between; margin-bottom: 16px;}
+    .brand{display:flex; align-items:center; gap:10px;}
     .logo{
       width:42px; height:42px; border-radius:12px;
       background: linear-gradient(145deg, rgba(123,212,255,.95), rgba(110,255,190,.75));
       box-shadow: var(--shadow);
     }
-    .title{
-      display:flex; flex-direction:column; line-height:1.05;
-    }
+    .title{display:flex; flex-direction:column; line-height:1.05;}
     .title b{font-size:18px}
     .title span{font-size:12px; color:var(--muted)}
-    .step{
-      font-size:12px;
-      color:var(--muted);
-      display:flex; align-items:center; gap:10px;
-    }
-    .bar{
-      width:160px; height:8px; border-radius:999px; background: rgba(255,255,255,.08);
-      overflow:hidden;
-    }
-    .bar > i{
-      display:block; height:100%; width:0%;
-      background: linear-gradient(90deg, rgba(123,212,255,.95), rgba(110,255,190,.9));
-    }
+    .step{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:10px;}
+    .bar{width:160px; height:8px; border-radius:999px; background: rgba(255,255,255,.08); overflow:hidden;}
+    .bar > i{display:block; height:100%; width:0%; background: linear-gradient(90deg, rgba(123,212,255,.95), rgba(110,255,190,.9));}
 
     .card{
       background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
@@ -73,11 +52,7 @@
       padding:14px;
       margin-top: 12px;
     }
-    .sectionTitle{
-      font-weight:800;
-      letter-spacing:.2px;
-      margin-bottom: 10px;
-    }
+    .sectionTitle{font-weight:800; letter-spacing:.2px; margin-bottom: 10px;}
     .mini{font-size:12px;color:var(--muted);line-height:1.3}
     .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
     button{
@@ -94,9 +69,7 @@
       background: linear-gradient(180deg, rgba(123,212,255,.32), rgba(123,212,255,.12));
       border-color: rgba(123,212,255,.35);
     }
-    button.ghost{
-      background: rgba(255,255,255,.02);
-    }
+    button.ghost{background: rgba(255,255,255,.02);}
     input{
       width:100%;
       border-radius: 14px;
@@ -117,6 +90,10 @@
       background: rgba(255,255,255,.04);
       color: rgba(232,238,247,.92);
     }
+    .pill.good{border-color: rgba(110,255,190,.35); background: rgba(110,255,190,.10)}
+    .pill.warn{border-color: rgba(255,210,110,.35); background: rgba(255,210,110,.10)}
+    .pill.bad{border-color: rgba(255,120,120,.35); background: rgba(255,120,120,.10)}
+
     .err{
       background: rgba(255,60,60,.08);
       border:1px solid rgba(255,60,60,.24);
@@ -135,9 +112,8 @@
       font-size:13px;
       margin-top: 10px;
     }
-    .prodHead{
-      display:flex; gap:12px; align-items:center;
-    }
+
+    .prodHead{display:flex; gap:12px; align-items:center;}
     .prodImg{
       width:72px; height:72px; border-radius: 16px;
       background: rgba(255,255,255,.05);
@@ -147,29 +123,17 @@
     }
     .prodMeta b{display:block; font-size:16px}
     .prodMeta span{display:block; color:var(--muted); font-size:12px; margin-top:2px}
+
     .scoreWrap{display:flex; align-items:center; justify-content:space-between; gap:12px}
-    .score{
-      font-size:42px; font-weight:900; letter-spacing:-.8px;
-    }
-
-    /* ✅ Premium score: show "/100" next to the value */
-    .scoreLine{
-      display:flex;
-      align-items:baseline;
-      gap:8px;
-    }
-    .scoreMax{
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:-.2px;
-      color:rgba(159,176,195,.95);
-    }
-
+    .score{font-size:42px; font-weight:900; letter-spacing:-.8px;}
+    .scoreLine{display:flex; align-items:baseline; gap:8px;}
+    .scoreMax{font-size:18px; font-weight:900; letter-spacing:-.2px; color:rgba(159,176,195,.95);}
     .tier{
       font-size:12px; font-weight:800;
       padding:6px 10px; border-radius:999px;
       border:1px solid rgba(255,255,255,.10);
     }
+
     .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px}
     .kv{
       padding:10px 10px;
@@ -179,11 +143,8 @@
     }
     .kv small{display:block; color:var(--muted); font-size:11px}
     .kv b{display:block; margin-top:4px; font-size:13px}
-    .whyGrid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:8px;
-    }
+
+    .whyGrid{display:grid; grid-template-columns: 1fr; gap:8px;}
     .whyRow{
       padding:10px 10px;
       background: rgba(255,255,255,.03);
@@ -195,145 +156,55 @@
       font-size:13px;
     }
     .whyRow span{color: rgba(232,238,247,.92); font-weight:800}
-    .whyFoot{
-      margin-top:10px;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.35;
-    }
-    .camWrap{
-      border-radius: 18px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.25);
-      position: relative;
-      height: 300px;
-    }
-    video{
-      width:100%;
-      height:100%;
-      object-fit: cover;
-    }
-    .overlay{
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      pointer-events:none;
-    }
-    .overlayDim{
-      position:absolute; inset:0;
-      background: radial-gradient(circle at center, rgba(0,0,0,.05), rgba(0,0,0,.55));
-    }
-    .frame{
-      width: 75%;
-      max-width: 360px;
-      aspect-ratio: 1.8 / 1;
-      border-radius: 16px;
-      border:2px solid rgba(123,212,255,.55);
-      box-shadow: 0 0 0 999px rgba(0,0,0,.22);
-      position:relative;
-    }
-    .corner{
-      position:absolute; width:18px; height:18px;
-      border:3px solid rgba(110,255,190,.85);
-    }
-    .c1{left:-2px; top:-2px; border-right:none; border-bottom:none; border-top-left-radius:14px}
-    .c2{right:-2px; top:-2px; border-left:none; border-bottom:none; border-top-right-radius:14px}
-    .c3{left:-2px; bottom:-2px; border-right:none; border-top:none; border-bottom-left-radius:14px}
-    .c4{right:-2px; bottom:-2px; border-left:none; border-top:none; border-bottom-right-radius:14px}
-    .modeRow{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
-    .modeBtn{
-      font-size:12px; padding:8px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
+
+    .whyFoot{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35;}
+
+    /* Ingredients UI */
+    .split{display:grid; grid-template-columns: 1.1fr .9fr; gap:12px;}
+    @media (max-width: 820px){ .split{grid-template-columns: 1fr;} }
+
+    .box{
       background: rgba(255,255,255,.03);
-      color: rgba(232,238,247,.92);
-      font-weight:800;
-      cursor:pointer;
-    }
-    .modeBtn.active{
-      border-color: rgba(123,212,255,.45);
-      background: rgba(123,212,255,.12);
-    }
-    .tiny{
-      font-size:11px; color: rgba(159,176,195,.92);
-      margin-top:10px;
-      line-height:1.35;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding:12px;
     }
 
-    /* --- NoesisFood: Data Quality Badges + Serving Callout (Screen 2) --- */
-    .nf-badges { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
-    .nf-badge {
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px; border-radius:999px;
-      font-size:12px; line-height:1;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      user-select:none;
-    }
-    .nf-badge-dot { width:8px; height:8px; border-radius:50%; opacity:0.95; }
-    .nf-badge--good .nf-badge-dot { background: #4ade80; }
-    .nf-badge--warn .nf-badge-dot { background: #fbbf24; }
-    .nf-badge--bad  .nf-badge-dot { background: #fb7185; }
-
-    .nf-callout {
-      margin-top:12px;
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.07);
-    }
-    .nf-callout-title { font-weight:900; margin-bottom:6px; }
-    .nf-callout-sub { opacity:0.9; font-size:13px; line-height:1.35; }
-    .nf-hidden { display:none !important; }
-
-    /* --- NoesisFood: Ingredients Intelligence (Screen 3) --- */
-    .nf-intel-top{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    .eRow{
+      display:flex; justify-content:space-between; gap:10px;
+      padding:10px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.16);
       margin-top:8px;
     }
-    .nf-scorePill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      font-size:12px; font-weight:900;
-    }
-    .nf-scorePill small{font-weight:800; opacity:.85}
-    .nf-scorePill b{font-size:12px}
-    .nf-chip{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:7px 10px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      font-size:12px;
-    }
-    .nf-chip strong{font-weight:900}
-    .nf-risk{
-      font-size:11px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      opacity:.95;
-      white-space:nowrap;
-    }
-    .nf-risk.low{ background: rgba(110,255,190,.10); border-color: rgba(110,255,190,.22); }
-    .nf-risk.medium{ background: rgba(255,210,110,.10); border-color: rgba(255,210,110,.22); }
-    .nf-risk.high{ background: rgba(255,120,120,.10); border-color: rgba(255,120,120,.22); }
+    .eLeft b{display:block; font-size:13px}
+    .eLeft small{display:block; font-size:11px; color:var(--muted); margin-top:3px; line-height:1.35}
+    .eRole{font-size:11px; font-weight:900; opacity:.9; align-self:flex-start}
 
-    .nf-group{
-      margin-top:12px;
-      padding:12px;
-      border-radius:16px;
+    .ingItem{
+      display:flex; justify-content:space-between; gap:10px;
+      padding:10px 10px;
+      border-radius: 12px;
       border:1px solid rgba(255,255,255,.08);
-      background: rgba(255,255,255,.02);
+      background: rgba(0,0,0,.14);
+      margin-top:8px;
     }
-    .nf-groupHead{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      margin-bottom:10px;
+    .ingLeft b{display:block; font-size:13px}
+    .ingLeft small{display:block; font-size:11px; color:var(--muted); margin-top:3px}
+    .risk{font-size:11px; font-weight:900; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.10);}
+    .risk.low{border-color: rgba(110,255,190,.35); background: rgba(110,255,190,.08)}
+    .risk.medium{border-color: rgba(255,210,110,.35); background: rgba(255,210,110,.08)}
+    .risk.high{border-color: rgba(255,120,120,.35); background: rgba(255,120,120,.08)}
+
+    .groupTitle{
+      margin-top:14px;
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.2px;
+      color: rgba(232,238,247,.92);
+      opacity:.92;
     }
-    .nf-groupHead b{font-size:13px}
-    .nf-count{ color: var(--muted); font-size:12px; }
-    .nf-mutedLine{ color: var(--muted); font-size:12px; line-height:1.35; margin-top:8px; }
   </style>
 </head>
 
@@ -360,8 +231,7 @@
 
   <script>
     let step = 1;
-    let scanMode = "manual";
-    let state = { key:"", loading:false, error:"", data:null, lastScanSource:"" };
+    let state = { key:"", loading:false, error:"", data:null };
 
     const app = document.getElementById("app");
     const stepTxt = document.getElementById("stepTxt");
@@ -381,186 +251,30 @@
       return {label:"Caution", cls:"tier", color:"rgba(255,120,120,.12)", border:"rgba(255,120,120,.32)"};
     }
 
-    // ---------- New backend payload adapters ----------
-    function getProduct(d){
-      return d?.product || {
-        name: d?.name,
-        brand: d?.brand,
-        image_url: d?.image_url,
-        categories: d?.categories || []
-      };
-    }
-
-    function getImageUrl(d){
-      const p = getProduct(d);
-      return p?.image_url || d?.image_url || null;
-    }
-
-    function getDisplayName(d){
-      const p = getProduct(d);
-      return p?.name || d?.name || "Unknown Product";
-    }
-
-    function getDisplayBrand(d){
-      const p = getProduct(d);
-      return p?.brand || d?.brand || "";
-    }
-
-    function getScoreVersion(d){
-      return d?.vitascore_version || d?.vitascore_breakdown?.model || d?.vitascore_breakdown?.version || "";
-    }
-
-    function isBeverage(d){
-      if (typeof d?.meta?.is_beverage === "boolean") return d.meta.is_beverage;
-      const bev = d?.data_quality?.beverage_detection;
-      if (typeof bev?.value === "boolean") return bev.value;
-      return false;
-    }
-
-    function getUnitLabel(d){
-      return isBeverage(d) ? "ml" : "g";
-    }
-
-    function getPer100(d){
-      const inp = d?.vitascore_breakdown?.per_100?.inputs || null;
-      const old = d?.nutrition_per_100 || null;
-
-      const sugar = inp?.sugar_g_per_100 ?? old?.sugar_g ?? null;
-      const salt = inp?.salt_g_per_100 ?? old?.salt_g ?? null;
-      const satFat = inp?.saturated_fat_g_per_100 ?? old?.sat_fat_g ?? null;
-      const protein = inp?.protein_g_per_100 ?? old?.protein_g ?? null;
-
-      return { sugar, salt, satFat, protein };
-    }
-
-    // ---------- Screen 2: Data quality badges + serving callout ----------
-    function nfSetBadge(el, level){
-      if (!el) return;
-      el.classList.remove("nf-badge--good","nf-badge--warn","nf-badge--bad");
-      el.classList.add(level === "good" ? "nf-badge--good" : level === "bad" ? "nf-badge--bad" : "nf-badge--warn");
-    }
-
-    function nfUpdateQuality(data){
-      const dq = data?.data_quality || {};
-      const conf = (typeof dq?.confidence === "number") ? dq.confidence : null;
-      const missing = Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields : [];
-
-      const confBadge = document.getElementById("nfConfidenceBadge");
-      const missBadge = document.getElementById("nfMissingBadge");
-
-      let confLevel = "warn";
-      if (conf !== null) {
-        if (conf >= 0.75) confLevel = "good";
-        else if (conf < 0.45) confLevel = "bad";
-      }
-      nfSetBadge(confBadge, confLevel);
-      const confTxt = document.getElementById("nfConfidenceText");
-      if (confTxt) confTxt.textContent = conf === null ? "Confidence: —" : `Confidence: ${Math.round(conf * 100)}%`;
-
-      let missLevel = "good";
-      let missText = "Complete core nutrition facts";
-      if (missing.length > 0) {
-        missLevel = missing.length >= 3 ? "bad" : "warn";
-        const pretty = missing.map(k => {
-          if (k === "energy_kcal") return "energy";
-          if (k === "sugar_g") return "sugar";
-          if (k === "salt_g") return "salt";
-          if (k === "saturated_fat_g") return "sat fat";
-          return k;
-        });
-        missText = `Missing: ${pretty.join(", ")}`;
-      }
-      nfSetBadge(missBadge, missLevel);
-      const missTxt = document.getElementById("nfMissingText");
-      if (missTxt) missTxt.textContent = missText;
-    }
-
-    function nfUpdateServingSugarCallout(data){
-      const whoSugar = data?.who_impact?.sugar || {};
-      const gServ = (typeof whoSugar?.g_per_serving === "number") ? whoSugar.g_per_serving : null;
-      const pctIdeal = (typeof whoSugar?.percent_of_ideal_25g === "number") ? whoSugar.percent_of_ideal_25g : null;
-
-      const gServOld = (typeof data?.who_impact?.sugar_per_serving_g === "number") ? data.who_impact.sugar_per_serving_g : null;
-      const pctIdealOld = (typeof data?.who_impact?.percent_of_ideal === "number") ? data.who_impact.percent_of_ideal : null;
-
-      const g = gServ ?? gServOld;
-      const pct = pctIdeal ?? pctIdealOld;
-
-      const spikeExtra = data?.vitascore_breakdown?.per_serving?.penalties?.sugar_spike_extra;
-      const hasSpike = (typeof spikeExtra === "number") && spikeExtra > 0.01;
-
-      const shouldShow =
-        (g !== null && g >= 20) ||
-        (pct !== null && pct >= 100) ||
-        hasSpike;
-
-      const wrap = document.getElementById("nfServingCallout");
-      if (!wrap) return;
-
-      if (!shouldShow){
-        wrap.classList.add("nf-hidden");
-        return;
-      }
-
-      const titleEl = document.getElementById("nfServingTitle");
-      const bodyEl = document.getElementById("nfServingBody");
-
-      if (titleEl) titleEl.textContent = "Serving sugar impact";
-
-      const parts = [];
-      if (g !== null) parts.push(`Sugar per serving: ${g.toFixed(1)}g`);
-      if (pct !== null) parts.push(`${pct}% of the 25g/day reference`);
-      if (hasSpike) parts.push("Large single-serve spike detected");
-
-      const tip = (pct !== null && pct >= 100)
-        ? "Tip: consider a smaller serving or a zero/low-sugar alternative."
-        : "Tip: keep serving size in mind—single-serve amounts can add up fast.";
-
-      if (bodyEl) bodyEl.textContent = `${parts.join(" · ")}. ${tip}`;
-
-      wrap.classList.remove("nf-hidden");
-    }
-
-    // ---------- WHO block ----------
     function whoServingBlock(data){
       const who = data?.who_impact;
       if (!who) return ``;
 
-      const sugarObj = who?.sugar || {};
-      const sugarNew = (typeof sugarObj?.g_per_serving === "number") ? sugarObj.g_per_serving : null;
-      const pctIdealNew = (typeof sugarObj?.percent_of_ideal_25g === "number") ? sugarObj.percent_of_ideal_25g : null;
-      const pctUpperNew = (typeof sugarObj?.percent_of_upper_50g === "number") ? sugarObj.percent_of_upper_50g : null;
-
-      const sugarOld = (typeof who?.sugar_per_serving_g === "number") ? who.sugar_per_serving_g : null;
-      const pctIdealOld = (typeof who?.percent_of_ideal === "number") ? who.percent_of_ideal : null;
-      const pctUpperOld = (typeof who?.percent_of_upper === "number") ? who.percent_of_upper : null;
-
-      const sugar = sugarNew ?? sugarOld;
-      const pctIdeal = pctIdealNew ?? pctIdealOld;
-      const pctUpper = pctUpperNew ?? pctUpperOld;
+      // supports both shapes
+      const sugar = who?.sugar?.g_per_serving ?? who?.sugar_per_serving_g;
+      const pctIdeal = who?.sugar?.percent_of_ideal_25g ?? who?.percent_of_ideal;
+      const pctUpper = who?.sugar?.percent_of_upper_50g ?? who?.percent_of_upper;
 
       const flags = [];
-      if (pctIdeal !== null && pctIdeal >= 100) flags.push(`<span class="pill">Exceeds ideal 25g</span>`);
-      if (pctUpper !== null && pctUpper >= 100) flags.push(`<span class="pill">Exceeds upper 50g</span>`);
-
-      const servingMeta = who?.serving || {};
-      const servingTxt = (servingMeta?.serving_amount && servingMeta?.serving_unit)
-        ? `${fmtNum(servingMeta.serving_amount)} ${servingMeta.serving_unit}`
-        : "";
-
-      const interp = who?.interpretation || "";
+      if ((who?.sugar?.percent_of_ideal_25g ?? 0) >= 100 || who?.exceeds_ideal) flags.push(`<span class="pill bad">Exceeds ideal 25g</span>`);
+      if ((who?.sugar?.percent_of_upper_50g ?? 0) >= 100 || who?.exceeds_upper) flags.push(`<span class="pill bad">Exceeds upper 50g</span>`);
 
       return `
         <div class="section">
           <div class="sectionTitle">WHO sugar impact</div>
           <div class="grid2">
-            <div class="kv"><small>Sugar per serving ${servingTxt ? `(${servingTxt})` : ""}</small><b>${fmtNum(sugar)} g</b></div>
+            <div class="kv"><small>Sugar per serving</small><b>${fmtNum(sugar)} g</b></div>
             <div class="kv"><small>% of ideal (25g/day)</small><b>${fmtNum(pctIdeal)}%</b></div>
             <div class="kv"><small>% of upper (50g/day)</small><b>${fmtNum(pctUpper)}%</b></div>
             <div class="kv"><small>Limits</small><b>25g ideal • 50g upper</b></div>
           </div>
           ${flags.length ? `<div class="pillRow">${flags.join("")}</div>` : ``}
-          ${interp ? `<div class="whyFoot">${interp}</div>` : `<div class="whyFoot">Per-serving comparison vs common daily sugar reference points.</div>`}
+          <div class="whyFoot">Per-serving calculation based on declared serving size.</div>
         </div>
       `;
     }
@@ -569,149 +283,120 @@
       const why = Array.isArray(data?.why_this_score) ? data.why_this_score : [];
       const tips = Array.isArray(data?.tips) ? data.tips : [];
 
-      if (!why.length && !tips.length){
-        return `
-          <div class="section">
-            <div class="sectionTitle">Why this score?</div>
-            <div class="mini">No explanation available.</div>
-          </div>
-        `;
-      }
-
       return `
         <div class="section">
           <div class="sectionTitle">Why this score?</div>
 
-          <div class="whyGrid">
-            ${why.map(line => `
-              <div class="whyRow">
-                <span style="color:rgba(232,238,247,.95); font-weight:800;">
-                  ${line}
-                </span>
-              </div>
-            `).join("")}
-          </div>
+          ${
+            why.length
+            ? `<div class="whyGrid">${why.map(line => `<div class="whyRow"><span>${line}</span></div>`).join("")}</div>`
+            : `<div class="mini">No explanation available.</div>`
+          }
 
           ${
             tips.length
-            ? `
-              <div class="whyFoot" style="margin-top:12px;">
+            ? `<div class="whyFoot" style="margin-top:12px;">
                 <b>Tips</b><br/>
                 ${tips.map(t => `• ${t}`).join("<br/>")}
-              </div>
-            `
+              </div>`
             : ``
           }
 
           <div class="whyFoot" style="margin-top:12px;">
-            Based on WHO guidance & reference intakes.
+            Based on WHO guidance & EU reference intakes.
             Educational tool — not medical advice.
           </div>
         </div>
       `;
     }
 
-    // ---------- Screen 3: Ingredients Intelligence renderer ----------
-    function renderIngredientsIntel(d){
-      const intel = d?.ingredients_intelligence || null;
-      const ings = Array.isArray(d?.ingredients) ? d.ingredients : [];
+    function renderIngredientsIntel(data){
+      const ings = Array.isArray(data?.ingredients) ? data.ingredients : [];
+      const intel = data?.ingredients_intelligence || null;
+      const eDetails = Array.isArray(intel?.e_number_details) ? intel.e_number_details : [];
+      const flags = Array.isArray(intel?.flags) ? intel.flags : [];
+      const markers = intel?.markers || {};
+      const score = intel?.processing_score;
+      const label = intel?.processing_label;
 
-      if (!intel){
-        // fallback old view
-        return `
-          <div class="section" style="margin-top:12px;">
-            ${ings.length ? `
-              ${ings.map(i => `<div class="whyRow">${i?.name || "—"} <span>${i?.class || ""}</span></div>`).join("")}
-            ` : `<div class="mini">No ingredients.</div>`}
-          </div>
-        `;
-      }
-
-      const score = typeof intel.processing_score === "number" ? intel.processing_score : null;
-      const label = intel.processing_label || "—";
-      const flags = Array.isArray(intel.flags) ? intel.flags : [];
-      const eNums = Array.isArray(intel.detected_e_numbers) ? intel.detected_e_numbers : [];
-      const allergens = Array.isArray(intel.allergens) ? intel.allergens : [];
-      const notes = Array.isArray(intel.notes) ? intel.notes : [];
-
-      // Group ingredients by class
+      // group ingredients by class
       const groups = {};
-      for (const it of ings){
-        const cls = (it?.class || "Other").toString();
+      for (const ing of ings){
+        const cls = (ing?.class || "Other");
         if (!groups[cls]) groups[cls] = [];
-        groups[cls].push(it);
+        groups[cls].push(ing);
       }
+      const groupOrder = Object.keys(groups).sort((a,b)=> a.localeCompare(b));
 
-      const groupOrder = [
-        "Allergen","Sweetener","Preservative","Emulsifier","Stabilizer","Colorant",
-        "Flavoring","Acidifier","Caffeine","Additive","Other"
-      ];
-      const groupKeys = Object.keys(groups).sort((a,b)=>{
-        const ia = groupOrder.indexOf(a); const ib = groupOrder.indexOf(b);
-        if (ia === -1 && ib === -1) return a.localeCompare(b);
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
-        return ia - ib;
-      });
+      const scorePill = (score === null || score === undefined) ? `` : (
+        score <= 2 ? `<span class="pill good">Processing: ${score}/10 • ${label}</span>` :
+        score <= 5 ? `<span class="pill warn">Processing: ${score}/10 • ${label}</span>` :
+                     `<span class="pill bad">Processing: ${score}/10 • ${label}</span>`
+      );
 
-      const scorePill = `
-        <span class="nf-scorePill">
-          <small>Processing</small>
-          <b>${score === null ? "—" : `${score}/10`}</b>
-          <span style="opacity:.85; font-weight:800;">• ${label}</span>
-        </span>
-      `;
-
-      const flagsRow = flags.length
-        ? `<div class="pillRow" style="margin-top:10px;">${flags.map(f => `<span class="pill">${f}</span>`).join("")}</div>`
-        : `<div class="mini" style="margin-top:8px;">No notable ingredient flags.</div>`;
-
-      const extraChips = `
-        <div class="nf-intel-top">
-          ${scorePill}
-          ${eNums.length ? `<span class="nf-chip"><strong>E-numbers</strong> ${eNums.join(", ")}</span>` : ``}
-          ${allergens.length ? `<span class="nf-chip"><strong>Allergens</strong> ${allergens.join(", ")}</span>` : ``}
-        </div>
-      `;
-
-      const groupedHTML = groupKeys.map(cls => {
-        const items = groups[cls] || [];
-        return `
-          <div class="nf-group">
-            <div class="nf-groupHead">
-              <b>${cls}</b>
-              <span class="nf-count">${items.length} item${items.length===1?"":"s"}</span>
-            </div>
-            ${items.map(i => {
-              const risk = (i?.risk || "low").toString().toLowerCase();
-              const riskCls = (risk==="high"||risk==="medium") ? risk : "low";
-              const tagStr = Array.isArray(i?.tags) && i.tags.length ? ` <span style="opacity:.75;">(${i.tags.join(", ")})</span>` : "";
-              return `
-                <div class="whyRow">
-                  <div style="display:flex; flex-direction:column; gap:2px;">
-                    <span style="color:rgba(232,238,247,.95); font-weight:800;">${i?.name || "—"}${tagStr}</span>
-                    ${Array.isArray(i?.matches) && i.matches.length ? `<div class="mini">Signals: ${i.matches.join(", ")}</div>` : ``}
-                  </div>
-                  <span class="nf-risk ${riskCls}">${riskCls}</span>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        `;
-      }).join("");
-
-      const notesHTML = notes.length
-        ? `<div class="nf-mutedLine">${notes.map(n => `• ${n}`).join("<br/>")}</div>`
-        : ``;
+      const caffeinePill = (markers?.caffeine ? `<span class="pill warn">Caffeine</span>` : ``);
+      const ePill = (eDetails.length ? `<span class="pill warn">E-numbers: ${eDetails.length}</span>` : `<span class="pill">E-numbers: none</span>`);
+      const sweetPill = (markers?.sweeteners ? `<span class="pill warn">Sweeteners: ${markers.sweeteners}</span>` : ``);
 
       return `
-        <div class="section" style="margin-top:12px;">
-          <div class="sectionTitle">Summary</div>
-          ${extraChips}
-          ${flagsRow}
-          ${notesHTML}
+        <div class="section">
+          <div class="sectionTitle">Ingredients Intelligence</div>
+          <div class="mini">
+            Σημείωση: Η γλώσσα των συστατικών είναι αυτή που δίνει η πηγή (OpenFoodFacts).
+          </div>
+
+          <div class="pillRow">
+            ${scorePill}
+            ${ePill}
+            ${sweetPill}
+            ${caffeinePill}
+          </div>
+
+          <div class="split" style="margin-top:12px;">
+            <div class="box">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">E-numbers explained</div>
+              ${eDetails.length ? eDetails.map(ed => `
+                <div class="eRow">
+                  <div class="eLeft">
+                    <b>${ed.code || "E—"} — ${ed.name || "Food additive"}</b>
+                    <small>${ed.meaning_el || ""}</small>
+                  </div>
+                  <div class="eRole">${ed.role || ""}</div>
+                </div>
+              `).join("") : `<div class="mini">No E-numbers detected from additives/tags or ingredient text.</div>`}
+
+              ${flags.length ? `<div class="whyFoot" style="margin-top:12px;"><b>Flags</b><br/>${flags.map(f => `• ${f}`).join("<br/>")}</div>` : ``}
+            </div>
+
+            <div class="box">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">Ingredients list (grouped)</div>
+
+              ${groupOrder.length ? groupOrder.map(cls => `
+                <div class="groupTitle">${cls}</div>
+                ${groups[cls].map(ing => {
+                  const nm = ing?.name || "—";
+                  const note = ing?.note || "";
+                  const risk = (ing?.risk || "low").toLowerCase();
+                  const riskCls = (risk === "high" ? "risk high" : (risk === "medium" ? "risk medium" : "risk low"));
+                  return `
+                    <div class="ingItem">
+                      <div class="ingLeft">
+                        <b>${nm}</b>
+                        <small>${note}</small>
+                      </div>
+                      <div class="${riskCls}">${risk}</div>
+                    </div>
+                  `;
+                }).join("")}
+              `).join("") : `<div class="mini">No ingredients available.</div>`}
+            </div>
+          </div>
+
+          <div class="btns">
+            <button class="ghost" id="backBtn">Back</button>
+            <button class="primary" id="nextBtn">Next</button>
+          </div>
         </div>
-        ${groupedHTML}
       `;
     }
 
@@ -720,60 +405,21 @@
       barFill.style.width = `${(step/4)*100}%`;
 
       if (step === 1){
-        const modeManualCls = scanMode === "manual" ? "modeBtn active" : "modeBtn";
-        const modeCamCls = scanMode === "camera" ? "modeBtn active" : "modeBtn";
-
-        const camUI = (scanMode === "camera") ? `
-          <div class="section">
-            <div class="sectionTitle">Scan barcode</div>
-
-            ${state.error ? `<div class="err">${state.error}</div>` : ``}
-
-            <div class="camWrap">
-              <video id="cam" playsinline muted></video>
-              <div class="overlay">
-                <div class="overlayDim"></div>
-                <div class="frame">
-                  <div class="corner c1"></div><div class="corner c2"></div>
-                  <div class="corner c3"></div><div class="corner c4"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="tiny">
-              Tip: Χρησιμοποίησε πίσω κάμερα. Κράτα σταθερά. Το barcode να είναι μέσα στο πλαίσιο.
-            </div>
-
-            <div class="btns">
-              <button class="primary" id="startCamBtn">Start camera</button>
-              <button class="ghost" id="stopCamBtn">Stop</button>
-            </div>
-          </div>
-        ` : ``;
-
         app.innerHTML = `
           <div class="row">
             <div class="col">
               <div class="section">
                 <div class="sectionTitle">Scan</div>
-                <div class="mini">Βάλε product id ή barcode (OpenFoodFacts fallback).</div>
+                <div class="mini">Βάλε product id ή barcode.</div>
 
-                <div class="modeRow">
-                  <div class="${modeManualCls}" id="modeManual">Manual</div>
-                  <div class="${modeCamCls}" id="modeCamera">Camera</div>
+                ${state.error ? `<div class="err">${state.error}</div>` : ``}
+
+                <div style="margin-top:10px;">
+                  <input id="keyInput" placeholder="π.χ. 9002490100070" value="${state.key || ""}"/>
                 </div>
-
-                ${scanMode === "manual" ? `
-                  ${state.error ? `<div class="err">${state.error}</div>` : ``}
-                  <div style="margin-top:10px;">
-                    <input id="keyInput" placeholder="π.χ. 5449000000996" value="${state.key || ""}"/>
-                  </div>
-                  <div class="btns">
-                    <button class="primary" id="scanBtn">${state.loading ? "Scanning..." : "Scan"}</button>
-                  </div>
-                ` : ``}
-
-                ${camUI}
+                <div class="btns">
+                  <button class="primary" id="scanBtn">${state.loading ? "Scanning..." : "Scan"}</button>
+                </div>
               </div>
             </div>
 
@@ -781,18 +427,14 @@
               <div class="section">
                 <div class="sectionTitle">How it works</div>
                 <div class="mini">
-                  • 1 fetch per scan<br/>
-                  • WHO-first scoring + hybrid nuance<br/>
-                  • Ingredients Intelligence (sweeteners, additives, allergens)<br/>
-                  • OpenFoodFacts fallback with normalization
+                  • OpenFoodFacts fetch + normalization<br/>
+                  • WHO-first baseline + hybrid nuance<br/>
+                  • Ingredients Intelligence + E-numbers explained
                 </div>
               </div>
             </div>
           </div>
         `;
-
-        document.getElementById("modeManual").onclick = () => { scanMode = "manual"; state.error=""; render(); };
-        document.getElementById("modeCamera").onclick = () => { scanMode = "camera"; state.error=""; render(); };
 
         const scanBtn = document.getElementById("scanBtn");
         const keyInput = document.getElementById("keyInput");
@@ -800,35 +442,30 @@
           scanBtn.onclick = () => doScan(keyInput.value);
           keyInput.onkeydown = (e) => { if (e.key === "Enter") doScan(keyInput.value); };
         }
-
-        const startCamBtn = document.getElementById("startCamBtn");
-        const stopCamBtn = document.getElementById("stopCamBtn");
-        if (startCamBtn) startCamBtn.onclick = () => startCamera();
-        if (stopCamBtn) stopCamBtn.onclick = () => stopCamera();
-
         return;
       }
 
       if (step === 2){
         const d = state.data || {};
+        const p = d.product || {};
         const score = d?.vitascore;
         const t = tierFromScore(score);
 
-        const img = getImageUrl(d);
-        const name = getDisplayName(d);
-        const brand = getDisplayBrand(d);
-        const ver = getScoreVersion(d);
-
-        const per100 = getPer100(d);
-        const unit = getUnitLabel(d);
+        // nutrition fields (new vs old)
+        const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
+        const unit = d?.meta?.serving?.unit || (p?.quantity?.toLowerCase?.().includes("ml") ? "ml" : "g");
+        const sugar = per100.sugar_g_per_100 ?? d?.nutrition_per_100?.sugar_g;
+        const salt = per100.salt_g_per_100 ?? d?.nutrition_per_100?.salt_g;
+        const sat = per100.saturated_fat_g_per_100 ?? d?.nutrition_per_100?.sat_fat_g;
+        const prot = per100.protein_g_per_100 ?? d?.nutrition_per_100?.protein_g;
 
         app.innerHTML = `
           <div class="section">
             <div class="prodHead">
-              ${img ? `<img class="prodImg" src="${img}" alt="product"/>` : `<div class="prodImg"></div>`}
+              ${p?.image_url ? `<img class="prodImg" src="${p.image_url}" alt="product"/>` : `<div class="prodImg"></div>`}
               <div class="prodMeta">
-                <b>${name}</b>
-                <span>${brand ? brand + " • " : ""}${ver ? ver : ""}</span>
+                <b>${p?.name || "Unknown Product"}</b>
+                <span>${p?.brand ? p.brand + " • " : ""}${d?.vitascore_version || ""}</span>
               </div>
             </div>
 
@@ -844,28 +481,11 @@
                 <div class="tier" style="background:${t.color}; border-color:${t.border};">${t.label}</div>
               </div>
 
-              <div id="nfBadges" class="nf-badges">
-                <span id="nfConfidenceBadge" class="nf-badge nf-badge--warn">
-                  <span class="nf-badge-dot"></span>
-                  <span id="nfConfidenceText">Confidence: —</span>
-                </span>
-
-                <span id="nfMissingBadge" class="nf-badge nf-badge--warn">
-                  <span class="nf-badge-dot"></span>
-                  <span id="nfMissingText">Missing: —</span>
-                </span>
-              </div>
-
-              <div id="nfServingCallout" class="nf-callout nf-hidden">
-                <div class="nf-callout-title" id="nfServingTitle">Serving sugar impact</div>
-                <div class="nf-callout-sub" id="nfServingBody">—</div>
-              </div>
-
               <div class="grid2">
-                <div class="kv"><small>Sugar</small><b>${fmtNum(per100.sugar)} g/100${unit}</b></div>
-                <div class="kv"><small>Salt</small><b>${fmtNum(per100.salt)} g/100${unit}</b></div>
-                <div class="kv"><small>Sat. fat</small><b>${fmtNum(per100.satFat)} g/100${unit}</b></div>
-                <div class="kv"><small>Protein</small><b>${fmtNum(per100.protein)} g/100${unit}</b></div>
+                <div class="kv"><small>Sugar</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>Salt</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>Sat. fat</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>Protein</small><b>${fmtNum(prot)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
               </div>
             </div>
 
@@ -879,29 +499,13 @@
           </div>
         `;
 
-        nfUpdateQuality(d);
-        nfUpdateServingSugarCallout(d);
-
         document.getElementById("backBtn").onclick = () => { step = 1; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 3; render(); };
         return;
       }
 
       if (step === 3){
-        const d = state.data || {};
-        app.innerHTML = `
-          <div class="section">
-            <div class="sectionTitle">Ingredients Intelligence</div>
-            <div class="mini">Signals: sweeteners, additives (E-numbers), allergens, processing markers.</div>
-
-            ${renderIngredientsIntel(d)}
-
-            <div class="btns">
-              <button class="ghost" id="backBtn">Back</button>
-              <button class="primary" id="nextBtn">Next</button>
-            </div>
-          </div>
-        `;
+        app.innerHTML = renderIngredientsIntel(state.data || {});
         document.getElementById("backBtn").onclick = () => { step = 2; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 4; render(); };
         return;
@@ -911,14 +515,6 @@
         const d = state.data || {};
         const alerts = Array.isArray(d?.alerts) ? d.alerts : [];
         const dq = d?.data_quality || {};
-        const bev = dq?.beverage_detection || {};
-        const meta = d?.meta || {};
-
-        const missing = Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields : [];
-        const missingTxt = missing.length ? missing.join(", ") : "none";
-
-        const serving = meta?.serving || {};
-        const servingTxt = (serving?.amount && serving?.unit) ? `${fmtNum(serving.amount)} ${serving.unit}` : "—";
 
         app.innerHTML = `
           <div class="section">
@@ -936,19 +532,12 @@
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">Data quality</div>
               <div class="mini">
-                Confidence: <b>${(typeof dq?.confidence === "number") ? Math.round(dq.confidence * 100) + "%" : "—"}</b><br/>
-                Missing core fields: <b>${missingTxt}</b><br/>
+                Confidence: <b>${dq?.confidence ?? "—"}</b><br/>
+                Missing fields: <b>${Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields.join(", ") : "—"}</b><br/>
                 Has serving: <b>${dq?.has_serving ? "yes" : "no"}</b><br/>
-                Serving used: <b>${servingTxt}</b> <span style="opacity:.85;">(${serving?.source || "—"})</span><br/>
-                Beverage: <b>${(typeof meta?.is_beverage === "boolean") ? (meta.is_beverage ? "yes" : "no") : "—"}</b><br/>
-                Beverage detection: <b>${bev?.signal || "—"}</b> • conf <b>${(typeof bev?.confidence === "number") ? Math.round(bev.confidence * 100) + "%" : "—"}</b><br/>
+                Beverage: <b>${dq?.beverage_detection?.value === true ? "yes" : (dq?.beverage_detection?.value === false ? "no" : "—")}</b><br/>
+                Signal: <b>${dq?.beverage_detection?.signal || "—"}</b>
               </div>
-
-              ${
-                Array.isArray(dq?.notes) && dq.notes.length
-                  ? `<div class="whyFoot" style="margin-top:10px;">${dq.notes.map(n => `• ${n}`).join("<br/>")}</div>`
-                  : ``
-              }
             </div>
 
             <div class="btns">
@@ -982,7 +571,7 @@
 
       try{
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}`);
-        const data = await res.json();
+        const data = await res.json().catch(()=> ({}));
         if (!res.ok || data?.error){
           state.error = data?.error || `Request failed (${res.status})`;
           state.loading = false;
@@ -998,35 +587,6 @@
         state.loading = false;
         render();
       }
-    }
-
-    let stream = null;
-
-    async function startCamera(){
-      try{
-        stopCamera();
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false
-        });
-        const video = document.getElementById("cam");
-        if (video){
-          video.srcObject = stream;
-          await video.play();
-        }
-      }catch(e){
-        state.error = "Camera blocked or not available (HTTPS required on mobile).";
-        render();
-      }
-    }
-
-    function stopCamera(){
-      try{
-        if (stream){
-          stream.getTracks().forEach(t => t.stop());
-          stream = null;
-        }
-      }catch(_){}
     }
 
     render();
