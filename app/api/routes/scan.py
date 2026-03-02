@@ -1,8 +1,11 @@
+# app/api/routes/scan.py
+
 from fastapi import APIRouter
 from app.services.scanner_service import scan_product
 
 router = APIRouter()
 
-@router.get("/scan/{product_id}")
-async def scan_endpoint(product_id: str):
-    return await scan_product(product_id)
+@router.get("/scan/{key}")
+async def scan_endpoint(key: str):
+    # scanner_service.scan_product is async -> must await
+    return await scan_product(key)
