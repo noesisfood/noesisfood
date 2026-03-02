@@ -1,4 +1,3 @@
-
 # app/services/openfoodfacts_service.py
 
 from __future__ import annotations
@@ -90,10 +89,24 @@ async def fetch_off_product(
 
     # OFF: status 1 = found, status 0 = not found
     if str(data.get("status")) != "1" and data.get("product") is None:
-        # Μερικές φορές το OFF μπορεί να μην έχει "product" όταν δεν βρει αποτέλεσμα
         return OFFResult(ok=False, status=404, error="Product not found in OpenFoodFacts")
 
     _cache_set(cache_key, data)
     return OFFResult(ok=True, status=200, payload=data)
-    # Backward-compatible alias for older imports
-fetch_openfoodfacts_product = fetch_off_product
+
+
+# -------------------------
+# Compatibility wrapper
+# -------------------------
+async def fetch_openfoodfacts_product(barcode: str) -> Optional[Dict[str, Any]]:
+    """
+    Backward-compatible function expected by scanner_service.
+
+    Returns:
+      - dict payload (OFF JSON) on success
+      - None if not found or request failed
+    """
+    res = await fetch_off_product(barcode)
+    if res.ok and isinstance(res.payload, dict):
+        return res.payload
+    return None
