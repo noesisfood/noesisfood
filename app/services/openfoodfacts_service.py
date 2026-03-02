@@ -95,3 +95,5 @@ async def fetch_off_product(
 
     _cache_set(cache_key, data)
     return OFFResult(ok=True, status=200, payload=data)
+    # Backward-compatible alias for older imports
+fetch_openfoodfacts_product = fetch_off_product
