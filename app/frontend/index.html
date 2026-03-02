@@ -259,6 +259,81 @@
       margin-top:10px;
       line-height:1.35;
     }
+
+    /* --- NoesisFood: Data Quality Badges + Serving Callout (Screen 2) --- */
+    .nf-badges { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+    .nf-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:999px;
+      font-size:12px; line-height:1;
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      user-select:none;
+    }
+    .nf-badge-dot { width:8px; height:8px; border-radius:50%; opacity:0.95; }
+    .nf-badge--good .nf-badge-dot { background: #4ade80; }
+    .nf-badge--warn .nf-badge-dot { background: #fbbf24; }
+    .nf-badge--bad  .nf-badge-dot { background: #fb7185; }
+
+    .nf-callout {
+      margin-top:12px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.07);
+    }
+    .nf-callout-title { font-weight:900; margin-bottom:6px; }
+    .nf-callout-sub { opacity:0.9; font-size:13px; line-height:1.35; }
+    .nf-hidden { display:none !important; }
+
+    /* --- NoesisFood: Ingredients Intelligence (Screen 3) --- */
+    .nf-intel-top{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-top:8px;
+    }
+    .nf-scorePill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      font-size:12px; font-weight:900;
+    }
+    .nf-scorePill small{font-weight:800; opacity:.85}
+    .nf-scorePill b{font-size:12px}
+    .nf-chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      font-size:12px;
+    }
+    .nf-chip strong{font-weight:900}
+    .nf-risk{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      opacity:.95;
+      white-space:nowrap;
+    }
+    .nf-risk.low{ background: rgba(110,255,190,.10); border-color: rgba(110,255,190,.22); }
+    .nf-risk.medium{ background: rgba(255,210,110,.10); border-color: rgba(255,210,110,.22); }
+    .nf-risk.high{ background: rgba(255,120,120,.10); border-color: rgba(255,120,120,.22); }
+
+    .nf-group{
+      margin-top:12px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.02);
+    }
+    .nf-groupHead{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .nf-groupHead b{font-size:13px}
+    .nf-count{ color: var(--muted); font-size:12px; }
+    .nf-mutedLine{ color: var(--muted); font-size:12px; line-height:1.35; margin-top:8px; }
   </style>
 </head>
 
@@ -306,29 +381,186 @@
       return {label:"Caution", cls:"tier", color:"rgba(255,120,120,.12)", border:"rgba(255,120,120,.32)"};
     }
 
+    // ---------- New backend payload adapters ----------
+    function getProduct(d){
+      return d?.product || {
+        name: d?.name,
+        brand: d?.brand,
+        image_url: d?.image_url,
+        categories: d?.categories || []
+      };
+    }
+
+    function getImageUrl(d){
+      const p = getProduct(d);
+      return p?.image_url || d?.image_url || null;
+    }
+
+    function getDisplayName(d){
+      const p = getProduct(d);
+      return p?.name || d?.name || "Unknown Product";
+    }
+
+    function getDisplayBrand(d){
+      const p = getProduct(d);
+      return p?.brand || d?.brand || "";
+    }
+
+    function getScoreVersion(d){
+      return d?.vitascore_version || d?.vitascore_breakdown?.model || d?.vitascore_breakdown?.version || "";
+    }
+
+    function isBeverage(d){
+      if (typeof d?.meta?.is_beverage === "boolean") return d.meta.is_beverage;
+      const bev = d?.data_quality?.beverage_detection;
+      if (typeof bev?.value === "boolean") return bev.value;
+      return false;
+    }
+
+    function getUnitLabel(d){
+      return isBeverage(d) ? "ml" : "g";
+    }
+
+    function getPer100(d){
+      const inp = d?.vitascore_breakdown?.per_100?.inputs || null;
+      const old = d?.nutrition_per_100 || null;
+
+      const sugar = inp?.sugar_g_per_100 ?? old?.sugar_g ?? null;
+      const salt = inp?.salt_g_per_100 ?? old?.salt_g ?? null;
+      const satFat = inp?.saturated_fat_g_per_100 ?? old?.sat_fat_g ?? null;
+      const protein = inp?.protein_g_per_100 ?? old?.protein_g ?? null;
+
+      return { sugar, salt, satFat, protein };
+    }
+
+    // ---------- Screen 2: Data quality badges + serving callout ----------
+    function nfSetBadge(el, level){
+      if (!el) return;
+      el.classList.remove("nf-badge--good","nf-badge--warn","nf-badge--bad");
+      el.classList.add(level === "good" ? "nf-badge--good" : level === "bad" ? "nf-badge--bad" : "nf-badge--warn");
+    }
+
+    function nfUpdateQuality(data){
+      const dq = data?.data_quality || {};
+      const conf = (typeof dq?.confidence === "number") ? dq.confidence : null;
+      const missing = Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields : [];
+
+      const confBadge = document.getElementById("nfConfidenceBadge");
+      const missBadge = document.getElementById("nfMissingBadge");
+
+      let confLevel = "warn";
+      if (conf !== null) {
+        if (conf >= 0.75) confLevel = "good";
+        else if (conf < 0.45) confLevel = "bad";
+      }
+      nfSetBadge(confBadge, confLevel);
+      const confTxt = document.getElementById("nfConfidenceText");
+      if (confTxt) confTxt.textContent = conf === null ? "Confidence: —" : `Confidence: ${Math.round(conf * 100)}%`;
+
+      let missLevel = "good";
+      let missText = "Complete core nutrition facts";
+      if (missing.length > 0) {
+        missLevel = missing.length >= 3 ? "bad" : "warn";
+        const pretty = missing.map(k => {
+          if (k === "energy_kcal") return "energy";
+          if (k === "sugar_g") return "sugar";
+          if (k === "salt_g") return "salt";
+          if (k === "saturated_fat_g") return "sat fat";
+          return k;
+        });
+        missText = `Missing: ${pretty.join(", ")}`;
+      }
+      nfSetBadge(missBadge, missLevel);
+      const missTxt = document.getElementById("nfMissingText");
+      if (missTxt) missTxt.textContent = missText;
+    }
+
+    function nfUpdateServingSugarCallout(data){
+      const whoSugar = data?.who_impact?.sugar || {};
+      const gServ = (typeof whoSugar?.g_per_serving === "number") ? whoSugar.g_per_serving : null;
+      const pctIdeal = (typeof whoSugar?.percent_of_ideal_25g === "number") ? whoSugar.percent_of_ideal_25g : null;
+
+      const gServOld = (typeof data?.who_impact?.sugar_per_serving_g === "number") ? data.who_impact.sugar_per_serving_g : null;
+      const pctIdealOld = (typeof data?.who_impact?.percent_of_ideal === "number") ? data.who_impact.percent_of_ideal : null;
+
+      const g = gServ ?? gServOld;
+      const pct = pctIdeal ?? pctIdealOld;
+
+      const spikeExtra = data?.vitascore_breakdown?.per_serving?.penalties?.sugar_spike_extra;
+      const hasSpike = (typeof spikeExtra === "number") && spikeExtra > 0.01;
+
+      const shouldShow =
+        (g !== null && g >= 20) ||
+        (pct !== null && pct >= 100) ||
+        hasSpike;
+
+      const wrap = document.getElementById("nfServingCallout");
+      if (!wrap) return;
+
+      if (!shouldShow){
+        wrap.classList.add("nf-hidden");
+        return;
+      }
+
+      const titleEl = document.getElementById("nfServingTitle");
+      const bodyEl = document.getElementById("nfServingBody");
+
+      if (titleEl) titleEl.textContent = "Serving sugar impact";
+
+      const parts = [];
+      if (g !== null) parts.push(`Sugar per serving: ${g.toFixed(1)}g`);
+      if (pct !== null) parts.push(`${pct}% of the 25g/day reference`);
+      if (hasSpike) parts.push("Large single-serve spike detected");
+
+      const tip = (pct !== null && pct >= 100)
+        ? "Tip: consider a smaller serving or a zero/low-sugar alternative."
+        : "Tip: keep serving size in mind—single-serve amounts can add up fast.";
+
+      if (bodyEl) bodyEl.textContent = `${parts.join(" · ")}. ${tip}`;
+
+      wrap.classList.remove("nf-hidden");
+    }
+
+    // ---------- WHO block ----------
     function whoServingBlock(data){
       const who = data?.who_impact;
       if (!who) return ``;
 
-      const sugar = who.sugar_per_serving_g;
-      const pctIdeal = who.percent_of_ideal;
-      const pctUpper = who.percent_of_upper;
+      const sugarObj = who?.sugar || {};
+      const sugarNew = (typeof sugarObj?.g_per_serving === "number") ? sugarObj.g_per_serving : null;
+      const pctIdealNew = (typeof sugarObj?.percent_of_ideal_25g === "number") ? sugarObj.percent_of_ideal_25g : null;
+      const pctUpperNew = (typeof sugarObj?.percent_of_upper_50g === "number") ? sugarObj.percent_of_upper_50g : null;
+
+      const sugarOld = (typeof who?.sugar_per_serving_g === "number") ? who.sugar_per_serving_g : null;
+      const pctIdealOld = (typeof who?.percent_of_ideal === "number") ? who.percent_of_ideal : null;
+      const pctUpperOld = (typeof who?.percent_of_upper === "number") ? who.percent_of_upper : null;
+
+      const sugar = sugarNew ?? sugarOld;
+      const pctIdeal = pctIdealNew ?? pctIdealOld;
+      const pctUpper = pctUpperNew ?? pctUpperOld;
 
       const flags = [];
-      if (who.exceeds_ideal) flags.push(`<span class="pill">Exceeds ideal 25g</span>`);
-      if (who.exceeds_upper) flags.push(`<span class="pill">Exceeds upper 50g</span>`);
+      if (pctIdeal !== null && pctIdeal >= 100) flags.push(`<span class="pill">Exceeds ideal 25g</span>`);
+      if (pctUpper !== null && pctUpper >= 100) flags.push(`<span class="pill">Exceeds upper 50g</span>`);
+
+      const servingMeta = who?.serving || {};
+      const servingTxt = (servingMeta?.serving_amount && servingMeta?.serving_unit)
+        ? `${fmtNum(servingMeta.serving_amount)} ${servingMeta.serving_unit}`
+        : "";
+
+      const interp = who?.interpretation || "";
 
       return `
         <div class="section">
           <div class="sectionTitle">WHO sugar impact</div>
           <div class="grid2">
-            <div class="kv"><small>Sugar per serving</small><b>${fmtNum(sugar)} g</b></div>
+            <div class="kv"><small>Sugar per serving ${servingTxt ? `(${servingTxt})` : ""}</small><b>${fmtNum(sugar)} g</b></div>
             <div class="kv"><small>% of ideal (25g/day)</small><b>${fmtNum(pctIdeal)}%</b></div>
             <div class="kv"><small>% of upper (50g/day)</small><b>${fmtNum(pctUpper)}%</b></div>
             <div class="kv"><small>Limits</small><b>25g ideal • 50g upper</b></div>
           </div>
           ${flags.length ? `<div class="pillRow">${flags.join("")}</div>` : ``}
-          <div class="whyFoot">Per-serving calculation based on declared serving size.</div>
+          ${interp ? `<div class="whyFoot">${interp}</div>` : `<div class="whyFoot">Per-serving comparison vs common daily sugar reference points.</div>`}
         </div>
       `;
     }
@@ -372,10 +604,114 @@
           }
 
           <div class="whyFoot" style="margin-top:12px;">
-            Based on WHO guidance & EU reference intakes.
+            Based on WHO guidance & reference intakes.
             Educational tool — not medical advice.
           </div>
         </div>
+      `;
+    }
+
+    // ---------- Screen 3: Ingredients Intelligence renderer ----------
+    function renderIngredientsIntel(d){
+      const intel = d?.ingredients_intelligence || null;
+      const ings = Array.isArray(d?.ingredients) ? d.ingredients : [];
+
+      if (!intel){
+        // fallback old view
+        return `
+          <div class="section" style="margin-top:12px;">
+            ${ings.length ? `
+              ${ings.map(i => `<div class="whyRow">${i?.name || "—"} <span>${i?.class || ""}</span></div>`).join("")}
+            ` : `<div class="mini">No ingredients.</div>`}
+          </div>
+        `;
+      }
+
+      const score = typeof intel.processing_score === "number" ? intel.processing_score : null;
+      const label = intel.processing_label || "—";
+      const flags = Array.isArray(intel.flags) ? intel.flags : [];
+      const eNums = Array.isArray(intel.detected_e_numbers) ? intel.detected_e_numbers : [];
+      const allergens = Array.isArray(intel.allergens) ? intel.allergens : [];
+      const notes = Array.isArray(intel.notes) ? intel.notes : [];
+
+      // Group ingredients by class
+      const groups = {};
+      for (const it of ings){
+        const cls = (it?.class || "Other").toString();
+        if (!groups[cls]) groups[cls] = [];
+        groups[cls].push(it);
+      }
+
+      const groupOrder = [
+        "Allergen","Sweetener","Preservative","Emulsifier","Stabilizer","Colorant",
+        "Flavoring","Acidifier","Caffeine","Additive","Other"
+      ];
+      const groupKeys = Object.keys(groups).sort((a,b)=>{
+        const ia = groupOrder.indexOf(a); const ib = groupOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+
+      const scorePill = `
+        <span class="nf-scorePill">
+          <small>Processing</small>
+          <b>${score === null ? "—" : `${score}/10`}</b>
+          <span style="opacity:.85; font-weight:800;">• ${label}</span>
+        </span>
+      `;
+
+      const flagsRow = flags.length
+        ? `<div class="pillRow" style="margin-top:10px;">${flags.map(f => `<span class="pill">${f}</span>`).join("")}</div>`
+        : `<div class="mini" style="margin-top:8px;">No notable ingredient flags.</div>`;
+
+      const extraChips = `
+        <div class="nf-intel-top">
+          ${scorePill}
+          ${eNums.length ? `<span class="nf-chip"><strong>E-numbers</strong> ${eNums.join(", ")}</span>` : ``}
+          ${allergens.length ? `<span class="nf-chip"><strong>Allergens</strong> ${allergens.join(", ")}</span>` : ``}
+        </div>
+      `;
+
+      const groupedHTML = groupKeys.map(cls => {
+        const items = groups[cls] || [];
+        return `
+          <div class="nf-group">
+            <div class="nf-groupHead">
+              <b>${cls}</b>
+              <span class="nf-count">${items.length} item${items.length===1?"":"s"}</span>
+            </div>
+            ${items.map(i => {
+              const risk = (i?.risk || "low").toString().toLowerCase();
+              const riskCls = (risk==="high"||risk==="medium") ? risk : "low";
+              const tagStr = Array.isArray(i?.tags) && i.tags.length ? ` <span style="opacity:.75;">(${i.tags.join(", ")})</span>` : "";
+              return `
+                <div class="whyRow">
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="color:rgba(232,238,247,.95); font-weight:800;">${i?.name || "—"}${tagStr}</span>
+                    ${Array.isArray(i?.matches) && i.matches.length ? `<div class="mini">Signals: ${i.matches.join(", ")}</div>` : ``}
+                  </div>
+                  <span class="nf-risk ${riskCls}">${riskCls}</span>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }).join("");
+
+      const notesHTML = notes.length
+        ? `<div class="nf-mutedLine">${notes.map(n => `• ${n}`).join("<br/>")}</div>`
+        : ``;
+
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">Summary</div>
+          ${extraChips}
+          ${flagsRow}
+          ${notesHTML}
+        </div>
+        ${groupedHTML}
       `;
     }
 
@@ -446,8 +782,8 @@
                 <div class="sectionTitle">How it works</div>
                 <div class="mini">
                   • 1 fetch per scan<br/>
-                  • Hybrid scoring (per 100g/100ml + serving sugar penalty + protein bonus for solids)<br/>
-                  • WHO sugar impact per serving<br/>
+                  • WHO-first scoring + hybrid nuance<br/>
+                  • Ingredients Intelligence (sweeteners, additives, allergens)<br/>
                   • OpenFoodFacts fallback with normalization
                 </div>
               </div>
@@ -474,17 +810,25 @@
       }
 
       if (step === 2){
-        const d = state.data;
+        const d = state.data || {};
         const score = d?.vitascore;
         const t = tierFromScore(score);
+
+        const img = getImageUrl(d);
+        const name = getDisplayName(d);
+        const brand = getDisplayBrand(d);
+        const ver = getScoreVersion(d);
+
+        const per100 = getPer100(d);
+        const unit = getUnitLabel(d);
 
         app.innerHTML = `
           <div class="section">
             <div class="prodHead">
-              ${d?.image_url ? `<img class="prodImg" src="${d.image_url}" alt="product"/>` : `<div class="prodImg"></div>`}
+              ${img ? `<img class="prodImg" src="${img}" alt="product"/>` : `<div class="prodImg"></div>`}
               <div class="prodMeta">
-                <b>${d?.name || "Unknown Product"}</b>
-                <span>${d?.brand ? d.brand + " • " : ""}${d?.source || ""}</span>
+                <b>${name}</b>
+                <span>${brand ? brand + " • " : ""}${ver ? ver : ""}</span>
               </div>
             </div>
 
@@ -492,7 +836,6 @@
               <div class="scoreWrap">
                 <div>
                   <div class="mini">VitaScore</div>
-                  <!-- ✅ ΜΟΝΙΜΟ /100 -->
                   <div class="scoreLine">
                     <div class="score">${score ?? "—"}</div>
                     <div class="scoreMax">/100</div>
@@ -501,11 +844,28 @@
                 <div class="tier" style="background:${t.color}; border-color:${t.border};">${t.label}</div>
               </div>
 
+              <div id="nfBadges" class="nf-badges">
+                <span id="nfConfidenceBadge" class="nf-badge nf-badge--warn">
+                  <span class="nf-badge-dot"></span>
+                  <span id="nfConfidenceText">Confidence: —</span>
+                </span>
+
+                <span id="nfMissingBadge" class="nf-badge nf-badge--warn">
+                  <span class="nf-badge-dot"></span>
+                  <span id="nfMissingText">Missing: —</span>
+                </span>
+              </div>
+
+              <div id="nfServingCallout" class="nf-callout nf-hidden">
+                <div class="nf-callout-title" id="nfServingTitle">Serving sugar impact</div>
+                <div class="nf-callout-sub" id="nfServingBody">—</div>
+              </div>
+
               <div class="grid2">
-                <div class="kv"><small>Sugar</small><b>${fmtNum(d?.nutrition_per_100?.sugar_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
-                <div class="kv"><small>Salt</small><b>${fmtNum(d?.nutrition_per_100?.salt_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
-                <div class="kv"><small>Sat. fat</small><b>${fmtNum(d?.nutrition_per_100?.sat_fat_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
-                <div class="kv"><small>Protein</small><b>${fmtNum(d?.nutrition_per_100?.protein_g)} g/100${(d?.nutrition_per_100?.unit || "g")}</b></div>
+                <div class="kv"><small>Sugar</small><b>${fmtNum(per100.sugar)} g/100${unit}</b></div>
+                <div class="kv"><small>Salt</small><b>${fmtNum(per100.salt)} g/100${unit}</b></div>
+                <div class="kv"><small>Sat. fat</small><b>${fmtNum(per100.satFat)} g/100${unit}</b></div>
+                <div class="kv"><small>Protein</small><b>${fmtNum(per100.protein)} g/100${unit}</b></div>
               </div>
             </div>
 
@@ -519,24 +879,22 @@
           </div>
         `;
 
+        nfUpdateQuality(d);
+        nfUpdateServingSugarCallout(d);
+
         document.getElementById("backBtn").onclick = () => { step = 1; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 3; render(); };
         return;
       }
 
       if (step === 3){
-        const d = state.data;
-        const ings = Array.isArray(d?.ingredients) ? d.ingredients : [];
+        const d = state.data || {};
         app.innerHTML = `
           <div class="section">
             <div class="sectionTitle">Ingredients Intelligence</div>
-            <div class="mini">Quick read of ingredients list (from source).</div>
+            <div class="mini">Signals: sweeteners, additives (E-numbers), allergens, processing markers.</div>
 
-            <div class="section" style="margin-top:12px;">
-              ${ings.length ? `
-                ${ings.map(i => `<div class="whyRow">${i?.name || "—"} <span>${i?.class || ""}</span></div>`).join("")}
-              ` : `<div class="mini">No ingredients.</div>`}
-            </div>
+            ${renderIngredientsIntel(d)}
 
             <div class="btns">
               <button class="ghost" id="backBtn">Back</button>
@@ -550,9 +908,17 @@
       }
 
       if (step === 4){
-        const d = state.data;
+        const d = state.data || {};
         const alerts = Array.isArray(d?.alerts) ? d.alerts : [];
-        const dq = d?.data_quality;
+        const dq = d?.data_quality || {};
+        const bev = dq?.beverage_detection || {};
+        const meta = d?.meta || {};
+
+        const missing = Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields : [];
+        const missingTxt = missing.length ? missing.join(", ") : "none";
+
+        const serving = meta?.serving || {};
+        const servingTxt = (serving?.amount && serving?.unit) ? `${fmtNum(serving.amount)} ${serving.unit}` : "—";
 
         app.innerHTML = `
           <div class="section">
@@ -570,13 +936,19 @@
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">Data quality</div>
               <div class="mini">
-                Source: <b>${dq?.source || "—"}</b><br/>
-                Confidence: <b>${dq?.confidence || "—"}</b><br/>
-                Serving inferred: <b>${dq?.serving_size_inferred ? "yes" : "no"}</b><br/>
-                Beverage: <b>${dq?.is_beverage ? "yes" : "no"}</b><br/>
-                Beverage inferred: <b>${dq?.is_beverage_inferred ? "yes" : "no"}</b><br/>
-                Reason: <b>${dq?.beverage_inference_reason || "—"}</b>
+                Confidence: <b>${(typeof dq?.confidence === "number") ? Math.round(dq.confidence * 100) + "%" : "—"}</b><br/>
+                Missing core fields: <b>${missingTxt}</b><br/>
+                Has serving: <b>${dq?.has_serving ? "yes" : "no"}</b><br/>
+                Serving used: <b>${servingTxt}</b> <span style="opacity:.85;">(${serving?.source || "—"})</span><br/>
+                Beverage: <b>${(typeof meta?.is_beverage === "boolean") ? (meta.is_beverage ? "yes" : "no") : "—"}</b><br/>
+                Beverage detection: <b>${bev?.signal || "—"}</b> • conf <b>${(typeof bev?.confidence === "number") ? Math.round(bev.confidence * 100) + "%" : "—"}</b><br/>
               </div>
+
+              ${
+                Array.isArray(dq?.notes) && dq.notes.length
+                  ? `<div class="whyFoot" style="margin-top:10px;">${dq.notes.map(n => `• ${n}`).join("<br/>")}</div>`
+                  : ``
+              }
             </div>
 
             <div class="btns">

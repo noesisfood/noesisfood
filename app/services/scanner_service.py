@@ -1,382 +1,1094 @@
+"""
+NoesisFood - Scanner Service (WHO-first + v3_hybrid_pro)
+
++ Ingredients Intelligence v1
++ E-number explanations (E-codes + meaning/role)
++ NEW: detect E-numbers from OFF additives_tags (raw + normalized)
++ NEW: caffeine detection includes "kofeina" (PL)
+"""
+
+from __future__ import annotations
+
 import json
+import re
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from app.services.openfoodfacts_service import fetch_off_product
-from app.services.product_normalizer import normalize_openfoodfacts
+from app.services.openfoodfacts_service import fetch_openfoodfacts_product
+from app.services.product_normalizer import normalize_product
 
-APP_DIR = Path(__file__).resolve().parents[1]
-DATA_DIR = APP_DIR / "data"
+
+# -------------------------
+# Paths / local data
+# -------------------------
+APP_DIR = Path(__file__).resolve().parent  # app/services/
+DATA_DIR = APP_DIR.parent / "data"         # app/data/
 
 PRODUCTS_FILE = DATA_DIR / "products.json"
-RASFF_FILE = DATA_DIR / "rasff_alerts.json"
+RASFF_FILE = DATA_DIR / "rasff.json"
 
+
+# -------------------------
+# WHO reference points (baseline)
+# -------------------------
 WHO_SUGAR_IDEAL = 25.0
 WHO_SUGAR_UPPER = 50.0
-
-SERVING_SUGAR_THRESHOLD_G = 12.5
-SERVING_SUGAR_MULTIPLIER = 1.0
-SERVING_SUGAR_PENALTY_CAP = 20
-
-PROTEIN_BONUS_THRESHOLD_G = 3.0
-PROTEIN_BONUS_MULTIPLIER = 1.0
-PROTEIN_BONUS_CAP = 8
+WHO_SALT_G_PER_DAY = 5.0
+WHO_SATFAT_G_PER_DAY_PROXY = 20.0
 
 
+# -----------------------------
+# Helpers
+# -----------------------------
 def _load_json(path: Path, default: Any) -> Any:
     try:
-        if not path.exists():
-            return default
-        with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return default
+        pass
+    return default
 
 
-products_db: Dict[str, Any] = _load_json(PRODUCTS_FILE, default={})
-rasff_db: Dict[str, Any] = _load_json(RASFF_FILE, default={})
+def _to_float(x: Any) -> Optional[float]:
+    try:
+        if x is None:
+            return None
+        if isinstance(x, (int, float)):
+            return float(x)
+        s = str(x).strip()
+        if not s:
+            return None
+        s = s.replace(",", ".")
+        return float(s)
+    except Exception:
+        return None
 
 
-def _clamp_score(x: float) -> int:
-    return max(0, min(100, int(round(x))))
+def _as_list(x: Any) -> List[Any]:
+    return x if isinstance(x, list) else []
 
 
-def _build_data_quality(
-    source: str,
-    nutrition_per_100: dict,
-    ingredients: list,
-    serving_size_inferred: bool,
-    is_beverage_inferred: bool,
-    is_beverage: bool,
-    beverage_reason: Optional[str],
-) -> Dict[str, Any]:
+def _clamp(v: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, v))
 
-    required_fields = ["sugar_g", "salt_g", "sat_fat_g"]
-    present = []
-    missing = []
 
-    for f in required_fields:
-        if nutrition_per_100.get(f) is not None:
-            present.append(f)
-        else:
-            missing.append(f)
+def _pct(n: Optional[float], d: float) -> Optional[int]:
+    if n is None or d <= 0:
+        return None
+    return int(round((float(n) / d) * 100.0))
 
-    nutrition_complete = len(missing) == 0
-    ingredients_available = len(ingredients) > 0
 
-    if source == "local":
-        confidence = "high"
-    elif nutrition_complete and ingredients_available:
-        confidence = "high"
-    elif nutrition_complete:
-        confidence = "medium"
-    else:
-        confidence = "low"
+def _get_path(d: Dict[str, Any], *keys: str) -> Any:
+    cur: Any = d
+    for k in keys:
+        if not isinstance(cur, dict) or k not in cur:
+            return None
+        cur = cur[k]
+    return cur
 
+
+# -------------------------
+# Local product + alerts
+# -------------------------
+def _find_local_product(products: List[Dict[str, Any]], key: str) -> Optional[Dict[str, Any]]:
+    k = (key or "").strip()
+    if not k:
+        return None
+    for p in products:
+        if str(p.get("id", "")).strip() == k:
+            return p
+        if str(p.get("key", "")).strip() == k:
+            return p
+        if str(p.get("barcode", "")).strip() == k:
+            return p
+        if str(p.get("off_code", "")).strip() == k:
+            return p
+    return None
+
+
+def _collect_alerts(rasff: List[Dict[str, Any]], product: Dict[str, Any]) -> List[str]:
+    alerts: List[str] = []
+
+    key_candidates = {
+        str(product.get("barcode", "")).strip(),
+        str(product.get("off_code", "")).strip(),
+        str(product.get("id", "")).strip(),
+        str(product.get("key", "")).strip(),
+    }
+    key_candidates = {k for k in key_candidates if k}
+
+    name = (product.get("name") or "").lower()
+    brand = (product.get("brand") or "").lower()
+
+    for item in rasff:
+        code = str(item.get("barcode") or item.get("off_code") or "").strip()
+        if code and code in key_candidates:
+            alerts.append(str(item.get("title") or item.get("alert") or "RASFF alert"))
+            continue
+        kw = str(item.get("keyword") or "").lower().strip()
+        if kw and (kw in name or kw in brand):
+            alerts.append(str(item.get("title") or item.get("alert") or "RASFF alert"))
+
+    seen = set()
+    out = []
+    for a in alerts:
+        if a and a not in seen:
+            seen.add(a)
+            out.append(a)
+    return out
+
+
+# -----------------------------
+# Normalizer compatibility
+# -----------------------------
+def _normalize(raw: Dict[str, Any], source: Optional[str]) -> Dict[str, Any]:
+    try:
+        return normalize_product(raw, source=source)
+    except TypeError:
+        return normalize_product(raw)
+
+
+# -----------------------------
+# Nutrients extraction
+# -----------------------------
+def _nutrients_per_100(normalized: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    per100 = _get_path(normalized, "nutriments", "per_100")
+    if isinstance(per100, dict) and per100:
+        return {
+            "energy_kcal": _to_float(per100.get("energy_kcal")),
+            "sugar_g": _to_float(per100.get("sugar_g")),
+            "saturated_fat_g": _to_float(per100.get("saturated_fat_g")),
+            "salt_g": _to_float(per100.get("salt_g")),
+            "fiber_g": _to_float(per100.get("fiber_g")),
+            "protein_g": _to_float(per100.get("protein_g")),
+            "fruits_veg_percent": _to_float(per100.get("fruits_veg_percent")),
+        }
+
+    old = normalized.get("nutrition_per_100") or {}
+    if not isinstance(old, dict):
+        old = {}
     return {
-        "source": source,
-        "nutrition_fields_present": present,
-        "missing_fields": missing,
-        "nutrition_complete": nutrition_complete,
-        "ingredients_available": ingredients_available,
-        "serving_size_inferred": serving_size_inferred,
-        "is_beverage": is_beverage,
-        "is_beverage_inferred": is_beverage_inferred,
-        "beverage_inference_reason": beverage_reason,
-        "confidence": confidence,
+        "energy_kcal": _to_float(old.get("energy_kcal")),
+        "sugar_g": _to_float(old.get("sugar_g")),
+        "saturated_fat_g": _to_float(old.get("sat_fat_g") if "sat_fat_g" in old else old.get("saturated_fat_g")),
+        "salt_g": _to_float(old.get("salt_g")),
+        "fiber_g": _to_float(old.get("fiber_g")),
+        "protein_g": _to_float(old.get("protein_g")),
+        "fruits_veg_percent": _to_float(old.get("fruits_veg_percent")),
     }
 
 
-def _who_sugar_per_serving(nutrition_per_100: dict) -> float:
-    sugar_per_100 = float(nutrition_per_100.get("sugar_g", 0) or 0)
-    serving_size = float(nutrition_per_100.get("serving_size", 1.0) or 1.0)
-    return (sugar_per_100 / 100.0) * serving_size
+def _guess_is_beverage(normalized: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+    meta_is_bev = _get_path(normalized, "meta", "is_beverage")
+    if isinstance(meta_is_bev, bool):
+        return meta_is_bev, {"signal": "meta.is_beverage", "value": meta_is_bev, "confidence": 0.95}
+
+    dq_is_bev = _get_path(normalized, "data_quality", "is_beverage")
+    if isinstance(dq_is_bev, bool):
+        return dq_is_bev, {"signal": "data_quality.is_beverage", "value": dq_is_bev, "confidence": 0.85}
+
+    unit_old = str(_get_path(normalized, "nutrition_per_100", "unit") or "").lower().strip()
+    if unit_old == "ml":
+        return True, {"signal": "nutrition_per_100.unit", "value": True, "confidence": 0.70}
+
+    categories = (normalized.get("categories") or []) + (normalized.get("categories_tags") or [])
+    categories_s = " ".join([str(x).lower() for x in categories]) if isinstance(categories, list) else str(categories).lower()
+
+    beverage_markers = [
+        "beverage", "beverages", "drink", "drinks", "soft drink", "soda",
+        "juice", "water", "sparkling", "energy drink", "sports drink",
+        "tea", "coffee", "cola", "lemonade",
+        "en:beverages", "en:soft-drinks", "en:juices", "en:waters",
+    ]
+    marker_hit = any(m in categories_s for m in beverage_markers)
+
+    serving_unit = str(_get_path(normalized, "serving", "unit") or _get_path(normalized, "nutrition_per_100", "unit") or "").lower()
+    serving_value = _to_float(_get_path(normalized, "serving", "value") or _get_path(normalized, "nutrition_per_100", "serving_size"))
+
+    unit_hit = serving_unit in {"ml", "cl", "l"}
+    confidence = 0.40
+    signals = []
+    if marker_hit:
+        confidence += 0.35
+        signals.append("category_marker")
+    if unit_hit:
+        confidence += 0.20
+        signals.append("serving_unit_ml_like")
+    if serving_value is not None and unit_hit and serving_value >= 150:
+        confidence += 0.10
+        signals.append("serving_value_plausible")
+
+    confidence = float(_clamp(confidence, 0.0, 0.95))
+    return (confidence >= 0.60), {
+        "signal": "heuristic",
+        "signals": signals,
+        "confidence": confidence,
+        "serving_unit": serving_unit or None,
+        "serving_value": serving_value,
+    }
 
 
-def _protein_bonus(nutrition_per_100: dict, is_beverage: bool) -> float:
+def _serving_size_in_g_or_ml(normalized: Dict[str, Any], is_beverage: bool) -> Tuple[Optional[float], str, str]:
+    unit = str(_get_path(normalized, "serving", "unit") or "").lower().strip()
+    val = _to_float(_get_path(normalized, "serving", "value"))
+
+    if val is None:
+        val = _to_float(_get_path(normalized, "nutrition_per_100", "serving_size"))
+        unit = str(_get_path(normalized, "nutrition_per_100", "unit") or unit).lower().strip()
+
+    if val is not None and unit in {"g", "ml"}:
+        return val, unit, "from_product"
+
+    if is_beverage and val is not None and unit in {"cl", "l"}:
+        if unit == "cl":
+            return val * 10.0, "ml", "converted_from_cl"
+        if unit == "l":
+            return val * 1000.0, "ml", "converted_from_l"
+
     if is_beverage:
-        return 0.0
-
-    protein = float(nutrition_per_100.get("protein_g", 0) or 0)
-    if protein <= PROTEIN_BONUS_THRESHOLD_G:
-        return 0.0
-
-    raw = (protein - PROTEIN_BONUS_THRESHOLD_G) * PROTEIN_BONUS_MULTIPLIER
-    return min(float(PROTEIN_BONUS_CAP), max(0.0, raw))
+        return 250.0, "ml", "default_250ml"
+    return 100.0, "g", "default_100g"
 
 
-def _v3_hybrid_score(nutrition_per_100: dict, is_beverage: bool) -> Dict[str, Any]:
-    sugar = float(nutrition_per_100.get("sugar_g", 0) or 0)
-    salt = float(nutrition_per_100.get("salt_g", 0) or 0)
-    sat_fat = float(nutrition_per_100.get("sat_fat_g", 0) or 0)
-    protein = float(nutrition_per_100.get("protein_g", 0) or 0)
+def _per_serving_from_per_100(per100_val: Optional[float], serving_amount: float) -> Optional[float]:
+    if per100_val is None:
+        return None
+    return per100_val * (serving_amount / 100.0)
 
-    sugar_w = 6.0 if is_beverage else 5.0
-    salt_w = 10.0
-    satfat_w = 4.0
 
-    penalty_sugar = sugar * sugar_w
-    penalty_salt = salt * salt_w
-    penalty_sat_fat = sat_fat * satfat_w
+# -----------------------------
+# Ingredients Intelligence v1 + E explanations
+# -----------------------------
+_E_NUMBER_RE = re.compile(r"\bE\s?(\d{3,4})([a-z])?\b", re.IGNORECASE)
 
-    sugar_per_serving = _who_sugar_per_serving(nutrition_per_100)
+# NEW: include PL "kofeina"
+_CAFFEINE_MARKERS = ("caffeine", "koffein", "caffein", "kofeina")
 
-    raw_serving_penalty = 0.0
-    if sugar_per_serving > SERVING_SUGAR_THRESHOLD_G:
-        raw_serving_penalty = (
-            (sugar_per_serving - SERVING_SUGAR_THRESHOLD_G)
-            * SERVING_SUGAR_MULTIPLIER
-        )
+# Small high-impact glossary (expand anytime)
+_E_GLOSSARY: Dict[str, Dict[str, str]] = {
+    "E950": {"name": "Acesulfame K", "meaning_el": "Γλυκαντικό (χωρίς ζάχαρη)"},
+    "E951": {"name": "Aspartame", "meaning_el": "Γλυκαντικό"},
+    "E955": {"name": "Sucralose", "meaning_el": "Γλυκαντικό"},
+    "E960": {"name": "Steviol glycosides (Stevia)", "meaning_el": "Γλυκαντικό (στέβια)"},
+    "E150D": {"name": "Caramel colour (Class IV)", "meaning_el": "Χρωστική καραμέλας"},
+    "E150": {"name": "Caramel colour", "meaning_el": "Χρωστική καραμέλας"},
+    "E330": {"name": "Citric acid", "meaning_el": "Οξύ / ρυθμιστής οξύτητας"},
+    "E338": {"name": "Phosphoric acid", "meaning_el": "Οξύ / ρυθμιστής οξύτητας"},
+    "E202": {"name": "Potassium sorbate", "meaning_el": "Συντηρητικό"},
+    "E211": {"name": "Sodium benzoate", "meaning_el": "Συντηρητικό"},
+    "E415": {"name": "Xanthan gum", "meaning_el": "Πηκτικό / σταθεροποιητής"},
+    "E322": {"name": "Lecithins", "meaning_el": "Γαλακτωματοποιητής"},
+    "E471": {"name": "Mono- & diglycerides of fatty acids", "meaning_el": "Γαλακτωματοποιητής"},
+    "E621": {"name": "Monosodium glutamate (MSG)", "meaning_el": "Ενισχυτικό γεύσης"},
+}
 
-    penalty_serving_sugar = min(
-        float(SERVING_SUGAR_PENALTY_CAP),
-        max(0.0, raw_serving_penalty),
-    )
+_ALLERGENS = {
+    "milk": ["milk", "milch", "lait", "latte", "γάλα", "γαλα", "MILCH", "MILK"],
+    "gluten": ["gluten", "wheat", "weizen", "σιτάρι", "σιταρι", "barley", "rye", "oats"],
+    "soy": ["soy", "soja", "soya", "σόγια", "σογια"],
+    "nuts": ["nuts", "almond", "hazelnut", "walnut", "peanut", "cashew", "pistachio", "αμύγδαλο", "φουντούκι"],
+    "egg": ["egg", "eggs", "eier", "αυγό", "αυγο"],
+    "fish": ["fish", "fisch", "ψάρι", "ψαρι"],
+    "shellfish": ["shrimp", "prawn", "crab", "lobster", "shellfish", "γαρίδα", "γαριδα"],
+    "sesame": ["sesame", "σησάμι", "σησαμι"],
+    "mustard": ["mustard", "senf", "μουστάρδα", "μουσταρδα"],
+    "celery": ["celery", "sellerie", "σέλινο", "σελινο"],
+}
 
-    bonus_protein = _protein_bonus(nutrition_per_100, is_beverage)
+_ING_MAP = {
+    "Sweetener": ["aspartame", "acesulfame", "acesulfame-k", "sucralose", "stevia", "steviol", "saccharin",
+                  "cyclamate", "neotame", "advantame", "süßstoff", "sweetener", "sweeteners"],
+    "Preservative": ["preservative", "preservatives", "konservierungsstoff", "konservierungsstoffe", "sorbate",
+                     "sorbic", "benzoate", "benzoic", "nitrite", "nitrate", "sulfite", "sulphite", "natamycin"],
+    "Emulsifier": ["emulsifier", "emulsifiers", "emulgator", "emulgatoren", "lecithin", "lecithins",
+                   "mono- and diglycerides", "monoglycerides", "diglycerides"],
+    "Stabilizer": ["stabilizer", "stabilizers", "stabilisator", "stabilisatoren", "xanthan", "guar", "pectin",
+                   "carrageenan", "cellulose gum", "gellan"],
+    "Colorant": ["color", "colour", "colorant", "farbstoff", "caramel", "caramel colour", "caramel color",
+                 "barwnik", "barwniki"],  # PL
+    "Flavoring": ["flavour", "flavouring", "flavourings", "flavor", "flavoring", "aroma", "aromas", "aromaty",
+                  "natural flavourings", "natural flavorings"],
+    "Caffeine": ["caffeine", "koffein", "caffein", "kofeina"],
+    "Acidifier": ["acid", "acids", "säuerungsmittel", "citric", "phosphoric", "malic", "lactic",
+                  "acidity regulator", "acid regulator", "acidity-regulator",
+                  "kwas", "regulator kwasowości"],  # PL
+}
 
-    total_penalty = (
-        penalty_sugar
-        + penalty_salt
-        + penalty_sat_fat
-        + penalty_serving_sugar
-    )
+_E_GROUPS = {
+    "Sweetener": {"950", "951", "952", "954", "955", "957", "959", "960", "961", "962", "969"},
+    "Preservative": {"200", "202", "203", "210", "211", "212", "213", "220", "221", "222", "223", "224", "225",
+                     "226", "227", "228", "249", "250", "251", "252"},
+    "Colorant": {"100", "101", "102", "104", "110", "120", "122", "124", "129", "131", "132", "133", "150", "150a",
+                 "150b", "150c", "150d", "160a", "160c", "160d", "171"},
+    "Emulsifier": {"322", "471", "472", "472a", "472b", "472c", "472d", "472e", "472f"},
+    "Stabilizer": {"407", "410", "412", "414", "415", "418", "440", "441", "466"},
+    "Acidifier": {"330", "338", "296", "270", "331", "332", "333"},
+}
 
-    final = _clamp_score(100 - total_penalty + bonus_protein)
+def _norm_ing_text(s: str) -> str:
+    s = (s or "").strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
 
-    return {
-        "score": final,
-        "breakdown": {
-            "version": "v3_hybrid_pro",
-            "unit": nutrition_per_100.get("unit", "g"),
-            "sugar_g_per_100": sugar,
-            "salt_g_per_100": salt,
-            "sat_fat_g_per_100": sat_fat,
-            "protein_g_per_100": protein,
-            "serving_size": float(nutrition_per_100.get("serving_size", 1.0) or 1.0),
-            "sugar_per_serving_g": round(sugar_per_serving, 1),
+def _extract_e_numbers(text: str) -> List[str]:
+    out: List[str] = []
+    for m in _E_NUMBER_RE.finditer(text or ""):
+        num = (m.group(1) or "").strip()
+        suf = (m.group(2) or "").strip().lower()
+        code = f"E{num}{suf}".upper() if suf else f"E{num}".upper()
+        if code not in out:
+            out.append(code)
+    return out
 
-            "penalty_sugar": int(round(penalty_sugar)),
-            "penalty_salt": int(round(penalty_salt)),
-            "penalty_sat_fat": int(round(penalty_sat_fat)),
-            "penalty_serving_sugar": int(round(penalty_serving_sugar)),
+def _e_base(code: str) -> str:
+    c = code.strip().upper().replace(" ", "")
+    m = re.match(r"^(E\d{3,4})([A-Z])?$", c)
+    if not m:
+        return c
+    base = m.group(1)
+    suf = m.group(2)
+    return f"{base}{suf}" if suf else base
 
-            "bonus_protein": int(round(bonus_protein)),
-            "total_penalty": int(round(total_penalty)),
-            "final_score": final,
+def _class_from_e(e_code: str) -> str:
+    t = e_code.strip().upper().replace(" ", "")
+    m = re.match(r"E(\d{3,4})([A-Z])?", t)
+    if not m:
+        return "Additive"
+    num = m.group(1)
+    suf = (m.group(2) or "").lower()
+    key = f"{num}{suf}" if suf else num
+    for cls, nums in _E_GROUPS.items():
+        if key in nums or num in nums:
+            return cls
+    return "Additive"
 
-            "basis": "per_100g_or_100ml + per_serving_sugar + protein_bonus",
-            "strict_profile": bool(is_beverage),
+def _e_explain(e_code: str) -> Dict[str, str]:
+    c = _e_base(e_code)
+    info = _E_GLOSSARY.get(c)
+    if not info and len(c) > 4 and c[:-1] in _E_GLOSSARY:
+        info = _E_GLOSSARY.get(c[:-1])
+    role = _class_from_e(c)
+    if not info:
+        return {
+            "code": c,
+            "name": "Food additive (E-number)",
+            "role": role,
+            "meaning_el": "Κωδικός πρόσθετου τροφίμων στην ΕΕ (δείχνουμε τον βασικό ρόλο).",
+        }
+    return {"code": c, "name": info.get("name","Food additive"), "role": role, "meaning_el": info.get("meaning_el","")}
 
-            "protein_bonus_rule": {
-                "threshold_g": PROTEIN_BONUS_THRESHOLD_G,
-                "multiplier": PROTEIN_BONUS_MULTIPLIER,
-                "cap": PROTEIN_BONUS_CAP,
-                "applies_to": "solids_only",
-            },
-            "serving_penalty_rule": {
-                "threshold_g": SERVING_SUGAR_THRESHOLD_G,
-                "multiplier": SERVING_SUGAR_MULTIPLIER,
-                "cap": SERVING_SUGAR_PENALTY_CAP,
-            },
+def _detect_allergens(text: str) -> List[str]:
+    t = (text or "")
+    tl = t.lower()
+    found: List[str] = []
+
+    caps_tokens = set(re.findall(r"\b[A-ZÄÖÜ]{3,}\b", t))
+    for allergen, markers in _ALLERGENS.items():
+        for mk in markers:
+            if mk in caps_tokens:
+                if allergen not in found:
+                    found.append(allergen)
+                break
+
+    for allergen, markers in _ALLERGENS.items():
+        for mk in markers:
+            if str(mk).lower() in tl:
+                if allergen not in found:
+                    found.append(allergen)
+                break
+    return found
+
+def _classify_ingredient(name: str) -> Tuple[str, str, List[str], List[str]]:
+    raw = _norm_ing_text(name)
+    tl = raw.lower()
+    tags: List[str] = []
+    matches: List[str] = []
+
+    e_nums = _extract_e_numbers(raw)
+    if e_nums:
+        tags.extend(e_nums)
+        chosen = _class_from_e(e_nums[0])
+        matches.append("e_number")
+        risk = "medium" if chosen in {"Sweetener","Preservative","Colorant"} else "low"
+        return chosen, risk, tags, matches
+
+    for cls, kws in _ING_MAP.items():
+        for kw in kws:
+            if kw in tl:
+                matches.append(f"kw:{kw}")
+                risk = "medium" if cls in {"Sweetener","Preservative"} else "low"
+                return cls, risk, tags, matches
+
+    alls = _detect_allergens(raw)
+    if alls:
+        matches.append("allergen")
+        tags.extend([a.upper() for a in alls])
+        return "Allergen", "medium", tags, matches
+
+    return "Other", "low", tags, matches
+
+def _e_from_additives_tags(tags: Any) -> List[str]:
+    """
+    OFF additives_tags example: ["en:e330","en:e150d","en:e338"]
+    Convert to ["E330","E150D","E338"]
+    """
+    out: List[str] = []
+    for t in _as_list(tags):
+        s = str(t or "").strip().lower()
+        if not s:
+            continue
+        # accept formats: en:e150d, e150d, fr:e330
+        m = re.search(r"e(\d{3,4})([a-z])?$", s)
+        if not m:
+            continue
+        num = m.group(1)
+        suf = (m.group(2) or "").upper()
+        code = f"E{num}{suf}" if suf else f"E{num}"
+        if code not in out:
+            out.append(code)
+    return out
+
+def _collect_additives_tags_from_sources(norm: Dict[str, Any], raw: Any) -> List[str]:
+    """
+    Try multiple places:
+    - norm["additives_tags"] / norm["additives_original_tags"]
+    - raw["product"]["additives_tags"] / raw["additives_tags"]
+    """
+    candidates: List[str] = []
+    for key in ("additives_tags", "additives_original_tags"):
+        candidates += _e_from_additives_tags(norm.get(key))
+
+    if isinstance(raw, dict):
+        # raw may be OFF full payload {"product": {...}}
+        prod = raw.get("product") if isinstance(raw.get("product"), dict) else raw
+        if isinstance(prod, dict):
+            candidates += _e_from_additives_tags(prod.get("additives_tags"))
+            candidates += _e_from_additives_tags(prod.get("additives_original_tags"))
+        candidates += _e_from_additives_tags(raw.get("additives_tags"))
+        candidates += _e_from_additives_tags(raw.get("additives_original_tags"))
+
+    # dedupe keep order
+    seen = set()
+    out: List[str] = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+def _ingredients_intelligence(
+    ingredients: List[Dict[str, Any]],
+    *,
+    is_beverage: bool,
+    additives_e_numbers: List[str],
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    enriched: List[Dict[str, Any]] = []
+    counts: Dict[str, int] = {}
+    all_e_numbers: List[str] = []
+    all_allergens: List[str] = []
+    markers: Dict[str, int] = {
+        "sweeteners": 0,
+        "flavourings": 0,
+        "emulsifiers_stabilizers": 0,
+        "preservatives": 0,
+        "colorants": 0,
+        "e_numbers": 0,
+        "caffeine": 0,
+    }
+
+    global_caffeine_found = False
+
+    # 1) start with E-numbers from additives_tags
+    for e in additives_e_numbers or []:
+        e = _e_base(e)
+        if e and e not in all_e_numbers:
+            all_e_numbers.append(e)
+
+    # 2) enrich ingredients and also collect E from text
+    for ing in ingredients or []:
+        name = ing.get("name") if isinstance(ing, dict) else str(ing)
+        name = _norm_ing_text(str(name or ""))
+        if not name:
+            continue
+
+        tl = name.lower()
+        if any(mk in tl for mk in _CAFFEINE_MARKERS):
+            global_caffeine_found = True
+
+        cls, risk, tags, matches = _classify_ingredient(name)
+
+        counts[cls] = counts.get(cls, 0) + 1
+
+        tags_e = [t for t in tags if str(t).upper().startswith("E")]
+        if tags_e:
+            markers["e_numbers"] += 1
+            for e in tags_e:
+                e = _e_base(str(e).upper().replace(" ", ""))
+                if e not in all_e_numbers:
+                    all_e_numbers.append(e)
+
+        if cls == "Sweetener":
+            markers["sweeteners"] += 1
+        elif cls in {"Emulsifier", "Stabilizer"}:
+            markers["emulsifiers_stabilizers"] += 1
+        elif cls == "Preservative":
+            markers["preservatives"] += 1
+        elif cls == "Colorant":
+            markers["colorants"] += 1
+        elif cls == "Flavoring":
+            markers["flavourings"] += 1
+        elif cls == "Caffeine":
+            markers["caffeine"] += 1
+
+        alls = _detect_allergens(name)
+        for a in alls:
+            if a not in all_allergens:
+                all_allergens.append(a)
+
+        out = dict(ing) if isinstance(ing, dict) else {"name": name}
+        out["name"] = name
+        out["class"] = cls
+        out["risk"] = risk
+        if tags:
+            out["tags"] = tags
+        if matches:
+            out["matches"] = matches
+        enriched.append(out)
+
+    if global_caffeine_found:
+        markers["caffeine"] = max(markers["caffeine"], 1)
+
+    # If any E found (either way), mark it
+    if all_e_numbers:
+        markers["e_numbers"] = max(markers["e_numbers"], 1)
+
+    # Processing score
+    score = 0.0
+    score += min(3.0, markers["sweeteners"] * 1.5)
+    score += min(2.0, markers["flavourings"] * 1.0)
+    score += min(2.0, markers["emulsifiers_stabilizers"] * 0.8)
+    score += min(1.5, markers["preservatives"] * 0.8)
+    score += min(1.0, markers["colorants"] * 0.6)
+    score += min(1.5, markers["e_numbers"] * 0.5)
+    if is_beverage:
+        score = min(10.0, score + (0.5 if markers["sweeteners"] > 0 else 0.0))
+
+    score_i = int(round(_clamp(score, 0.0, 10.0)))
+    if score_i <= 2:
+        proc_label = "Minimally processed"
+    elif score_i <= 5:
+        proc_label = "Processed"
+    else:
+        proc_label = "Highly processed"
+
+    # Build E-number details
+    e_details = [_e_explain(e) for e in sorted(all_e_numbers)]
+    seen = set()
+    e_details_unique: List[Dict[str, str]] = []
+    for it in e_details:
+        c = it.get("code")
+        if c and c not in seen:
+            seen.add(c)
+            e_details_unique.append(it)
+
+    flags: List[str] = []
+    if markers["sweeteners"] > 0:
+        flags.append(f"Sweeteners present ({markers['sweeteners']})")
+    if markers["e_numbers"] > 0 and e_details_unique:
+        flags.append(f"Additives / E-numbers detected ({len(e_details_unique)})")
+    if markers["preservatives"] > 0:
+        flags.append(f"Preservatives present ({markers['preservatives']})")
+    if markers["emulsifiers_stabilizers"] > 0:
+        flags.append(f"Emulsifiers/Stabilizers present ({markers['emulsifiers_stabilizers']})")
+    if markers["flavourings"] > 0:
+        flags.append(f"Flavourings present ({markers['flavourings']})")
+    if markers["colorants"] > 0:
+        flags.append(f"Colorants present ({markers['colorants']})")
+    if markers["caffeine"] > 0:
+        flags.append("Contains caffeine")
+    if all_allergens:
+        flags.append("Allergens: " + ", ".join([a.upper() for a in all_allergens]))
+
+    intelligence = {
+        "processing_score": score_i,
+        "processing_label": proc_label,
+        "flags": flags,
+        "counts_by_class": counts,
+        "detected_e_numbers": sorted(all_e_numbers),
+        "e_number_details": e_details_unique,
+        "allergens": [a.upper() for a in all_allergens],
+        "markers": markers,
+        "notes": [
+            "Ingredients Intelligence is heuristic and depends on ingredient text quality.",
+            "Processing score is an informational index, not an official NOVA classification.",
+        ],
+    }
+    return enriched, intelligence
+
+
+# -----------------------------
+# VitaScore v3_hybrid_pro
+# -----------------------------
+@dataclass
+class VitaScoreConfig:
+    w_per100: float = 0.70
+    w_serving: float = 0.30
+    beverage_sugar_multiplier: float = 1.25
+    beverage_energy_multiplier: float = 0.90
+    serving_sugar_spike_threshold_g: float = 25.0
+    serving_sugar_spike_multiplier: float = 1.20
+    serving_sugar_spike_cap: float = 12.0
+    cap_sugar_points: float = 40.0
+    cap_satfat_points: float = 18.0
+    cap_salt_points: float = 18.0
+    cap_energy_points: float = 12.0
+    cap_fiber_bonus: float = 12.0
+    cap_protein_bonus: float = 8.0
+    cap_fv_bonus: float = 10.0
+    min_score: int = 1
+    max_score: int = 100
+
+
+def _points_from_thresholds(value: float, thresholds: List[Tuple[float, float]]) -> float:
+    for mx, pts in thresholds:
+        if value <= mx:
+            return float(pts)
+    return float(thresholds[-1][1])
+
+
+def _score_per100(n: Dict[str, Optional[float]], is_beverage: bool, cfg: VitaScoreConfig) -> Tuple[float, Dict[str, Any]]:
+    sugar = n["sugar_g"] or 0.0
+    satfat = n["saturated_fat_g"] or 0.0
+    salt = n["salt_g"] or 0.0
+    energy = n["energy_kcal"] or 0.0
+    fiber = n["fiber_g"] or 0.0
+    protein = n["protein_g"] or 0.0
+    fv = n.get("fruits_veg_percent") or 0.0
+
+    sugar_thresholds = [(1.0, 0), (2.5, 3), (5.0, 8), (7.5, 14), (10.0, 20), (12.5, 26), (15.0, 32), (20.0, 40), (9999.0, 48)]
+    satfat_thresholds = [(0.5, 0), (1.0, 2), (2.0, 5), (3.0, 8), (4.0, 11), (5.0, 14), (7.0, 18), (9999.0, 22)]
+    salt_thresholds = [(0.10, 0), (0.25, 3), (0.50, 7), (0.75, 10), (1.00, 13), (1.25, 16), (1.50, 18), (9999.0, 22)]
+    energy_thresholds = [(40, 0), (80, 2), (120, 4), (160, 6), (200, 8), (260, 10), (9999, 12)]
+
+    sugar_pts = _points_from_thresholds(sugar, sugar_thresholds)
+    energy_pts = _points_from_thresholds(energy, energy_thresholds)
+    satfat_pts = _points_from_thresholds(satfat, satfat_thresholds)
+    salt_pts = _points_from_thresholds(salt, salt_thresholds)
+
+    if is_beverage:
+        sugar_pts *= cfg.beverage_sugar_multiplier
+        energy_pts *= cfg.beverage_energy_multiplier
+
+    sugar_pts = min(sugar_pts, cfg.cap_sugar_points)
+    satfat_pts = min(satfat_pts, cfg.cap_satfat_points)
+    salt_pts = min(salt_pts, cfg.cap_salt_points)
+    energy_pts = min(energy_pts, cfg.cap_energy_points)
+
+    fiber_bonus = _clamp(fiber * 2.2, 0.0, cfg.cap_fiber_bonus)
+    protein_bonus = _clamp(protein * 0.9, 0.0, cfg.cap_protein_bonus)
+
+    fv_bonus = 0.0
+    if fv > 0:
+        fv_bonus = _clamp((fv - 20.0) / 6.0, 0.0, cfg.cap_fv_bonus)
+
+    penalties = sugar_pts + satfat_pts + salt_pts + energy_pts
+    bonuses = fiber_bonus + protein_bonus + fv_bonus
+
+    part = {
+        "mode": "per_100",
+        "inputs": {
+            "energy_kcal_per_100": n["energy_kcal"],
+            "sugar_g_per_100": n["sugar_g"],
+            "saturated_fat_g_per_100": n["saturated_fat_g"],
+            "salt_g_per_100": n["salt_g"],
+            "fiber_g_per_100": n["fiber_g"],
+            "protein_g_per_100": n["protein_g"],
+            "fruits_veg_percent": n.get("fruits_veg_percent"),
+        },
+        "penalties": {
+            "sugar_points": round(sugar_pts, 2),
+            "satfat_points": round(satfat_pts, 2),
+            "salt_points": round(salt_pts, 2),
+            "energy_points": round(energy_pts, 2),
+            "total_penalties": round(penalties, 2),
+        },
+        "bonuses": {
+            "fiber_bonus": round(fiber_bonus, 2),
+            "protein_bonus": round(protein_bonus, 2),
+            "fv_bonus": round(fv_bonus, 2),
+            "total_bonuses": round(bonuses, 2),
+        },
+        "net": round(penalties - bonuses, 2),
+    }
+    return penalties - bonuses, part
+
+
+def _score_serving(n: Dict[str, Optional[float]], serving_amount: float, is_beverage: bool, cfg: VitaScoreConfig) -> Tuple[float, Dict[str, Any]]:
+    sugar_s = _per_serving_from_per_100(n["sugar_g"], serving_amount)
+    energy_s = _per_serving_from_per_100(n["energy_kcal"], serving_amount)
+    salt_s = _per_serving_from_per_100(n["salt_g"], serving_amount)
+
+    if sugar_s is None and energy_s is None and salt_s is None:
+        return 0.0, {"mode": "per_serving", "inputs": {}, "penalties": {"total_penalties": 0.0}, "bonuses": {"total_bonuses": 0.0}, "net": 0.0, "note": "no_serving_data"}
+
+    sugar_s_val = sugar_s or 0.0
+    energy_s_val = energy_s or 0.0
+    salt_s_val = salt_s or 0.0
+
+    sugar_serving_thresholds = [(2.5, 0), (5.0, 3), (10.0, 7), (15.0, 10), (25.0, 14), (35.0, 18), (9999.0, 22)]
+    energy_serving_thresholds = [(80, 0), (150, 2), (250, 4), (350, 6), (500, 8), (700, 10), (9999, 12)]
+    salt_serving_thresholds = [(0.20, 0), (0.50, 2), (1.00, 5), (1.50, 8), (2.00, 10), (9999.0, 12)]
+
+    sugar_pts = _points_from_thresholds(sugar_s_val, sugar_serving_thresholds)
+    energy_pts = _points_from_thresholds(energy_s_val, energy_serving_thresholds)
+    salt_pts = _points_from_thresholds(salt_s_val, salt_serving_thresholds)
+
+    if is_beverage:
+        sugar_pts *= 1.15
+        energy_pts *= 0.95
+
+    spike_extra = 0.0
+    if sugar_s is not None and sugar_s_val >= cfg.serving_sugar_spike_threshold_g:
+        spike_extra = (sugar_s_val - cfg.serving_sugar_spike_threshold_g) * 0.20
+        spike_extra *= cfg.serving_sugar_spike_multiplier
+        spike_extra = min(spike_extra, cfg.serving_sugar_spike_cap)
+
+    penalties = sugar_pts + energy_pts + salt_pts + spike_extra
+    penalties = min(penalties, 28.0)
+
+    part = {
+        "mode": "per_serving",
+        "inputs": {
+            "serving_amount": serving_amount,
+            "sugar_g_per_serving": round(sugar_s_val, 3) if sugar_s is not None else None,
+            "energy_kcal_per_serving": round(energy_s_val, 1) if energy_s is not None else None,
+            "salt_g_per_serving": round(salt_s_val, 3) if salt_s is not None else None,
+        },
+        "penalties": {
+            "sugar_points": round(sugar_pts, 2),
+            "energy_points": round(energy_pts, 2),
+            "salt_points": round(salt_pts, 2),
+            "sugar_spike_extra": round(spike_extra, 2),
+            "total_penalties": round(penalties, 2),
+        },
+        "bonuses": {"total_bonuses": 0.0},
+        "net": round(penalties, 2),
+    }
+    return penalties, part
+
+
+def _map_net_to_vitascore(net: float, cfg: VitaScoreConfig) -> int:
+    net = max(0.0, net)
+    if net <= 10:
+        score = 100 - net * 1.2
+    elif net <= 25:
+        score = 88 - (net - 10) * 1.3
+    elif net <= 45:
+        score = 68 - (net - 25) * 1.15
+    else:
+        score = 45 - (net - 45) * 0.85
+    score = _clamp(score, float(cfg.min_score), float(cfg.max_score))
+    return int(round(score))
+
+
+def _who_sugar_impact(normalized: Dict[str, Any], per100: Dict[str, Optional[float]], is_beverage: bool) -> Dict[str, Any]:
+    serving_amount, unit, note = _serving_size_in_g_or_ml(normalized, is_beverage)
+    sugar_per100 = per100.get("sugar_g")
+
+    sugar_per_serving = None
+    if serving_amount is not None and sugar_per100 is not None:
+        sugar_per_serving = _per_serving_from_per_100(sugar_per100, serving_amount)
+
+    impact = {
+        "reference": {"ideal_g_per_day": WHO_SUGAR_IDEAL, "upper_g_per_day": WHO_SUGAR_UPPER, "note": "Daily reference points; shown here as serving-level comparison."},
+        "serving": {"serving_amount": serving_amount, "serving_unit": unit, "serving_source": note},
+        "sugar": {
+            "g_per_100": sugar_per100,
+            "g_per_serving": round(sugar_per_serving, 2) if sugar_per_serving is not None else None,
+            "percent_of_ideal_25g": _pct(sugar_per_serving, WHO_SUGAR_IDEAL) if sugar_per_serving is not None else None,
+            "percent_of_upper_50g": _pct(sugar_per_serving, WHO_SUGAR_UPPER) if sugar_per_serving is not None else None,
         },
     }
 
+    if sugar_per_serving is None:
+        interp = "No reliable sugar-per-serving could be computed (missing sugar per 100 or serving size)."
+    else:
+        if sugar_per_serving >= WHO_SUGAR_UPPER:
+            interp = "One serving exceeds the typical 'upper' daily sugar reference (50g)."
+        elif sugar_per_serving >= WHO_SUGAR_IDEAL:
+            interp = "One serving reaches or exceeds the typical 'ideal' daily sugar reference (25g)."
+        elif sugar_per_serving >= 12.5:
+            interp = "One serving is a noticeable share of the typical 25g/day sugar reference."
+        else:
+            interp = "One serving is a relatively small share of the typical 25g/day sugar reference."
 
-def _who_sugar_impact(nutrition_per_100: dict) -> Dict[str, Any]:
-    sugar_per_serving = _who_sugar_per_serving(nutrition_per_100)
+    impact["interpretation"] = interp
+    return impact
 
-    ideal_pct = (sugar_per_serving / WHO_SUGAR_IDEAL) * 100
-    upper_pct = (sugar_per_serving / WHO_SUGAR_UPPER) * 100
 
-    return {
-        "sugar_per_serving_g": round(sugar_per_serving, 1),
-        "ideal_limit_g": WHO_SUGAR_IDEAL,
-        "upper_limit_g": WHO_SUGAR_UPPER,
-        "percent_of_ideal": round(ideal_pct, 1),
-        "percent_of_upper": round(upper_pct, 1),
-        "exceeds_ideal": sugar_per_serving > WHO_SUGAR_IDEAL,
-        "exceeds_upper": sugar_per_serving > WHO_SUGAR_UPPER,
+def _who_baseline_score(who_impact: Dict[str, Any], per100: Dict[str, Optional[float]], *, is_beverage: bool) -> Tuple[int, Dict[str, Any]]:
+    serving = who_impact.get("serving", {}) if isinstance(who_impact, dict) else {}
+    s_amount = serving.get("serving_amount")
+    s_unit = serving.get("serving_unit")
+
+    if not isinstance(s_amount, (int, float)):
+        s_amount = 100.0
+        s_unit = "ml" if is_beverage else "g"
+
+    sugar = who_impact.get("sugar", {}) if isinstance(who_impact, dict) else {}
+    sugar_pct_ideal = sugar.get("percent_of_ideal_25g")
+    sugar_pct_upper = sugar.get("percent_of_upper_50g")
+
+    salt_per100 = per100.get("salt_g")
+    satfat_per100 = per100.get("saturated_fat_g")
+
+    salt_serv = float(salt_per100) * (float(s_amount) / 100.0) if salt_per100 is not None else None
+    satfat_serv = float(satfat_per100) * (float(s_amount) / 100.0) if satfat_per100 is not None else None
+
+    salt_pct = _pct(salt_serv, WHO_SALT_G_PER_DAY) if salt_serv is not None else None
+    satfat_pct = _pct(satfat_serv, WHO_SATFAT_G_PER_DAY_PROXY) if satfat_serv is not None else None
+
+    sugar_load = float(sugar_pct_ideal or 0.0) / 100.0
+    salt_load = float(salt_pct or 0.0) / 100.0
+    satf_load = float(satfat_pct or 0.0) / 100.0
+
+    sugar_pen = min(90.0, 60.0 * sugar_load)
+    salt_pen  = min(35.0, 30.0 * salt_load)
+    satf_pen  = min(30.0, 25.0 * satf_load)
+
+    if isinstance(sugar_pct_upper, (int, float)) and float(sugar_pct_upper) >= 100.0:
+        sugar_pen = min(95.0, sugar_pen + 15.0)
+
+    total_pen = sugar_pen + salt_pen + satf_pen
+    who_score = int(round(_clamp(100.0 - total_pen, 1.0, 100.0)))
+
+    breakdown = {
+        "mode": "who_baseline",
+        "serving": {"amount": float(s_amount), "unit": s_unit},
+        "inputs": {
+            "sugar_pct_ideal_25g": sugar_pct_ideal,
+            "sugar_pct_upper_50g": sugar_pct_upper,
+            "salt_g_per_serving": round(salt_serv, 3) if salt_serv is not None else None,
+            "salt_pct_5g": salt_pct,
+            "satfat_g_per_serving": round(satfat_serv, 3) if satfat_serv is not None else None,
+            "satfat_pct_20g_proxy": satfat_pct,
+        },
+        "penalties": {
+            "sugar_penalty": round(sugar_pen, 1),
+            "salt_penalty": round(salt_pen, 1),
+            "satfat_penalty": round(satf_pen, 1),
+            "total_penalty": round(total_pen, 1),
+        },
+        "score": who_score,
+        "notes": [
+            "WHO baseline uses serving-level share of daily reference points.",
+            "Sat fat uses a practical 20g/day proxy (assumption).",
+        ],
     }
+    return who_score, breakdown
 
 
-def _why_this_score(
-    nutrition_per_100: dict,
-    breakdown: dict,
-    who: dict,
-    quality: dict,
-) -> Dict[str, Any]:
-    """
-    Consumer-friendly explanations.
-    Returns { "why_this_score": [...], "tips": [...] }
-    """
-    unit = str(nutrition_per_100.get("unit", "g"))
-    is_bev = bool(quality.get("is_beverage", False))
-
-    sugar_100 = float(nutrition_per_100.get("sugar_g", 0) or 0)
-    salt_100 = float(nutrition_per_100.get("salt_g", 0) or 0)
-    sat_100 = float(nutrition_per_100.get("sat_fat_g", 0) or 0)
-    protein_100 = float(nutrition_per_100.get("protein_g", 0) or 0)
-
-    serving = float(nutrition_per_100.get("serving_size", 1.0) or 1.0)
-    sugar_serv = float(who.get("sugar_per_serving_g", 0) or 0)
-
-    bonus_pro = int(breakdown.get("bonus_protein", 0) or 0)
-    pen_serv = int(breakdown.get("penalty_serving_sugar", 0) or 0)
-    strict = bool(breakdown.get("strict_profile", False))
-
+# -----------------------------
+# Explainability + data quality
+# -----------------------------
+def _build_explanations(per100: Dict[str, Optional[float]], breakdown: Dict[str, Any], is_beverage: bool) -> Tuple[List[str], List[str]]:
     why: List[str] = []
     tips: List[str] = []
 
-    # Core nutrient bullets
-    if is_bev:
-        why.append(f"Είναι ρόφημα → εφαρμόζεται αυστηρότερο προφίλ για ζάχαρη (strict profile).")
-    if strict and not is_bev:
-        # just in case
-        why.append("Ενεργοποιήθηκε strict profile.")
+    sugar = per100.get("sugar_g")
+    salt = per100.get("salt_g")
+    satfat = per100.get("saturated_fat_g")
+    fiber = per100.get("fiber_g")
 
-    why.append(f"Ζάχαρη ανά 100{unit}: {sugar_100:.1f} g")
-    if sat_100 > 0:
-        why.append(f"Κορεσμένα λιπαρά ανά 100{unit}: {sat_100:.1f} g")
-    if salt_100 > 0:
-        why.append(f"Αλάτι ανά 100{unit}: {salt_100:.2f} g")
+    sugar_pts = _to_float(_get_path(breakdown, "per_100", "penalties", "sugar_points")) or 0.0
+    salt_pts = _to_float(_get_path(breakdown, "per_100", "penalties", "salt_points")) or 0.0
+    satfat_pts = _to_float(_get_path(breakdown, "per_100", "penalties", "satfat_points")) or 0.0
 
-    # Serving / WHO layer
-    if serving > 1:
-        why.append(f"Μερίδα: {serving:.0f}{unit} → ζάχαρη ανά μερίδα: {sugar_serv:.1f} g")
-    else:
-        # still show WHO if any sugar
-        if sugar_serv > 0:
-            why.append(f"Ζάχαρη ανά μερίδα: {sugar_serv:.1f} g")
+    if sugar is not None and sugar_pts >= 10:
+        why.append(f"High sugar density: {sugar:.1f}g per 100{'ml' if is_beverage else 'g'} drives most of the penalty.")
+    elif sugar is not None and sugar >= 5:
+        why.append(f"Moderate sugar: {sugar:.1f}g per 100{'ml' if is_beverage else 'g'} contributes to the score.")
 
-    if pen_serv > 0:
-        why.append(f"Extra ποινή μερίδας: +{pen_serv} (υψηλή ζάχαρη ανά μερίδα)")
+    if satfat is not None and satfat_pts >= 8:
+        why.append(f"Saturated fat is elevated: {satfat:.1f}g/100{'ml' if is_beverage else 'g'} adds a strong penalty.")
+    if salt is not None and salt_pts >= 7:
+        why.append(f"Salt is notable: {salt:.2f}g/100{'ml' if is_beverage else 'g'} increases the penalty.")
 
-    if bonus_pro > 0:
-        why.append(f"Protein bonus: +{bonus_pro} (πρωτεΐνη {protein_100:.1f} g/100{unit})")
+    if fiber is not None and fiber >= 2.5:
+        why.append(f"Fiber helps offset penalties: {fiber:.1f}g/100{'ml' if is_beverage else 'g'} adds a bonus.")
 
-    # WHO guideline context
-    pct_ideal = float(who.get("percent_of_ideal", 0) or 0)
-    pct_upper = float(who.get("percent_of_upper", 0) or 0)
-    if sugar_serv > 0:
-        why.append(f"WHO sugar impact: {pct_ideal:.0f}% του ιδανικού (25g) / {pct_upper:.0f}% του upper (50g)")
+    spike = _to_float(_get_path(breakdown, "per_serving", "penalties", "sugar_spike_extra")) or 0.0
+    sugar_serv = _to_float(_get_path(breakdown, "per_serving", "inputs", "sugar_g_per_serving"))
+    if sugar_serv is not None and spike > 0:
+        why.append(f"Serving sugar spike: {sugar_serv:.1f}g per serving triggers extra penalty (large single-serve impact).")
 
-    # Trust / data-quality hints
-    if bool(quality.get("serving_size_inferred", False)):
-        tips.append("Το μέγεθος μερίδας εκτιμήθηκε (δεν υπήρχε καθαρό serving size στο προϊόν).")
+    who_base = _get_path(breakdown, "who_baseline", "score")
+    if isinstance(who_base, int):
+        why.append(f"WHO baseline (serving-level load) anchors the score: {who_base}/100.")
 
-    reason = quality.get("beverage_inference_reason")
-    if reason:
-        tips.append(f"Beverage detection reason: {reason}")
+    if is_beverage:
+        if sugar is not None and sugar >= 5:
+            tips.append("For drinks: try a 'no sugar' / 'zero' alternative or smaller serving size.")
+        tips.append("If you drink this daily, consider balancing with low-sugar choices elsewhere that day.")
 
-    # Generic tips
-    if is_bev and sugar_100 >= 5:
-        tips.append("Tip: για ροφήματα, η ζάχαρη ανεβαίνει γρήγορα ανά μερίδα—έλεγξε και τις 'χωρίς ζάχαρη' επιλογές.")
-    if (not is_bev) and sat_100 >= 5:
-        tips.append("Tip: αν σε νοιάζει η καρδιαγγειακή υγεία, σύγκρινε και τα κορεσμένα λιπαρά ανά 100g.")
+    if not why:
+        why.append("Score is driven by the available nutrition facts; no single extreme driver detected.")
 
-    return {"why_this_score": why, "tips": tips}
+    return why[:5], tips[:5]
 
 
-async def scan_product(product_id: str) -> dict:
-    pid = (product_id or "").strip()
+def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]], bev_meta: Dict[str, Any]) -> Dict[str, Any]:
+    required_keys = ["energy_kcal", "sugar_g", "salt_g", "saturated_fat_g"]
+    present = sum(1 for k in required_keys if per100.get(k) is not None)
+    missing = [k for k in required_keys if per100.get(k) is None]
 
-    rasff_alerts: List[str] = rasff_db.get(pid, []) or []
-    product: Optional[dict] = products_db.get(pid)
+    serving_amount = _to_float(_get_path(normalized, "serving", "value") or _get_path(normalized, "nutrition_per_100", "serving_size"))
+    serving_unit = str(_get_path(normalized, "serving", "unit") or _get_path(normalized, "nutrition_per_100", "unit") or "").lower().strip()
+    has_serving = serving_amount is not None and serving_amount > 0 and serving_unit in {"g", "ml", "cl", "l"}
 
-    # LOCAL
-    if product:
-        nutrients = product.get("nutrients", {}) or {}
-        is_beverage = bool(product.get("is_beverage", False))
+    confidence = 0.35 + (present / len(required_keys)) * 0.45
+    if has_serving:
+        confidence += 0.10
 
-        nutrition_per_100 = {
-            "unit": "ml" if is_beverage else "g",
-            "sugar_g": float(nutrients.get("sugar", 0) or 0),
-            "salt_g": float(nutrients.get("salt", 0) or 0),
-            "sat_fat_g": float(nutrients.get("fat", 0) or 0),
-            "protein_g": float(nutrients.get("protein", 0) or 0),
-            "serving_size": float(product.get("serving_size", 1.0) or 1.0),
-        }
+    bev_conf = _to_float(bev_meta.get("confidence")) if isinstance(bev_meta, dict) else None
+    if bev_conf is not None:
+        confidence += (bev_conf - 0.5) * 0.10
 
-        v = _v3_hybrid_score(nutrition_per_100, is_beverage)
-        who = _who_sugar_impact(nutrition_per_100)
+    confidence = float(_clamp(confidence, 0.05, 0.95))
 
-        quality = _build_data_quality(
-            source="local",
-            nutrition_per_100=nutrition_per_100,
-            ingredients=product.get("ingredients", []) or [],
-            serving_size_inferred=False,
-            is_beverage_inferred=False,
-            is_beverage=is_beverage,
-            beverage_reason="local_flag",
-        )
-
-        explain = _why_this_score(nutrition_per_100, v["breakdown"], who, quality)
-
-        return {
-            "source": "local",
-            "matched_by": "local_id",
-            "product_id": pid,
-            "name": product.get("name", "Unknown Product"),
-            "brand": product.get("brand"),
-            "image_url": product.get("image_url"),
-            "alerts": rasff_alerts,
-            "ingredients": product.get("ingredients", []) or [],
-            "nutrition_per_100": nutrition_per_100,
-            "vitascore": v["score"],
-            "vitascore_version": "v3_hybrid_pro",
-            "vitascore_breakdown": v["breakdown"],
-            "who_impact": who,
-            "data_quality": quality,
-            **explain,
-        }
-
-    # OFF
-    off = await fetch_off_product(pid)
-    if off.ok and off.payload:
-        normalized = normalize_openfoodfacts(off.payload, barcode=pid)
-
-        nutrition_per_100 = normalized.get("nutrition_per_100", {}) or {}
-        ingredients = normalized.get("ingredients", []) or []
-        is_beverage = bool(normalized.get("is_beverage", False))
-
-        v = _v3_hybrid_score(nutrition_per_100, is_beverage)
-        who = _who_sugar_impact(nutrition_per_100)
-
-        quality = _build_data_quality(
-            source="openfoodfacts",
-            nutrition_per_100=nutrition_per_100,
-            ingredients=ingredients,
-            serving_size_inferred=bool(normalized.get("serving_size_inferred", False)),
-            is_beverage_inferred=bool(normalized.get("is_beverage_inferred", False)),
-            is_beverage=is_beverage,
-            beverage_reason=normalized.get("beverage_inference_reason"),
-        )
-
-        explain = _why_this_score(nutrition_per_100, v["breakdown"], who, quality)
-
-        return {
-            "source": "openfoodfacts",
-            "matched_by": "barcode_or_key",
-            "off_code": normalized.get("off_code") or pid,
-            "name": normalized.get("name", "Unknown Product"),
-            "brand": normalized.get("brand"),
-            "image_url": normalized.get("image_url"),
-            "alerts": rasff_alerts,
-            "ingredients": ingredients,
-            "nutrition_per_100": nutrition_per_100,
-            "vitascore": v["score"],
-            "vitascore_version": "v3_hybrid_pro",
-            "vitascore_breakdown": v["breakdown"],
-            "who_impact": who,
-            "data_quality": quality,
-            **explain,
-        }
-
-    return {"error": "Product not found"}
+    return {
+        "confidence": round(confidence, 2),
+        "missing_core_fields": missing,
+        "has_serving": bool(has_serving),
+        "beverage_detection": bev_meta,
+        "notes": [
+            "Confidence reflects completeness of nutrition facts + serving info.",
+            "Educational tool — not medical advice.",
+        ],
+    }
 
 
-def reload_data() -> None:
-    global products_db, rasff_db
-    products_db = _load_json(PRODUCTS_FILE, default={})
-    rasff_db = _load_json(RASFF_FILE, default={})
+# -------------------------
+# Public API used by routes
+# -------------------------
+_cfg = VitaScoreConfig()
+
+
+async def scan_product(key: str) -> Dict[str, Any]:
+    key = (key or "").strip()
+    if not key:
+        return {"error": "Missing product id or barcode."}
+
+    products = _load_json(PRODUCTS_FILE, [])
+    rasff = _load_json(RASFF_FILE, [])
+
+    matched_by = None
+    raw: Optional[Dict[str, Any]] = None
+    source: Optional[str] = None
+
+    local = _find_local_product(_as_list(products), key)
+    if local:
+        raw = local
+        source = "local"
+        matched_by = "local_db"
+
+    if raw is None:
+        try:
+            raw = await fetch_openfoodfacts_product(key)
+            source = "openfoodfacts"
+            matched_by = "barcode_or_key"
+        except Exception:
+            raw = None
+
+    if raw is None:
+        return {"error": "Product not found (local DB + OpenFoodFacts)."}
+
+    norm = _normalize(raw, source=source)
+
+    alerts = _collect_alerts(_as_list(rasff), norm)
+    ingredients_raw = norm.get("ingredients") or []
+
+    is_bev, bev_meta = _guess_is_beverage(norm)
+    serving_amount, serving_unit, serving_note = _serving_size_in_g_or_ml(norm, is_bev)
+
+    # NEW: collect E-numbers from additives_tags (raw + norm)
+    additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
+
+    ingredients, ingredients_intelligence = _ingredients_intelligence(
+        _as_list(ingredients_raw),
+        is_beverage=is_bev,
+        additives_e_numbers=additives_e_numbers,
+    )
+
+    per100 = _nutrients_per_100(norm)
+
+    net100, part100 = _score_per100(per100, is_bev, _cfg)
+    netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
+    net = (_cfg.w_per100 * net100) + (_cfg.w_serving * netS)
+    hybrid_score = _map_net_to_vitascore(net, _cfg)
+
+    breakdown = {
+        "model": "v3_hybrid_pro",
+        "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
+        "per_100": part100,
+        "per_serving": partS,
+        "net_hybrid": round(net, 2),
+        "hybrid_score": hybrid_score,
+    }
+
+    who = _who_sugar_impact(norm, per100, is_bev)
+    who_score, who_breakdown = _who_baseline_score(who, per100, is_beverage=is_bev)
+
+    w_who = 0.85 if is_bev else 0.75
+    w_hyb = 1.0 - w_who
+    score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
+
+    breakdown["who_baseline"] = who_breakdown
+    breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
+
+    why, tips = _build_explanations(per100, breakdown, is_bev)
+    dq = _data_quality(norm, per100, bev_meta)
+
+    product_categories = norm.get("categories") or norm.get("categories_tags") or []
+    if isinstance(product_categories, str):
+        product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
+
+    qty = norm.get("quantity")
+    if isinstance(qty, str) and qty.strip().startswith("0"):
+        qty = None
+
+    product_block = {
+        "name": norm.get("name"),
+        "brand": norm.get("brand"),
+        "image_url": norm.get("image_url"),
+        "quantity": qty,
+        "categories": product_categories,
+    }
+
+    return {
+        "key": key,
+        "source": source,
+        "matched_by": matched_by,
+
+        "product": product_block,
+        "alerts": alerts,
+
+        "ingredients": ingredients,
+        "ingredients_intelligence": ingredients_intelligence,
+
+        "vitascore": score,
+        "vitascore_version": "v3_hybrid_pro",
+        "vitascore_breakdown": breakdown,
+
+        "why_this_score": why,
+        "tips": tips,
+
+        "who_impact": who,
+        "data_quality": dq,
+
+        "meta": {
+            "is_beverage": is_bev,
+            "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
+        },
+    }
