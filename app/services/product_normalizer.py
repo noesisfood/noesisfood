@@ -65,39 +65,10 @@ def _parse_serving_size_to_g_or_ml(serving: Any) -> Optional[float]:
     return None
 
 
-def _parse_ingredients_as_objects(off_product: Dict[str, Any]) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
-
-    ingredients = off_product.get("ingredients")
-    if isinstance(ingredients, list) and ingredients:
-        for ing in ingredients:
-            if isinstance(ing, dict):
-                name = ing.get("text") or ing.get("id") or ""
-            else:
-                name = str(ing)
-            name = str(name).strip()
-            if name:
-                out.append({"name": name, "class": "U", "note": "From OpenFoodFacts"})
-        return out
-
-    txt = off_product.get("ingredients_text") or off_product.get("ingredients_text_en") or ""
-    txt = str(txt).strip()
-    if not txt:
-        return []
-
-    parts = re.split(r"[;,]", txt)
-    for p in parts:
-        p = p.strip()
-        if p:
-            out.append({"name": p, "class": "U", "note": "From OpenFoodFacts"})
-    return out
-
-
 # ---------
 # Beverage inference (robust)
 # ---------
 
-# Positive category signals (treat as strong when present)
 _BEVERAGE_POSITIVE = (
     "en:beverages",
     "en:soft-drinks",
@@ -115,7 +86,6 @@ _BEVERAGE_POSITIVE = (
     "en:sports-drinks",
 )
 
-# Negative category signals (treat as strong when present)
 _BEVERAGE_NEGATIVE = (
     "en:yogurts",
     "en:greek-yogurts",
@@ -129,7 +99,6 @@ _BEVERAGE_NEGATIVE = (
     "en:sauces",
 )
 
-# Weak name hints (only used if categories did not decide)
 _NAME_POSITIVE = (
     "cola",
     "coca-cola",
@@ -184,7 +153,6 @@ def _infer_is_beverage(off_product: Dict[str, Any]) -> Tuple[bool, bool, str]:
     # 3) Heuristic: quantity looks like ml/cl/l
     quantity = str(off_product.get("quantity") or "").lower()
 
-    # handle patterns like "6 x 330 ml", "330ml", "1.5 L", "50cl"
     if re.search(r"\b(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(ml|cl|l)\b", quantity) or re.search(
         r"\b(\d+(?:\.\d+)?)\s*(ml|cl|l)\b", quantity
     ):
@@ -192,8 +160,9 @@ def _infer_is_beverage(off_product: Dict[str, Any]) -> Tuple[bool, bool, str]:
 
     # 4) Heuristic: name/brand hints (weak)
     name = str(
-        off_product.get("product_name")
-        or off_product.get("product_name_en")
+        off_product.get("product_name_en")
+        or off_product.get("product_name")
+        or off_product.get("generic_name_en")
         or off_product.get("generic_name")
         or ""
     ).lower()
@@ -208,6 +177,71 @@ def _infer_is_beverage(off_product: Dict[str, Any]) -> Tuple[bool, bool, str]:
 
     # 5) Default: solid
     return False, True, "default_solid"
+
+
+# -------------------------
+# Ingredients language preference
+# -------------------------
+
+def _best_ingredients_text(off_product: Dict[str, Any]) -> str:
+    """
+    Prefer English ingredients text when available.
+    """
+    candidates = [
+        off_product.get("ingredients_text_en"),
+        off_product.get("ingredients_text"),
+        off_product.get("ingredients_text_fr"),
+        off_product.get("ingredients_text_de"),
+        off_product.get("ingredients_text_es"),
+        off_product.get("ingredients_text_it"),
+        off_product.get("ingredients_text_pl"),
+    ]
+    for c in candidates:
+        s = str(c or "").strip()
+        if s:
+            return s
+    return ""
+
+
+def _ingredient_name_from_obj(ing: Dict[str, Any]) -> str:
+    """
+    Prefer English ingredient label if present.
+    OFF ingredient objects sometimes include: text, text_en, id, etc.
+    """
+    if not isinstance(ing, dict):
+        return str(ing or "").strip()
+
+    for k in ("text_en", "text", "id"):
+        v = ing.get(k)
+        s = str(v or "").strip()
+        if s:
+            return s
+    return ""
+
+
+def _parse_ingredients_as_objects(off_product: Dict[str, Any]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+
+    ingredients = off_product.get("ingredients")
+    if isinstance(ingredients, list) and ingredients:
+        for ing in ingredients:
+            name = _ingredient_name_from_obj(ing if isinstance(ing, dict) else {"text": str(ing)})
+            name = str(name).strip()
+            if name:
+                out.append({"name": name, "class": "U", "note": "From OpenFoodFacts"})
+        return out
+
+    # Fallback to ingredients text, preferring English
+    txt = _best_ingredients_text(off_product)
+    if not txt:
+        return []
+
+    parts = re.split(r"[;,]", txt)
+    for p in parts:
+        p = p.strip()
+        if p:
+            out.append({"name": p, "class": "U", "note": "From OpenFoodFacts"})
+    return out
 
 
 def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] = None) -> Dict[str, Any]:
@@ -233,7 +267,6 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
     protein = _get_nutriment(nutriments, "proteins_100g", "protein_100g", "proteins", "protein")
 
     is_beverage, is_bev_inferred, bev_reason = _infer_is_beverage(off_product)
-
     unit = "ml" if is_beverage else "g"
 
     # serving size parse
@@ -244,22 +277,36 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
 
     serving_size_inferred = False
     if serving is None:
-        # sensible defaults
         serving = 330.0 if is_beverage else 100.0
         serving_size_inferred = True
 
+    # Prefer English product name if available
     name = (
-        off_product.get("product_name")
-        or off_product.get("product_name_en")
+        off_product.get("product_name_en")
+        or off_product.get("product_name")
+        or off_product.get("generic_name_en")
         or off_product.get("generic_name")
         or "Unknown Product"
     )
+
+    # Categories: keep both human categories and tags if present
+    categories = off_product.get("categories") or ""
+    categories_tags = off_product.get("categories_tags") or []
+
+    # Additives tags (useful for E-numbers)
+    additives_tags = off_product.get("additives_tags") or []
+    additives_original_tags = off_product.get("additives_original_tags") or []
 
     return {
         "off_code": barcode or off_product.get("code"),
         "name": str(name),
         "brand": off_product.get("brands") or off_product.get("brand_owner"),
         "image_url": off_product.get("image_url") or off_product.get("image_front_url"),
+        "quantity": off_product.get("quantity"),
+        "categories": categories,
+        "categories_tags": categories_tags,
+        "additives_tags": additives_tags,
+        "additives_original_tags": additives_original_tags,
         "is_beverage": bool(is_beverage),
         "is_beverage_inferred": bool(is_bev_inferred),
         "beverage_inference_reason": bev_reason,
@@ -274,11 +321,11 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
             "serving_size": float(serving),
         },
     }
-    # -------------------------
+
+
+# -------------------------
 # Backward-compatible alias expected by scanner_service imports
 # -------------------------
-from typing import Optional, Dict, Any
-
 def normalize_product(raw: Dict[str, Any], source: Optional[str] = None) -> Dict[str, Any]:
     """
     Compatibility wrapper.
