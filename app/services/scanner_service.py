@@ -1009,6 +1009,66 @@ async def scan_product(key: str) -> Dict[str, Any]:
         return {"error": "Product not found (local DB + OpenFoodFacts)."}
 
     norm = _normalize(raw, source=source)
+    if source == "local":
+        curated = raw if isinstance(raw, dict) else {}
+
+        serving_size = norm.get("serving_size")
+        if not isinstance(serving_size, dict):
+            fallback_serving = curated.get("serving_size")
+            serving_size = fallback_serving if isinstance(fallback_serving, dict) else None
+        if isinstance(serving_size, dict):
+            norm["serving"] = {
+                "value": serving_size.get("value"),
+                "unit": str(serving_size.get("unit") or "").strip().lower() or None,
+            }
+
+        nutrients_per_100 = norm.get("nutrients_per_100")
+        if not isinstance(nutrients_per_100, dict):
+            fallback_nutrients = curated.get("nutrients_per_100")
+            nutrients_per_100 = fallback_nutrients if isinstance(fallback_nutrients, dict) else None
+        if isinstance(nutrients_per_100, dict):
+            norm["nutriments"] = {
+                "per_100": {
+                    "energy_kcal": nutrients_per_100.get("energy_kcal"),
+                    "sugar_g": nutrients_per_100.get("sugar_g"),
+                    "salt_g": nutrients_per_100.get("salt_g"),
+                    "saturated_fat_g": nutrients_per_100.get("saturated_fat_g"),
+                    "fiber_g": nutrients_per_100.get("fiber_g"),
+                    "protein_g": nutrients_per_100.get("protein_g"),
+                    "fruits_veg_percent": nutrients_per_100.get("fruits_veg_percent"),
+                }
+            }
+
+        ingredients_value = norm.get("ingredients")
+        if not isinstance(ingredients_value, dict):
+            fallback_ingredients = curated.get("ingredients")
+            ingredients_value = fallback_ingredients if isinstance(fallback_ingredients, dict) else None
+        if isinstance(ingredients_value, dict) and isinstance(ingredients_value.get("text"), str):
+            norm["ingredients_meta"] = {
+                "language": ingredients_value.get("language"),
+                "source_language": ingredients_value.get("source_language"),
+            }
+            parsed_ingredients = [
+                {
+                    "name": part.strip(),
+                    "class": "Other",
+                    "note": "From curated",
+                }
+                for part in re.split(r"[;,]", ingredients_value.get("text", ""))
+                if part.strip()
+            ]
+            additives_from_curated = _as_list(norm.get("additives")) or _as_list(curated.get("additives"))
+            for additive in additives_from_curated:
+                additive_name = str(additive).strip()
+                if additive_name:
+                    parsed_ingredients.append(
+                        {
+                            "name": additive_name,
+                            "class": "E-number",
+                            "note": "From curated",
+                        }
+                    )
+            norm["ingredients"] = parsed_ingredients
 
     alerts = _collect_alerts(_as_list(rasff), norm)
     ingredients_raw = norm.get("ingredients") or []
@@ -1018,6 +1078,13 @@ async def scan_product(key: str) -> Dict[str, Any]:
 
     # NEW: collect E-numbers from additives_tags (raw + norm)
     additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
+    if source == "local":
+        merged_e_numbers = list(additives_e_numbers)
+        for additive in (_as_list(norm.get("additives")) or _as_list(raw.get("additives") if isinstance(raw, dict) else [])):
+            token = str(additive).strip().upper()
+            if token and token not in merged_e_numbers:
+                merged_e_numbers.append(token)
+        additives_e_numbers = merged_e_numbers
 
     ingredients, ingredients_intelligence = _ingredients_intelligence(
         _as_list(ingredients_raw),
