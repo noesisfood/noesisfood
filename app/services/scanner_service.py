@@ -956,17 +956,21 @@ def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]]
         confidence += (bev_conf - 0.5) * 0.10
 
     confidence = float(_clamp(confidence, 0.05, 0.95))
+    notes = [
+        "Confidence reflects completeness of nutrition facts + serving info.",
+        "Educational tool - not medical advice.",
+    ]
+    if isinstance(bev_meta, dict) and str(bev_meta.get("signal") or "").lower() == "curated":
+        notes.append("Beverage locked by curated layer.")
 
     return {
         "confidence": round(confidence, 2),
         "missing_core_fields": missing,
         "has_serving": bool(has_serving),
         "beverage_detection": bev_meta,
-        "notes": [
-            "Confidence reflects completeness of nutrition facts + serving info.",
-            "Educational tool — not medical advice.",
-        ],
+        "notes": notes,
     }
+
 
 
 # -------------------------
@@ -990,12 +994,19 @@ async def scan_product(key: str) -> Dict[str, Any]:
     matched_by = None
     raw: Optional[Dict[str, Any]] = None
     source: Optional[str] = None
+    curated_is_beverage = False
+    curated_beverage_signal: Optional[str] = None
 
     local = _find_local_product(_as_list(products), key)
     if local:
         raw = local
         source = "local"
         matched_by = "local_db"
+        local_serving_unit = str(_get_path(local, "serving_size", "unit") or "").strip().lower()
+        local_nutrition_unit = str(_get_path(local, "nutrition_per_100", "unit") or "").strip().lower()
+        if local_serving_unit == "ml" or local_nutrition_unit == "ml":
+            curated_is_beverage = True
+            curated_beverage_signal = "curated"
 
     if raw is None:
         try:
@@ -1074,6 +1085,13 @@ async def scan_product(key: str) -> Dict[str, Any]:
     ingredients_raw = norm.get("ingredients") or []
 
     is_bev, bev_meta = _guess_is_beverage(norm)
+    if curated_is_beverage:
+        is_bev = True
+        bev_meta = {
+            "signal": curated_beverage_signal or "curated",
+            "value": True,
+            "confidence": 0.99,
+        }
     serving_amount, serving_unit, serving_note = _serving_size_in_g_or_ml(norm, is_bev)
 
     # NEW: collect E-numbers from additives_tags (raw + norm)
