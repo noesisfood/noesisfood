@@ -981,6 +981,10 @@ async def scan_product(key: str) -> Dict[str, Any]:
         return {"error": "Missing product id or barcode."}
 
     products = _load_json(PRODUCTS_FILE, [])
+    if isinstance(products, dict) and isinstance(products.get("products"), list):
+        products = products["products"]
+    elif not isinstance(products, list):
+        products = []
     rasff = _load_json(RASFF_FILE, [])
 
     matched_by = None

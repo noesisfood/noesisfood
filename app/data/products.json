@@ -1,22 +1,36 @@
 {
-  "1234": {
-    "name": "Example Product 1",
-    "nutrients": {
-      "calories": 200,
-      "sugar": 10,
-      "fat": 5,
-      "salt": 0.5
-    },
-    "alerts": []
-  },
-  "5678": {
-    "name": "Example Product 2",
-    "nutrients": {
-      "calories": 300,
-      "sugar": 25,
-      "fat": 15,
-      "salt": 1.2
-    },
-    "alerts": ["Allergen: Nuts"]
-  }
+  "schema_version": "v0",
+  "products": [
+    {
+      "key": "test_coke",
+      "barcode": "5449000000996",
+      "name": "Coca-Cola Original Taste",
+      "brand": "Coca-Cola",
+      "serving_size": {
+        "value": 330.0,
+        "unit": "ml"
+      },
+      "nutrients_per_100": {
+        "energy_kcal": 42.0,
+        "sugar_g": 10.6,
+        "salt_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "protein_g": 0.0
+      },
+      "ingredients": {
+        "text": "carbonated water, sugar, colour, acid, natural flavourings, caffeine flavouring",
+        "language": "en",
+        "source_language": "en"
+      },
+      "additives": [
+        "E150",
+        "E338"
+      ],
+      "review": {
+        "note": "verified from OFF label",
+        "date": "2026-03-02",
+        "confidence": 0.9
+      }
+    }
+  ]
 }
