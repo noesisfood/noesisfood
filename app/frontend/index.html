@@ -32,6 +32,16 @@
     .title b{font-size:18px}
     .title span{font-size:12px; color:var(--muted)}
     .step{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:10px;}
+    .topRight{display:flex; align-items:center; gap:10px;}
+    .langSel{
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      padding:6px 8px;
+      font-size:12px;
+      font-weight:700;
+    }
     .bar{width:160px; height:8px; border-radius:999px; background: rgba(255,255,255,.08); overflow:hidden;}
     .bar > i{display:block; height:100%; width:0%; background: linear-gradient(90deg, rgba(123,212,255,.95), rgba(110,255,190,.9));}
 
@@ -215,12 +225,20 @@
         <div class="logo"></div>
         <div class="title">
           <b>NoesisFood</b>
-          <span>VitaScore Hybrid • Advanced MVP</span>
+          <span>VitaScore Hybrid - Advanced MVP</span>
         </div>
       </div>
-      <div class="step">
-        <span id="stepTxt">1/4</span>
-        <div class="bar"><i id="barFill"></i></div>
+      <div class="topRight">
+        <select id="langSel" class="langSel" aria-label="Language">
+          <option value="el">EL</option>
+          <option value="en">EN</option>
+          <option value="de">DE</option>
+          <option value="fr">FR</option>
+        </select>
+        <div class="step">
+          <span id="stepTxt">1/4</span>
+          <div class="bar"><i id="barFill"></i></div>
+        </div>
       </div>
     </div>
 
@@ -232,49 +250,370 @@
   <script>
     let step = 1;
     let state = { key:"", loading:false, error:"", data:null };
+    const supportedLangs = ["el", "en", "de", "fr"];
+
+    const i18n = {
+      en: {
+        tagline: "VitaScore Hybrid - Advanced MVP",
+        scan_title: "Scan",
+        scan_hint: "Enter product id or barcode.",
+        scan_placeholder: "e.g. 9002490100070",
+        scan_btn: "Scan",
+        scanning_btn: "Scanning...",
+        how_title: "How it works",
+        how_l1: "OpenFoodFacts fetch + normalization",
+        how_l2: "WHO-first baseline + hybrid nuance",
+        how_l3: "Ingredients Intelligence + E-numbers explained",
+        why_title: "Why this score?",
+        why_none: "No explanation available.",
+        tips: "Tips",
+        why_foot: "Based on WHO guidance and EU reference intakes. Educational tool - not medical advice.",
+        who_title: "WHO sugar impact",
+        who_sugar: "Sugar per serving",
+        who_ideal: "% of ideal (25g/day)",
+        who_upper: "% of upper (50g/day)",
+        who_limits: "Limits",
+        who_limits_val: "25g ideal - 50g upper",
+        who_note: "Per-serving calculation based on declared serving size.",
+        who_flag_ideal: "Exceeds ideal 25g",
+        who_flag_upper: "Exceeds upper 50g",
+        ingredients_title: "Ingredients Intelligence",
+        ingredients_note: "Ingredients are shown exactly as returned by the API.",
+        ingredients_source_language: "Source language",
+        ingredients_ui_label: "UI",
+        ingredients_source_label: "Source",
+        unknown: "unknown",
+        processing: "Processing",
+        caffeine: "Caffeine",
+        sweeteners: "Sweeteners",
+        e_numbers: "E-numbers",
+        none: "none",
+        e_explained: "E-numbers explained",
+        additive_fallback: "Food additive",
+        e_none: "No E-numbers detected from additives/tags or ingredient text.",
+        flags: "Flags",
+        ingredients_grouped: "Ingredients list (grouped)",
+        ingredients_none: "No ingredients available.",
+        back: "Back",
+        next: "Next",
+        unknown_product: "Unknown Product",
+        vitascore: "VitaScore",
+        sugar: "Sugar",
+        salt: "Salt",
+        sat_fat: "Sat. fat",
+        protein: "Protein",
+        safety_title: "Safety and Trust",
+        alerts: "Alerts",
+        no_alerts: "No alerts found.",
+        data_quality: "Data quality",
+        confidence: "Confidence",
+        missing_fields: "Missing fields",
+        has_serving: "Has serving",
+        beverage: "Beverage",
+        signal: "Signal",
+        yes: "yes",
+        no: "no",
+        scan_another: "Scan another",
+        err_enter_key: "Please enter a product id or barcode.",
+        err_network: "Network error. Is the server running?",
+        tier_na: "N/A",
+        tier_excellent: "Excellent",
+        tier_good: "Good",
+        tier_okay: "Okay",
+        tier_caution: "Caution"
+      },
+      el: {
+        tagline: "VitaScore Hybrid - Advanced MVP",
+        scan_title: "Sarosi",
+        scan_hint: "Vale product id i barcode.",
+        scan_placeholder: "p.x. 9002490100070",
+        scan_btn: "Sarosi",
+        scanning_btn: "Sarosi...",
+        how_title: "Pos douleuei",
+        how_l1: "Anaktisi OpenFoodFacts + kanonikopoiisi",
+        how_l2: "WHO-first baseline + hybrid nuance",
+        how_l3: "Ingredients Intelligence + analisi E-numbers",
+        why_title: "Giati auto to skor;",
+        why_none: "Den yparxei diathesimi eksigisi.",
+        tips: "Symvoules",
+        why_foot: "Vasizetai se odigies WHO kai EU reference intakes. Enimerotiko ergaleio - oxi iatriki symvouli.",
+        who_title: "Epidrasi zaxaris WHO",
+        who_sugar: "Zaxari ana merida",
+        who_ideal: "% tou idanikou (25g/imera)",
+        who_upper: "% tou anotatou (50g/imera)",
+        who_limits: "Oria",
+        who_limits_val: "25g idaniko - 50g anotato",
+        who_note: "Ypologismos ana merida me vasi to dilomeno serving size.",
+        who_flag_ideal: "Kseperna to idaniko 25g",
+        who_flag_upper: "Kseperna to anotato 50g",
+        ingredients_title: "Ingredients Intelligence",
+        ingredients_note: "Ta systatika emfanizontai opos ta epistrefei to API.",
+        ingredients_source_language: "Glossa pigis",
+        ingredients_ui_label: "UI",
+        ingredients_source_label: "Pigi",
+        unknown: "agnosto",
+        processing: "Epeksergasia",
+        caffeine: "Kafeini",
+        sweeteners: "Glykantika",
+        e_numbers: "E-numbers",
+        none: "kanena",
+        e_explained: "Epeksigisi E-numbers",
+        additive_fallback: "Prostheto trofimon",
+        e_none: "Den entopistikan E-numbers apo additives/tags i ingredients text.",
+        flags: "Simanseis",
+        ingredients_grouped: "Lista systatikon (omadopoiimeni)",
+        ingredients_none: "Den yparxoun diathesima systatika.",
+        back: "Piso",
+        next: "Epomeno",
+        unknown_product: "Agnosto proion",
+        vitascore: "VitaScore",
+        sugar: "Zaxari",
+        salt: "Alati",
+        sat_fat: "Koresmena",
+        protein: "Proteini",
+        safety_title: "Asfaleia kai empistosyni",
+        alerts: "Proeidopoiiseis",
+        no_alerts: "Den vrethikan proeidopoiiseis.",
+        data_quality: "Poiotita dedomenon",
+        confidence: "Empistosyni",
+        missing_fields: "Pedia pou leipoun",
+        has_serving: "Yparxei merida",
+        beverage: "Rofima",
+        signal: "Sima",
+        yes: "nai",
+        no: "oxi",
+        scan_another: "Nea sarosi",
+        err_enter_key: "Vale product id i barcode.",
+        err_network: "Sfalma diktyou. Trexei o server?",
+        tier_na: "N/A",
+        tier_excellent: "Eksairetiko",
+        tier_good: "Kalo",
+        tier_okay: "OK",
+        tier_caution: "Prosoxi"
+      },
+      de: {
+        tagline: "VitaScore Hybrid - Advanced MVP",
+        scan_title: "Scannen",
+        scan_hint: "Produkt-ID oder Barcode eingeben.",
+        scan_placeholder: "z.B. 9002490100070",
+        scan_btn: "Scannen",
+        scanning_btn: "Scanne...",
+        how_title: "So funktioniert es",
+        how_l1: "OpenFoodFacts Abruf + Normalisierung",
+        how_l2: "WHO-first Baseline + Hybrid-Bewertung",
+        how_l3: "Ingredients Intelligence + E-Nummern erklÃ¤rt",
+        why_title: "Warum dieser Score?",
+        why_none: "Keine ErklÃ¤rung verfÃ¼gbar.",
+        tips: "Tipps",
+        why_foot: "Basiert auf WHO-Leitlinien und EU-Referenzwerten. Lernhilfe - keine medizinische Beratung.",
+        who_title: "WHO-Zuckerwirkung",
+        who_sugar: "Zucker pro Portion",
+        who_ideal: "% des Idealwerts (25g/Tag)",
+        who_upper: "% des oberen Werts (50g/Tag)",
+        who_limits: "Grenzen",
+        who_limits_val: "25g ideal - 50g oberer Wert",
+        who_note: "Pro-Portion-Berechnung basierend auf deklarierter PortionsgrÃ¶ÃŸe.",
+        who_flag_ideal: "Idealwert 25g Ã¼berschritten",
+        who_flag_upper: "Oberer Wert 50g Ã¼berschritten",
+        ingredients_title: "Ingredients Intelligence",
+        ingredients_note: "Zutaten werden exakt wie vom API geliefert angezeigt.",
+        ingredients_source_language: "Quellsprache",
+        ingredients_ui_label: "UI",
+        ingredients_source_label: "Quelle",
+        unknown: "unbekannt",
+        processing: "Verarbeitung",
+        caffeine: "Koffein",
+        sweeteners: "SÃ¼ÃŸstoffe",
+        e_numbers: "E-Nummern",
+        none: "keine",
+        e_explained: "E-Nummern erklÃ¤rt",
+        additive_fallback: "Lebensmittelzusatzstoff",
+        e_none: "Keine E-Nummern aus Additiven/Tags oder Zutaten erkannt.",
+        flags: "Hinweise",
+        ingredients_grouped: "Zutatenliste (gruppiert)",
+        ingredients_none: "Keine Zutaten verfÃ¼gbar.",
+        back: "ZurÃ¼ck",
+        next: "Weiter",
+        unknown_product: "Unbekanntes Produkt",
+        vitascore: "VitaScore",
+        sugar: "Zucker",
+        salt: "Salz",
+        sat_fat: "Ges. Fett",
+        protein: "Protein",
+        safety_title: "Sicherheit und Vertrauen",
+        alerts: "Warnungen",
+        no_alerts: "Keine Warnungen gefunden.",
+        data_quality: "DatenqualitÃ¤t",
+        confidence: "Konfidenz",
+        missing_fields: "Fehlende Felder",
+        has_serving: "Portion vorhanden",
+        beverage: "GetrÃ¤nk",
+        signal: "Signal",
+        yes: "ja",
+        no: "nein",
+        scan_another: "Weiteres Produkt scannen",
+        err_enter_key: "Bitte Produkt-ID oder Barcode eingeben.",
+        err_network: "Netzwerkfehler. LÃ¤uft der Server?",
+        tier_na: "N/A",
+        tier_excellent: "Exzellent",
+        tier_good: "Gut",
+        tier_okay: "Okay",
+        tier_caution: "Vorsicht"
+      },
+      fr: {
+        tagline: "VitaScore Hybrid - Advanced MVP",
+        scan_title: "Scanner",
+        scan_hint: "Entrez un id produit ou un code-barres.",
+        scan_placeholder: "ex. 9002490100070",
+        scan_btn: "Scanner",
+        scanning_btn: "Scan en cours...",
+        how_title: "Comment Ã§a marche",
+        how_l1: "RÃ©cupÃ©ration OpenFoodFacts + normalisation",
+        how_l2: "Base WHO-first + ajustement hybride",
+        how_l3: "Ingredients Intelligence + E-numbers expliquÃ©s",
+        why_title: "Pourquoi ce score ?",
+        why_none: "Aucune explication disponible.",
+        tips: "Conseils",
+        why_foot: "BasÃ© sur les recommandations WHO et les repÃ¨res UE. Outil Ã©ducatif - pas un avis mÃ©dical.",
+        who_title: "Impact sucre WHO",
+        who_sugar: "Sucre par portion",
+        who_ideal: "% de l'idÃ©al (25g/jour)",
+        who_upper: "% de la limite haute (50g/jour)",
+        who_limits: "Limites",
+        who_limits_val: "25g idÃ©al - 50g limite haute",
+        who_note: "Calcul par portion selon la portion dÃ©clarÃ©e.",
+        who_flag_ideal: "DÃ©passe l'idÃ©al 25g",
+        who_flag_upper: "DÃ©passe la limite haute 50g",
+        ingredients_title: "Ingredients Intelligence",
+        ingredients_note: "Les ingrÃ©dients sont affichÃ©s exactement comme renvoyÃ©s par l'API.",
+        ingredients_source_language: "Langue source",
+        ingredients_ui_label: "UI",
+        ingredients_source_label: "Source",
+        unknown: "inconnu",
+        processing: "Transformation",
+        caffeine: "CafÃ©ine",
+        sweeteners: "Ã‰dulcorants",
+        e_numbers: "E-numbers",
+        none: "aucun",
+        e_explained: "E-numbers expliquÃ©s",
+        additive_fallback: "Additif alimentaire",
+        e_none: "Aucun E-number dÃ©tectÃ© depuis additifs/tags ou texte ingrÃ©dients.",
+        flags: "Drapeaux",
+        ingredients_grouped: "Liste des ingrÃ©dients (groupÃ©e)",
+        ingredients_none: "Aucun ingrÃ©dient disponible.",
+        back: "Retour",
+        next: "Suivant",
+        unknown_product: "Produit inconnu",
+        vitascore: "VitaScore",
+        sugar: "Sucre",
+        salt: "Sel",
+        sat_fat: "Graisses sat.",
+        protein: "ProtÃ©ines",
+        safety_title: "SÃ©curitÃ© et confiance",
+        alerts: "Alertes",
+        no_alerts: "Aucune alerte trouvÃ©e.",
+        data_quality: "QualitÃ© des donnÃ©es",
+        confidence: "Confiance",
+        missing_fields: "Champs manquants",
+        has_serving: "Portion disponible",
+        beverage: "Boisson",
+        signal: "Signal",
+        yes: "oui",
+        no: "non",
+        scan_another: "Scanner un autre",
+        err_enter_key: "Entrez un id produit ou un code-barres.",
+        err_network: "Erreur rÃ©seau. Le serveur est-il dÃ©marrÃ© ?",
+        tier_na: "N/A",
+        tier_excellent: "Excellent",
+        tier_good: "Bon",
+        tier_okay: "Correct",
+        tier_caution: "Attention"
+      }
+    };
+
+    function pickInitialLang(){
+      const saved = localStorage.getItem("nf_lang");
+      if (saved && supportedLangs.includes(saved)) return saved;
+      const browser = String(navigator.language || "en").toLowerCase().slice(0, 2);
+      return supportedLangs.includes(browser) ? browser : "en";
+    }
+
+    let lang = pickInitialLang();
 
     const app = document.getElementById("app");
     const stepTxt = document.getElementById("stepTxt");
     const barFill = document.getElementById("barFill");
+    const langSel = document.getElementById("langSel");
+
+    function t(key){
+      return i18n[lang]?.[key] || i18n.en[key] || key;
+    }
 
     const fmtNum = (x) => {
-      if (x === null || x === undefined || Number.isNaN(Number(x))) return "—";
+      if (x === null || x === undefined || Number.isNaN(Number(x))) return "-";
       const n = Number(x);
       return (Math.round(n * 10) / 10).toString();
     };
 
     function tierFromScore(score){
-      if (score === null || score === undefined) return {label:"N/A", cls:"tier"};
-      if (score >= 80) return {label:"Excellent", cls:"tier", color:"rgba(110,255,190,.18)", border:"rgba(110,255,190,.35)"};
-      if (score >= 60) return {label:"Good", cls:"tier", color:"rgba(123,212,255,.14)", border:"rgba(123,212,255,.35)"};
-      if (score >= 40) return {label:"Okay", cls:"tier", color:"rgba(255,210,110,.12)", border:"rgba(255,210,110,.32)"};
-      return {label:"Caution", cls:"tier", color:"rgba(255,120,120,.12)", border:"rgba(255,120,120,.32)"};
+      if (score === null || score === undefined) return {label:t("tier_na"), cls:"tier"};
+      if (score >= 80) return {label:t("tier_excellent"), cls:"tier", color:"rgba(110,255,190,.18)", border:"rgba(110,255,190,.35)"};
+      if (score >= 60) return {label:t("tier_good"), cls:"tier", color:"rgba(123,212,255,.14)", border:"rgba(123,212,255,.35)"};
+      if (score >= 40) return {label:t("tier_okay"), cls:"tier", color:"rgba(255,210,110,.12)", border:"rgba(255,210,110,.32)"};
+      return {label:t("tier_caution"), cls:"tier", color:"rgba(255,120,120,.12)", border:"rgba(255,120,120,.32)"};
+    }
+
+    function inferLanguageCode(text){
+      const s = String(text || "").toLowerCase();
+      if (!s.trim()) return null;
+      if (/[\u0370-\u03ff]/.test(s)) return "EL";
+      if (/(\\bund\\b|\\bzutaten\\b|\\bzucker\\b)/.test(s)) return "DE";
+      if (/(\\boraz\\b|\\bcukier\\b|\\bskladniki\\b)/.test(s)) return "PL";
+      if (/(\\bet\\b|\\bsucre\\b|\\bingredients\\b)/.test(s)) return "FR";
+      return null;
+    }
+
+    function ingredientLanguageBadge(data){
+      const meta = data?.ingredients_meta || {};
+      const uiLang = meta?.language ? String(meta.language).toUpperCase() : null;
+      let sourceLang = meta?.source_language ? String(meta.source_language).toUpperCase() : null;
+
+      if (!sourceLang){
+        const ings = Array.isArray(data?.ingredients) ? data.ingredients : [];
+        const textBlob = ings.map(i => i?.name || "").join(" ");
+        sourceLang = inferLanguageCode(textBlob);
+      }
+      if (!sourceLang) sourceLang = t("unknown");
+
+      if (uiLang){
+        return `${t("ingredients_ui_label")}: ${uiLang} | ${t("ingredients_source_label")}: ${sourceLang}`;
+      }
+      return `${t("ingredients_source_language")}: ${sourceLang}`;
     }
 
     function whoServingBlock(data){
       const who = data?.who_impact;
       if (!who) return ``;
 
-      // supports both shapes
       const sugar = who?.sugar?.g_per_serving ?? who?.sugar_per_serving_g;
       const pctIdeal = who?.sugar?.percent_of_ideal_25g ?? who?.percent_of_ideal;
       const pctUpper = who?.sugar?.percent_of_upper_50g ?? who?.percent_of_upper;
 
       const flags = [];
-      if ((who?.sugar?.percent_of_ideal_25g ?? 0) >= 100 || who?.exceeds_ideal) flags.push(`<span class="pill bad">Exceeds ideal 25g</span>`);
-      if ((who?.sugar?.percent_of_upper_50g ?? 0) >= 100 || who?.exceeds_upper) flags.push(`<span class="pill bad">Exceeds upper 50g</span>`);
+      if ((who?.sugar?.percent_of_ideal_25g ?? 0) >= 100 || who?.exceeds_ideal) flags.push(`<span class="pill bad">${t("who_flag_ideal")}</span>`);
+      if ((who?.sugar?.percent_of_upper_50g ?? 0) >= 100 || who?.exceeds_upper) flags.push(`<span class="pill bad">${t("who_flag_upper")}</span>`);
 
       return `
         <div class="section">
-          <div class="sectionTitle">WHO sugar impact</div>
+          <div class="sectionTitle">${t("who_title")}</div>
           <div class="grid2">
-            <div class="kv"><small>Sugar per serving</small><b>${fmtNum(sugar)} g</b></div>
-            <div class="kv"><small>% of ideal (25g/day)</small><b>${fmtNum(pctIdeal)}%</b></div>
-            <div class="kv"><small>% of upper (50g/day)</small><b>${fmtNum(pctUpper)}%</b></div>
-            <div class="kv"><small>Limits</small><b>25g ideal • 50g upper</b></div>
+            <div class="kv"><small>${t("who_sugar")}</small><b>${fmtNum(sugar)} g</b></div>
+            <div class="kv"><small>${t("who_ideal")}</small><b>${fmtNum(pctIdeal)}%</b></div>
+            <div class="kv"><small>${t("who_upper")}</small><b>${fmtNum(pctUpper)}%</b></div>
+            <div class="kv"><small>${t("who_limits")}</small><b>${t("who_limits_val")}</b></div>
           </div>
           ${flags.length ? `<div class="pillRow">${flags.join("")}</div>` : ``}
-          <div class="whyFoot">Per-serving calculation based on declared serving size.</div>
+          <div class="whyFoot">${t("who_note")}</div>
         </div>
       `;
     }
@@ -285,27 +624,10 @@
 
       return `
         <div class="section">
-          <div class="sectionTitle">Why this score?</div>
-
-          ${
-            why.length
-            ? `<div class="whyGrid">${why.map(line => `<div class="whyRow"><span>${line}</span></div>`).join("")}</div>`
-            : `<div class="mini">No explanation available.</div>`
-          }
-
-          ${
-            tips.length
-            ? `<div class="whyFoot" style="margin-top:12px;">
-                <b>Tips</b><br/>
-                ${tips.map(t => `• ${t}`).join("<br/>")}
-              </div>`
-            : ``
-          }
-
-          <div class="whyFoot" style="margin-top:12px;">
-            Based on WHO guidance & EU reference intakes.
-            Educational tool — not medical advice.
-          </div>
+          <div class="sectionTitle">${t("why_title")}</div>
+          ${why.length ? `<div class="whyGrid">${why.map(line => `<div class="whyRow"><span>${line}</span></div>`).join("")}</div>` : `<div class="mini">${t("why_none")}</div>`}
+          ${tips.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("tips")}</b><br/>${tips.map(x => `- ${x}`).join("<br/>")}</div>` : ``}
+          <div class="whyFoot" style="margin-top:12px;">${t("why_foot")}</div>
         </div>
       `;
     }
@@ -318,8 +640,8 @@
       const markers = intel?.markers || {};
       const score = intel?.processing_score;
       const label = intel?.processing_label;
+      const langBadge = ingredientLanguageBadge(data);
 
-      // group ingredients by class
       const groups = {};
       for (const ing of ings){
         const cls = (ing?.class || "Other");
@@ -329,21 +651,19 @@
       const groupOrder = Object.keys(groups).sort((a,b)=> a.localeCompare(b));
 
       const scorePill = (score === null || score === undefined) ? `` : (
-        score <= 2 ? `<span class="pill good">Processing: ${score}/10 • ${label}</span>` :
-        score <= 5 ? `<span class="pill warn">Processing: ${score}/10 • ${label}</span>` :
-                     `<span class="pill bad">Processing: ${score}/10 • ${label}</span>`
+        score <= 2 ? `<span class="pill good">${t("processing")}: ${score}/10 | ${label}</span>` :
+        score <= 5 ? `<span class="pill warn">${t("processing")}: ${score}/10 | ${label}</span>` :
+                     `<span class="pill bad">${t("processing")}: ${score}/10 | ${label}</span>`
       );
-
-      const caffeinePill = (markers?.caffeine ? `<span class="pill warn">Caffeine</span>` : ``);
-      const ePill = (eDetails.length ? `<span class="pill warn">E-numbers: ${eDetails.length}</span>` : `<span class="pill">E-numbers: none</span>`);
-      const sweetPill = (markers?.sweeteners ? `<span class="pill warn">Sweeteners: ${markers.sweeteners}</span>` : ``);
+      const caffeinePill = (markers?.caffeine ? `<span class="pill warn">${t("caffeine")}</span>` : ``);
+      const ePill = (eDetails.length ? `<span class="pill warn">${t("e_numbers")}: ${eDetails.length}</span>` : `<span class="pill">${t("e_numbers")}: ${t("none")}</span>`);
+      const sweetPill = (markers?.sweeteners ? `<span class="pill warn">${t("sweeteners")}: ${markers.sweeteners}</span>` : ``);
 
       return `
         <div class="section">
-          <div class="sectionTitle">Ingredients Intelligence</div>
-          <div class="mini">
-            Σημείωση: Η γλώσσα των συστατικών είναι αυτή που δίνει η πηγή (OpenFoodFacts).
-          </div>
+          <div class="sectionTitle">${t("ingredients_title")}</div>
+          <div class="mini">${t("ingredients_note")}</div>
+          <div class="pillRow"><span class="pill">${langBadge}</span></div>
 
           <div class="pillRow">
             ${scorePill}
@@ -354,27 +674,25 @@
 
           <div class="split" style="margin-top:12px;">
             <div class="box">
-              <div class="sectionTitle" style="margin:0 0 8px 0;">E-numbers explained</div>
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("e_explained")}</div>
               ${eDetails.length ? eDetails.map(ed => `
                 <div class="eRow">
                   <div class="eLeft">
-                    <b>${ed.code || "E—"} — ${ed.name || "Food additive"}</b>
+                    <b>${ed.code || "E-"} - ${ed.name || t("additive_fallback")}</b>
                     <small>${ed.meaning_el || ""}</small>
                   </div>
                   <div class="eRole">${ed.role || ""}</div>
                 </div>
-              `).join("") : `<div class="mini">No E-numbers detected from additives/tags or ingredient text.</div>`}
-
-              ${flags.length ? `<div class="whyFoot" style="margin-top:12px;"><b>Flags</b><br/>${flags.map(f => `• ${f}`).join("<br/>")}</div>` : ``}
+              `).join("") : `<div class="mini">${t("e_none")}</div>`}
+              ${flags.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("flags")}</b><br/>${flags.map(f => `- ${f}`).join("<br/>")}</div>` : ``}
             </div>
 
             <div class="box">
-              <div class="sectionTitle" style="margin:0 0 8px 0;">Ingredients list (grouped)</div>
-
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("ingredients_grouped")}</div>
               ${groupOrder.length ? groupOrder.map(cls => `
                 <div class="groupTitle">${cls}</div>
                 ${groups[cls].map(ing => {
-                  const nm = ing?.name || "—";
+                  const nm = ing?.name || "-";
                   const note = ing?.note || "";
                   const risk = (ing?.risk || "low").toLowerCase();
                   const riskCls = (risk === "high" ? "risk high" : (risk === "medium" ? "risk medium" : "risk low"));
@@ -388,13 +706,13 @@
                     </div>
                   `;
                 }).join("")}
-              `).join("") : `<div class="mini">No ingredients available.</div>`}
+              `).join("") : `<div class="mini">${t("ingredients_none")}</div>`}
             </div>
           </div>
 
           <div class="btns">
-            <button class="ghost" id="backBtn">Back</button>
-            <button class="primary" id="nextBtn">Next</button>
+            <button class="ghost" id="backBtn">${t("back")}</button>
+            <button class="primary" id="nextBtn">${t("next")}</button>
           </div>
         </div>
       `;
@@ -403,39 +721,34 @@
     function render(){
       stepTxt.textContent = `${step}/4`;
       barFill.style.width = `${(step/4)*100}%`;
+      document.querySelector(".title span").textContent = t("tagline");
+      document.documentElement.lang = lang;
+      if (langSel && langSel.value !== lang) langSel.value = lang;
 
       if (step === 1){
         app.innerHTML = `
           <div class="row">
             <div class="col">
               <div class="section">
-                <div class="sectionTitle">Scan</div>
-                <div class="mini">Βάλε product id ή barcode.</div>
-
+                <div class="sectionTitle">${t("scan_title")}</div>
+                <div class="mini">${t("scan_hint")}</div>
                 ${state.error ? `<div class="err">${state.error}</div>` : ``}
-
                 <div style="margin-top:10px;">
-                  <input id="keyInput" placeholder="π.χ. 9002490100070" value="${state.key || ""}"/>
+                  <input id="keyInput" placeholder="${t("scan_placeholder")}" value="${state.key || ""}"/>
                 </div>
                 <div class="btns">
-                  <button class="primary" id="scanBtn">${state.loading ? "Scanning..." : "Scan"}</button>
+                  <button class="primary" id="scanBtn">${state.loading ? t("scanning_btn") : t("scan_btn")}</button>
                 </div>
               </div>
             </div>
-
             <div class="col">
               <div class="section">
-                <div class="sectionTitle">How it works</div>
-                <div class="mini">
-                  • OpenFoodFacts fetch + normalization<br/>
-                  • WHO-first baseline + hybrid nuance<br/>
-                  • Ingredients Intelligence + E-numbers explained
-                </div>
+                <div class="sectionTitle">${t("how_title")}</div>
+                <div class="mini">- ${t("how_l1")}<br/>- ${t("how_l2")}<br/>- ${t("how_l3")}</div>
               </div>
             </div>
           </div>
         `;
-
         const scanBtn = document.getElementById("scanBtn");
         const keyInput = document.getElementById("keyInput");
         if (scanBtn && keyInput){
@@ -449,9 +762,7 @@
         const d = state.data || {};
         const p = d.product || {};
         const score = d?.vitascore;
-        const t = tierFromScore(score);
-
-        // nutrition fields (new vs old)
+        const tier = tierFromScore(score);
         const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
         const unit = d?.meta?.serving?.unit || (p?.quantity?.toLowerCase?.().includes("ml") ? "ml" : "g");
         const sugar = per100.sugar_g_per_100 ?? d?.nutrition_per_100?.sugar_g;
@@ -464,41 +775,33 @@
             <div class="prodHead">
               ${p?.image_url ? `<img class="prodImg" src="${p.image_url}" alt="product"/>` : `<div class="prodImg"></div>`}
               <div class="prodMeta">
-                <b>${p?.name || "Unknown Product"}</b>
-                <span>${p?.brand ? p.brand + " • " : ""}${d?.vitascore_version || ""}</span>
+                <b>${p?.name || t("unknown_product")}</b>
+                <span>${p?.brand ? p.brand + " | " : ""}${d?.vitascore_version || ""}</span>
               </div>
             </div>
-
             <div class="section" style="margin-top:12px;">
               <div class="scoreWrap">
                 <div>
-                  <div class="mini">VitaScore</div>
-                  <div class="scoreLine">
-                    <div class="score">${score ?? "—"}</div>
-                    <div class="scoreMax">/100</div>
-                  </div>
+                  <div class="mini">${t("vitascore")}</div>
+                  <div class="scoreLine"><div class="score">${score ?? "-"}</div><div class="scoreMax">/100</div></div>
                 </div>
-                <div class="tier" style="background:${t.color}; border-color:${t.border};">${t.label}</div>
+                <div class="tier" style="background:${tier.color}; border-color:${tier.border};">${tier.label}</div>
               </div>
-
               <div class="grid2">
-                <div class="kv"><small>Sugar</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-                <div class="kv"><small>Salt</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-                <div class="kv"><small>Sat. fat</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-                <div class="kv"><small>Protein</small><b>${fmtNum(prot)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>${t("sugar")}</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>${t("salt")}</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>${t("sat_fat")}</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                <div class="kv"><small>${t("protein")}</small><b>${fmtNum(prot)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
               </div>
             </div>
-
             ${buildWhyScoreHTML(d)}
             ${whoServingBlock(d)}
-
             <div class="btns">
-              <button class="ghost" id="backBtn">Back</button>
-              <button class="primary" id="nextBtn">Next</button>
+              <button class="ghost" id="backBtn">${t("back")}</button>
+              <button class="primary" id="nextBtn">${t("next")}</button>
             </div>
           </div>
         `;
-
         document.getElementById("backBtn").onclick = () => { step = 1; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 3; render(); };
         return;
@@ -515,60 +818,41 @@
         const d = state.data || {};
         const alerts = Array.isArray(d?.alerts) ? d.alerts : [];
         const dq = d?.data_quality || {};
-
         app.innerHTML = `
           <div class="section">
-            <div class="sectionTitle">Safety & Trust</div>
-
-            ${alerts.length ? `
-              <div class="err">
-                <b>Alerts:</b><br/>
-                ${alerts.map(a => `• ${a}`).join("<br/>")}
-              </div>
-            ` : `
-              <div class="ok"><b>No alerts found.</b></div>
-            `}
-
+            <div class="sectionTitle">${t("safety_title")}</div>
+            ${alerts.length ? `<div class="err"><b>${t("alerts")}:</b><br/>${alerts.map(a => `- ${a}`).join("<br/>")}</div>` : `<div class="ok"><b>${t("no_alerts")}</b></div>`}
             <div class="section" style="margin-top:12px;">
-              <div class="sectionTitle">Data quality</div>
+              <div class="sectionTitle">${t("data_quality")}</div>
               <div class="mini">
-                Confidence: <b>${dq?.confidence ?? "—"}</b><br/>
-                Missing fields: <b>${Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields.join(", ") : "—"}</b><br/>
-                Has serving: <b>${dq?.has_serving ? "yes" : "no"}</b><br/>
-                Beverage: <b>${dq?.beverage_detection?.value === true ? "yes" : (dq?.beverage_detection?.value === false ? "no" : "—")}</b><br/>
-                Signal: <b>${dq?.beverage_detection?.signal || "—"}</b>
+                ${t("confidence")}: <b>${dq?.confidence ?? "-"}</b><br/>
+                ${t("missing_fields")}: <b>${Array.isArray(dq?.missing_core_fields) ? dq.missing_core_fields.join(", ") : "-"}</b><br/>
+                ${t("has_serving")}: <b>${dq?.has_serving ? t("yes") : t("no")}</b><br/>
+                ${t("beverage")}: <b>${dq?.beverage_detection?.value === true ? t("yes") : (dq?.beverage_detection?.value === false ? t("no") : "-")}</b><br/>
+                ${t("signal")}: <b>${dq?.beverage_detection?.signal || "-"}</b>
               </div>
             </div>
-
             <div class="btns">
-              <button class="ghost" id="backBtn">Back</button>
-              <button class="primary" id="againBtn">Scan another</button>
+              <button class="ghost" id="backBtn">${t("back")}</button>
+              <button class="primary" id="againBtn">${t("scan_another")}</button>
             </div>
           </div>
         `;
         document.getElementById("backBtn").onclick = () => { step = 3; render(); };
-        document.getElementById("againBtn").onclick = () => {
-          step = 1;
-          state.error = "";
-          state.data = null;
-          render();
-        };
-        return;
+        document.getElementById("againBtn").onclick = () => { step = 1; state.error = ""; state.data = null; render(); };
       }
     }
 
     async function doScan(key){
       state.key = (key || "").trim();
       if (!state.key){
-        state.error = "Please enter a product id or barcode.";
+        state.error = t("err_enter_key");
         render();
         return;
       }
-
       state.loading = true;
       state.error = "";
       render();
-
       try{
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}`);
         const data = await res.json().catch(()=> ({}));
@@ -583,10 +867,20 @@
         step = 2;
         render();
       }catch(e){
-        state.error = "Network error. Is the server running?";
+        state.error = t("err_network");
         state.loading = false;
         render();
       }
+    }
+
+    if (langSel){
+      langSel.value = lang;
+      langSel.onchange = (e) => {
+        const next = String(e.target.value || "en").toLowerCase();
+        lang = supportedLangs.includes(next) ? next : "en";
+        localStorage.setItem("nf_lang", lang);
+        render();
+      };
     }
 
     render();
