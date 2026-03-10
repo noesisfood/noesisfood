@@ -854,7 +854,7 @@
       state.error = "";
       render();
       try{
-        const res = await fetch(`/scan/${encodeURIComponent(state.key)}`);
+        const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
         const data = await res.json().catch(()=> ({}));
         if (!res.ok || data?.error){
           state.error = data?.error || `Request failed (${res.status})`;

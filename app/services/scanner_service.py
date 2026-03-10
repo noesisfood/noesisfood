@@ -37,6 +37,117 @@ WHO_SUGAR_UPPER = 50.0
 WHO_SALT_G_PER_DAY = 5.0
 WHO_SATFAT_G_PER_DAY_PROXY = 20.0
 
+SUPPORTED_LANGS = {"el", "en", "de", "fr"}
+
+I18N_EXPLAIN: Dict[str, Dict[str, str]] = {
+    "en": {
+        "why_high_sugar_density": "High sugar density: {value}g per 100{unit} drives most of the penalty.",
+        "why_moderate_sugar": "Moderate sugar: {value}g per 100{unit} contributes to the score.",
+        "why_sat_fat_elevated": "Saturated fat is elevated: {value}g/100{unit} adds a strong penalty.",
+        "why_salt_notable": "Salt is notable: {value}g/100{unit} increases the penalty.",
+        "why_fiber_bonus": "Fiber helps offset penalties: {value}g/100{unit} adds a bonus.",
+        "why_serving_spike": "Serving sugar spike: {value}g per serving triggers extra penalty (large single-serve impact).",
+        "why_who_anchor": "WHO baseline (serving-level load) anchors the score: {score}/100.",
+        "why_no_single_driver": "Score is driven by the available nutrition facts; no single extreme driver detected.",
+        "tip_drinks_zero": "For drinks: try a 'no sugar' / 'zero' alternative or smaller serving size.",
+        "tip_balance_day": "If you drink this daily, consider balancing with low-sugar choices elsewhere that day.",
+        "intel_note_heuristic": "Ingredients Intelligence is heuristic and depends on ingredient text quality.",
+        "intel_note_processing": "Processing score is an informational index, not an official NOVA classification.",
+        "intel_flag_sweeteners": "Sweeteners present ({count})",
+        "intel_flag_additives": "Additives / E-numbers detected ({count})",
+        "intel_flag_preservatives": "Preservatives present ({count})",
+        "intel_flag_emulsifiers": "Emulsifiers/Stabilizers present ({count})",
+        "intel_flag_flavourings": "Flavourings present ({count})",
+        "intel_flag_colorants": "Colorants present ({count})",
+        "intel_flag_caffeine": "Contains caffeine",
+        "intel_flag_allergens": "Allergens: {items}",
+        "dq_note_confidence": "Confidence reflects completeness of nutrition facts + serving info.",
+        "dq_note_educational": "Educational tool - not medical advice.",
+        "dq_note_curated": "Beverage locked by curated layer.",
+    },
+    "el": {
+        "why_high_sugar_density": "Υψηλή πυκνότητα ζάχαρης: {value}g ανά 100{unit} αυξάνει σημαντικά την ποινή.",
+        "why_moderate_sugar": "Μέτρια ζάχαρη: {value}g ανά 100{unit} επηρεάζει το σκορ.",
+        "why_sat_fat_elevated": "Αυξημένα κορεσμένα: {value}g/100{unit} προσθέτουν ισχυρή ποινή.",
+        "why_salt_notable": "Το αλάτι είναι αυξημένο: {value}g/100{unit} αυξάνει την ποινή.",
+        "why_fiber_bonus": "Οι φυτικές ίνες βοηθούν: {value}g/100{unit} προσθέτουν bonus.",
+        "why_serving_spike": "Αιχμή ζάχαρης ανά μερίδα: {value}g αυξάνει την ποινή (μεγάλη επίδραση ανά μερίδα).",
+        "why_who_anchor": "Η βάση WHO (ανά μερίδα) αγκυρώνει το σκορ: {score}/100.",
+        "why_no_single_driver": "Το σκορ βασίζεται στα διαθέσιμα διατροφικά στοιχεία χωρίς έναν ακραίο παράγοντα.",
+        "tip_drinks_zero": "Για ροφήματα: προτίμησε επιλογή χωρίς ζάχαρη ή μικρότερη μερίδα.",
+        "tip_balance_day": "Αν το καταναλώνεις συχνά, ισορρόπησέ το με χαμηλή ζάχαρη μέσα στην ημέρα.",
+        "intel_note_heuristic": "Το Ingredients Intelligence είναι ευρετικό και εξαρτάται από την ποιότητα του κειμένου συστατικών.",
+        "intel_note_processing": "Το processing score είναι ενημερωτικός δείκτης, όχι επίσημη ταξινόμηση NOVA.",
+        "intel_flag_sweeteners": "Παρουσία γλυκαντικών ({count})",
+        "intel_flag_additives": "Εντοπίστηκαν πρόσθετα / E-numbers ({count})",
+        "intel_flag_preservatives": "Παρουσία συντηρητικών ({count})",
+        "intel_flag_emulsifiers": "Παρουσία γαλακτωματοποιητών/σταθεροποιητών ({count})",
+        "intel_flag_flavourings": "Παρουσία αρωματικών ({count})",
+        "intel_flag_colorants": "Παρουσία χρωστικών ({count})",
+        "intel_flag_caffeine": "Περιέχει καφεΐνη",
+        "intel_flag_allergens": "Αλλεργιογόνα: {items}",
+        "dq_note_confidence": "Η εμπιστοσύνη βασίζεται στην πληρότητα διατροφικών στοιχείων και μερίδας.",
+        "dq_note_educational": "Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή.",
+        "dq_note_curated": "Το ρόφημα κλειδώθηκε από το curated layer.",
+    },
+    "de": {
+        "why_high_sugar_density": "Hohe Zuckerdichte: {value}g pro 100{unit} treibt den Malus stark.",
+        "why_moderate_sugar": "Moderater Zucker: {value}g pro 100{unit} beeinflusst den Score.",
+        "why_sat_fat_elevated": "Erhöhte gesättigte Fette: {value}g/100{unit} erzeugen einen starken Malus.",
+        "why_salt_notable": "Auffälliges Salz: {value}g/100{unit} erhöht den Malus.",
+        "why_fiber_bonus": "Ballaststoffe helfen: {value}g/100{unit} geben einen Bonus.",
+        "why_serving_spike": "Zuckerspitze pro Portion: {value}g erhöht den Malus (starker Portionseffekt).",
+        "why_who_anchor": "Die WHO-Basis (pro Portion) verankert den Score: {score}/100.",
+        "why_no_single_driver": "Der Score basiert auf den verfügbaren Nährwerten ohne einen einzelnen Extremtreiber.",
+        "tip_drinks_zero": "Für Getränke: zuckerfreie Option oder kleinere Portion wählen.",
+        "tip_balance_day": "Bei täglichem Konsum mit zuckerärmeren Optionen im Tagesverlauf ausgleichen.",
+        "intel_note_heuristic": "Ingredients Intelligence ist heuristisch und hängt von der Qualität des Zutaten-Textes ab.",
+        "intel_note_processing": "Der Processing-Score ist ein Informationsindex, keine offizielle NOVA-Klassifikation.",
+        "intel_flag_sweeteners": "Süßstoffe vorhanden ({count})",
+        "intel_flag_additives": "Zusatzstoffe / E-Nummern erkannt ({count})",
+        "intel_flag_preservatives": "Konservierungsstoffe vorhanden ({count})",
+        "intel_flag_emulsifiers": "Emulgatoren/Stabilisatoren vorhanden ({count})",
+        "intel_flag_flavourings": "Aromen vorhanden ({count})",
+        "intel_flag_colorants": "Farbstoffe vorhanden ({count})",
+        "intel_flag_caffeine": "Enthält Koffein",
+        "intel_flag_allergens": "Allergene: {items}",
+        "dq_note_confidence": "Die Konfidenz basiert auf der Vollständigkeit von Nährwerten und Portionsdaten.",
+        "dq_note_educational": "Lernhilfe - keine medizinische Beratung.",
+        "dq_note_curated": "Getränk durch Curated-Layer festgelegt.",
+    },
+    "fr": {
+        "why_high_sugar_density": "Forte densité de sucre : {value}g pour 100{unit} augmente fortement la pénalité.",
+        "why_moderate_sugar": "Sucre modéré : {value}g pour 100{unit} influence le score.",
+        "why_sat_fat_elevated": "Graisses saturées élevées : {value}g/100{unit} ajoutent une forte pénalité.",
+        "why_salt_notable": "Sel notable : {value}g/100{unit} augmente la pénalité.",
+        "why_fiber_bonus": "Les fibres aident : {value}g/100{unit} ajoutent un bonus.",
+        "why_serving_spike": "Pic de sucre par portion : {value}g augmente la pénalité (fort impact à la portion).",
+        "why_who_anchor": "La base WHO (par portion) ancre le score : {score}/100.",
+        "why_no_single_driver": "Le score repose sur les valeurs nutritionnelles disponibles sans facteur extrême unique.",
+        "tip_drinks_zero": "Pour les boissons : choisir une option sans sucre ou une portion plus petite.",
+        "tip_balance_day": "En consommation quotidienne, compenser avec des choix moins sucrés sur la journée.",
+        "intel_note_heuristic": "Ingredients Intelligence est heuristique et dépend de la qualité du texte des ingrédients.",
+        "intel_note_processing": "Le score de processing est un indice informatif, pas une classification NOVA officielle.",
+        "intel_flag_sweeteners": "Édulcorants présents ({count})",
+        "intel_flag_additives": "Additifs / E-numbers détectés ({count})",
+        "intel_flag_preservatives": "Conservateurs présents ({count})",
+        "intel_flag_emulsifiers": "Émulsifiants/Stabilisants présents ({count})",
+        "intel_flag_flavourings": "Arômes présents ({count})",
+        "intel_flag_colorants": "Colorants présents ({count})",
+        "intel_flag_caffeine": "Contient de la caféine",
+        "intel_flag_allergens": "Allergènes : {items}",
+        "dq_note_confidence": "La confiance reflète la complétude des données nutritionnelles et de portion.",
+        "dq_note_educational": "Outil éducatif - pas un avis médical.",
+        "dq_note_curated": "Boisson verrouillée par la couche curated.",
+    },
+}
+
+
+def t(lang: str, key: str, **kwargs: Any) -> str:
+    lang_key = lang if lang in SUPPORTED_LANGS else "en"
+    template = I18N_EXPLAIN.get(lang_key, {}).get(key) or I18N_EXPLAIN["en"].get(key) or key
+    return template.format(**kwargs)
+
 
 # -----------------------------
 # Helpers
@@ -892,7 +1003,12 @@ def _who_baseline_score(who_impact: Dict[str, Any], per100: Dict[str, Optional[f
 # -----------------------------
 # Explainability + data quality
 # -----------------------------
-def _build_explanations(per100: Dict[str, Optional[float]], breakdown: Dict[str, Any], is_beverage: bool) -> Tuple[List[str], List[str]]:
+def _build_explanations(
+    per100: Dict[str, Optional[float]],
+    breakdown: Dict[str, Any],
+    is_beverage: bool,
+    lang: str = "en",
+) -> Tuple[List[str], List[str]]:
     why: List[str] = []
     tips: List[str] = []
 
@@ -904,38 +1020,103 @@ def _build_explanations(per100: Dict[str, Optional[float]], breakdown: Dict[str,
     sugar_pts = _to_float(_get_path(breakdown, "per_100", "penalties", "sugar_points")) or 0.0
     salt_pts = _to_float(_get_path(breakdown, "per_100", "penalties", "salt_points")) or 0.0
     satfat_pts = _to_float(_get_path(breakdown, "per_100", "penalties", "satfat_points")) or 0.0
+    unit = "ml" if is_beverage else "g"
 
     if sugar is not None and sugar_pts >= 10:
-        why.append(f"High sugar density: {sugar:.1f}g per 100{'ml' if is_beverage else 'g'} drives most of the penalty.")
+        why.append(t(lang, "why_high_sugar_density", value=f"{sugar:.1f}", unit=unit))
     elif sugar is not None and sugar >= 5:
-        why.append(f"Moderate sugar: {sugar:.1f}g per 100{'ml' if is_beverage else 'g'} contributes to the score.")
+        why.append(t(lang, "why_moderate_sugar", value=f"{sugar:.1f}", unit=unit))
 
     if satfat is not None and satfat_pts >= 8:
-        why.append(f"Saturated fat is elevated: {satfat:.1f}g/100{'ml' if is_beverage else 'g'} adds a strong penalty.")
+        why.append(t(lang, "why_sat_fat_elevated", value=f"{satfat:.1f}", unit=unit))
     if salt is not None and salt_pts >= 7:
-        why.append(f"Salt is notable: {salt:.2f}g/100{'ml' if is_beverage else 'g'} increases the penalty.")
+        why.append(t(lang, "why_salt_notable", value=f"{salt:.2f}", unit=unit))
 
     if fiber is not None and fiber >= 2.5:
-        why.append(f"Fiber helps offset penalties: {fiber:.1f}g/100{'ml' if is_beverage else 'g'} adds a bonus.")
+        why.append(t(lang, "why_fiber_bonus", value=f"{fiber:.1f}", unit=unit))
 
     spike = _to_float(_get_path(breakdown, "per_serving", "penalties", "sugar_spike_extra")) or 0.0
     sugar_serv = _to_float(_get_path(breakdown, "per_serving", "inputs", "sugar_g_per_serving"))
     if sugar_serv is not None and spike > 0:
-        why.append(f"Serving sugar spike: {sugar_serv:.1f}g per serving triggers extra penalty (large single-serve impact).")
+        why.append(t(lang, "why_serving_spike", value=f"{sugar_serv:.1f}"))
 
     who_base = _get_path(breakdown, "who_baseline", "score")
     if isinstance(who_base, int):
-        why.append(f"WHO baseline (serving-level load) anchors the score: {who_base}/100.")
+        why.append(t(lang, "why_who_anchor", score=who_base))
 
     if is_beverage:
         if sugar is not None and sugar >= 5:
-            tips.append("For drinks: try a 'no sugar' / 'zero' alternative or smaller serving size.")
-        tips.append("If you drink this daily, consider balancing with low-sugar choices elsewhere that day.")
+            tips.append(t(lang, "tip_drinks_zero"))
+        tips.append(t(lang, "tip_balance_day"))
 
     if not why:
-        why.append("Score is driven by the available nutrition facts; no single extreme driver detected.")
+        why.append(t(lang, "why_no_single_driver"))
 
     return why[:5], tips[:5]
+
+
+def _localize_intelligence(intel: Dict[str, Any], lang: str) -> Dict[str, Any]:
+    if not isinstance(intel, dict):
+        return intel
+
+    localized = dict(intel)
+    flags = _as_list(localized.get("flags"))
+    notes = _as_list(localized.get("notes"))
+
+    out_flags: List[str] = []
+    for f in flags:
+        s = str(f)
+        if s.startswith("Sweeteners present (") and s.endswith(")"):
+            out_flags.append(t(lang, "intel_flag_sweeteners", count=s[s.find("(") + 1 : -1]))
+        elif s.startswith("Additives / E-numbers detected (") and s.endswith(")"):
+            out_flags.append(t(lang, "intel_flag_additives", count=s[s.find("(") + 1 : -1]))
+        elif s.startswith("Preservatives present (") and s.endswith(")"):
+            out_flags.append(t(lang, "intel_flag_preservatives", count=s[s.find("(") + 1 : -1]))
+        elif s.startswith("Emulsifiers/Stabilizers present (") and s.endswith(")"):
+            out_flags.append(t(lang, "intel_flag_emulsifiers", count=s[s.find("(") + 1 : -1]))
+        elif s.startswith("Flavourings present (") and s.endswith(")"):
+            out_flags.append(t(lang, "intel_flag_flavourings", count=s[s.find("(") + 1 : -1]))
+        elif s.startswith("Colorants present (") and s.endswith(")"):
+            out_flags.append(t(lang, "intel_flag_colorants", count=s[s.find("(") + 1 : -1]))
+        elif s == "Contains caffeine":
+            out_flags.append(t(lang, "intel_flag_caffeine"))
+        elif s.startswith("Allergens: "):
+            out_flags.append(t(lang, "intel_flag_allergens", items=s.replace("Allergens: ", "", 1)))
+        else:
+            out_flags.append(s)
+    localized["flags"] = out_flags
+
+    out_notes: List[str] = []
+    for n in notes:
+        s = str(n)
+        if s == "Ingredients Intelligence is heuristic and depends on ingredient text quality.":
+            out_notes.append(t(lang, "intel_note_heuristic"))
+        elif s == "Processing score is an informational index, not an official NOVA classification.":
+            out_notes.append(t(lang, "intel_note_processing"))
+        else:
+            out_notes.append(s)
+    localized["notes"] = out_notes
+    return localized
+
+
+def _localize_data_quality_notes(dq: Dict[str, Any], lang: str) -> Dict[str, Any]:
+    if not isinstance(dq, dict):
+        return dq
+    localized = dict(dq)
+    notes = _as_list(localized.get("notes"))
+    out_notes: List[str] = []
+    for n in notes:
+        s = str(n)
+        if s == "Confidence reflects completeness of nutrition facts + serving info.":
+            out_notes.append(t(lang, "dq_note_confidence"))
+        elif s == "Educational tool - not medical advice.":
+            out_notes.append(t(lang, "dq_note_educational"))
+        elif s == "Beverage locked by curated layer.":
+            out_notes.append(t(lang, "dq_note_curated"))
+        else:
+            out_notes.append(s)
+    localized["notes"] = out_notes
+    return localized
 
 
 def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]], bev_meta: Dict[str, Any]) -> Dict[str, Any]:
@@ -979,7 +1160,8 @@ def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]]
 _cfg = VitaScoreConfig()
 
 
-async def scan_product(key: str) -> Dict[str, Any]:
+async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
+    lang = lang if lang in SUPPORTED_LANGS else "en"
     key = (key or "").strip()
     if not key:
         return {"error": "Missing product id or barcode."}
@@ -1136,8 +1318,9 @@ async def scan_product(key: str) -> Dict[str, Any]:
     breakdown["who_baseline"] = who_breakdown
     breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
 
-    why, tips = _build_explanations(per100, breakdown, is_bev)
-    dq = _data_quality(norm, per100, bev_meta)
+    why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
+    dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
+    ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
 
     product_categories = norm.get("categories") or norm.get("categories_tags") or []
     if isinstance(product_categories, str):
