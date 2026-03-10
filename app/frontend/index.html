@@ -249,7 +249,7 @@
 
   <script>
     let step = 1;
-    let state = { key:"", loading:false, error:"", data:null };
+    let state = { key:"", loading:false, error:"", data:null, translateIngredients:false };
     const supportedLangs = ["el", "en", "de", "fr"];
 
     const i18n = {
@@ -320,7 +320,8 @@
         tier_excellent: "Excellent",
         tier_good: "Good",
         tier_okay: "Okay",
-        tier_caution: "Caution"
+        tier_caution: "Caution",
+        ingredients_translate_toggle: "Translate ingredients (dictionary)"
       },
       el: {
         tagline: "VitaScore Hybrid - Advanced MVP",
@@ -389,7 +390,8 @@
         tier_excellent: "Εξαιρετικό",
         tier_good: "Καλό",
         tier_okay: "OK",
-        tier_caution: "Προσοχή"
+        tier_caution: "Προσοχή",
+        ingredients_translate_toggle: "Μετάφραση συστατικών (λεξικό)"
       },
       de: {
         tagline: "VitaScore Hybrid - Advanced MVP",
@@ -458,7 +460,8 @@
         tier_excellent: "Exzellent",
         tier_good: "Gut",
         tier_okay: "Okay",
-        tier_caution: "Vorsicht"
+        tier_caution: "Vorsicht",
+        ingredients_translate_toggle: "Zutaten übersetzen (Wörterbuch)"
       },
       fr: {
         tagline: "VitaScore Hybrid - Advanced MVP",
@@ -527,7 +530,8 @@
         tier_excellent: "Excellent",
         tier_good: "Bon",
         tier_okay: "Correct",
-        tier_caution: "Attention"
+        tier_caution: "Attention",
+        ingredients_translate_toggle: "Traduire les ingrédients (dictionnaire)"
       }
     };
 
@@ -547,6 +551,73 @@
 
     function t(key){
       return i18n[lang]?.[key] || i18n.en[key] || key;
+    }
+
+    let ingredientDictElExact = null;
+    let ingredientDictElNormalized = null;
+    let ingredientDictElPromise = null;
+
+    function _normalizeIngredientToken(value){
+      return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
+    async function ensureIngredientDictElLoaded(){
+      if (ingredientDictElExact && ingredientDictElNormalized) return ingredientDictElNormalized;
+      if (ingredientDictElPromise) return ingredientDictElPromise;
+      ingredientDictElPromise = fetch("./ingredient_dict_el.json")
+        .then(r => (r.ok ? r.json() : {}))
+        .then(obj => {
+          const exact = {};
+          const normalized = {};
+          if (obj && typeof obj === "object"){
+            for (const [k, v] of Object.entries(obj)){
+              const raw = String(k || "").toLowerCase();
+              const nk = _normalizeIngredientToken(k);
+              if (typeof v === "string"){
+                if (raw) exact[raw] = v;
+                if (nk) normalized[nk] = v;
+              }
+            }
+          }
+          ingredientDictElExact = exact;
+          ingredientDictElNormalized = normalized;
+          return ingredientDictElNormalized;
+        })
+        .catch(() => {
+          ingredientDictElExact = {};
+          ingredientDictElNormalized = {};
+          return ingredientDictElNormalized;
+        })
+        .finally(() => {
+          ingredientDictElPromise = null;
+        });
+      return ingredientDictElPromise;
+    }
+
+    function ingredientDisplayName(name){
+      const original = String(name || "").trim();
+      if (!original) return "-";
+      if (!(lang === "el" && state.translateIngredients)) return original;
+
+      const exactDict = ingredientDictElExact || {};
+      const normalizedDict = ingredientDictElNormalized || {};
+      const exactKey = String(original).toLowerCase();
+      const normalizedKey = _normalizeIngredientToken(original);
+      const translated = exactDict[exactKey] || normalizedDict[normalizedKey];
+      if (!translated) return original;
+
+      const escapedOriginal = original
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const escapedTranslated = String(translated)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return `${escapedTranslated} <span class="mini">(${escapedOriginal})</span>`;
     }
 
     const fmtNum = (x) => {
@@ -663,6 +734,12 @@
         <div class="section">
           <div class="sectionTitle">${t("ingredients_title")}</div>
           <div class="mini">${t("ingredients_note")}</div>
+          <div class="mini" style="margin-top:8px;">
+            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+              <input id="translateIngredientsToggle" type="checkbox" ${state.translateIngredients ? "checked" : ""}/>
+              <span>${t("ingredients_translate_toggle")}</span>
+            </label>
+          </div>
           <div class="pillRow"><span class="pill">${langBadge}</span></div>
 
           <div class="pillRow">
@@ -692,7 +769,7 @@
               ${groupOrder.length ? groupOrder.map(cls => `
                 <div class="groupTitle">${cls}</div>
                 ${groups[cls].map(ing => {
-                  const nm = ing?.name || "-";
+                  const nm = ingredientDisplayName(ing?.name || "-");
                   const note = ing?.note || "";
                   const risk = (ing?.risk || "low").toLowerCase();
                   const riskCls = (risk === "high" ? "risk high" : (risk === "medium" ? "risk medium" : "risk low"));
@@ -809,6 +886,13 @@
 
       if (step === 3){
         app.innerHTML = renderIngredientsIntel(state.data || {});
+        const translateToggle = document.getElementById("translateIngredientsToggle");
+        if (translateToggle){
+          translateToggle.onchange = (e) => {
+            state.translateIngredients = !!e.target.checked;
+            render();
+          };
+        }
         document.getElementById("backBtn").onclick = () => { step = 2; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 4; render(); };
         return;
@@ -883,6 +967,7 @@
       };
     }
 
+    ensureIngredientDictElLoaded();
     render();
   </script>
 </body>
