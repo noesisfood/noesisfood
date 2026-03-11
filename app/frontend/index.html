@@ -321,7 +321,16 @@
         tier_good: "Good",
         tier_okay: "Okay",
         tier_caution: "Caution",
-        ingredients_translate_toggle: "Translate ingredients (dictionary)"
+        ingredients_translate_toggle: "Translate ingredients (dictionary)",
+        ingredients_translate_unavailable: "Dictionary unavailable. Keeping original ingredient names.",
+        ingredients_translate_loading: "Loading dictionary...",
+        group_acidifier: "Acidifier",
+        group_colorant: "Colorant",
+        group_flavoring: "Flavoring",
+        group_other: "Other",
+        risk_low: "low",
+        risk_medium: "medium",
+        risk_high: "high"
       },
       el: {
         tagline: "VitaScore Hybrid - Advanced MVP",
@@ -391,7 +400,16 @@
         tier_good: "Καλό",
         tier_okay: "OK",
         tier_caution: "Προσοχή",
-        ingredients_translate_toggle: "Μετάφραση συστατικών (λεξικό)"
+        ingredients_translate_toggle: "Μετάφραση συστατικών (λεξικό)",
+        ingredients_translate_unavailable: "Το λεξικό δεν είναι διαθέσιμο. Διατηρούνται τα αρχικά ονόματα.",
+        ingredients_translate_loading: "Φόρτωση λεξικού...",
+        group_acidifier: "Οξινιστής",
+        group_colorant: "Χρωστική",
+        group_flavoring: "Αρωματική ύλη",
+        group_other: "Άλλο",
+        risk_low: "χαμηλό",
+        risk_medium: "μέτριο",
+        risk_high: "υψηλό"
       },
       de: {
         tagline: "VitaScore Hybrid - Advanced MVP",
@@ -461,7 +479,16 @@
         tier_good: "Gut",
         tier_okay: "Okay",
         tier_caution: "Vorsicht",
-        ingredients_translate_toggle: "Zutaten übersetzen (Wörterbuch)"
+        ingredients_translate_toggle: "Zutaten übersetzen (Wörterbuch)",
+        ingredients_translate_unavailable: "Wörterbuch nicht verfügbar. Originale Zutatennamen bleiben erhalten.",
+        ingredients_translate_loading: "Wörterbuch wird geladen...",
+        group_acidifier: "Säuerungsmittel",
+        group_colorant: "Farbstoff",
+        group_flavoring: "Aroma",
+        group_other: "Andere",
+        risk_low: "niedrig",
+        risk_medium: "mittel",
+        risk_high: "hoch"
       },
       fr: {
         tagline: "VitaScore Hybrid - Advanced MVP",
@@ -531,7 +558,16 @@
         tier_good: "Bon",
         tier_okay: "Correct",
         tier_caution: "Attention",
-        ingredients_translate_toggle: "Traduire les ingrédients (dictionnaire)"
+        ingredients_translate_toggle: "Traduire les ingrédients (dictionnaire)",
+        ingredients_translate_unavailable: "Dictionnaire indisponible. Les noms d'ingrédients d'origine sont conservés.",
+        ingredients_translate_loading: "Chargement du dictionnaire...",
+        group_acidifier: "Acidifiant",
+        group_colorant: "Colorant",
+        group_flavoring: "Arôme",
+        group_other: "Autre",
+        risk_low: "faible",
+        risk_medium: "moyen",
+        risk_high: "élevé"
       }
     };
 
@@ -542,7 +578,12 @@
       return supportedLangs.includes(browser) ? browser : "en";
     }
 
+    function pickInitialIngredientTranslate(){
+      return localStorage.getItem("nf_ing_translate") === "1";
+    }
+
     let lang = pickInitialLang();
+    state.translateIngredients = pickInitialIngredientTranslate();
 
     const app = document.getElementById("app");
     const stepTxt = document.getElementById("stepTxt");
@@ -553,9 +594,17 @@
       return i18n[lang]?.[key] || i18n.en[key] || key;
     }
 
-    let ingredientDictElExact = null;
+    const INGREDIENT_DICT_URLS = [new URL("/static/ingredient_dict_el.json", window.location.origin).toString()];
+    let ingredientDictEl = null;
+    let ingredientDictElRaw = null;
     let ingredientDictElNormalized = null;
+    let ingredientDictElStripped = null;
     let ingredientDictElPromise = null;
+    let ingredientDictElLoadFailed = false;
+    let ingredientDictWarned = false;
+    let ingredientDictElResolvedUrl = null;
+    let ingredientDictElLoadedLogged = false;
+    let ingredientTranslationStats = { translated: 0, total: 0 };
 
     function _normalizeIngredientToken(value){
       return String(value || "")
@@ -564,32 +613,83 @@
         .replace(/\s+/g, " ");
     }
 
+    function _normalizeIngredientTokenLoose(value){
+      return _normalizeIngredientToken(value)
+        .replace(/[.,;:!?()[\]{}"'`´’“”\-_/\\|+*=~]/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
+    function _escapeHtml(value){
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
     async function ensureIngredientDictElLoaded(){
-      if (ingredientDictElExact && ingredientDictElNormalized) return ingredientDictElNormalized;
+      if (ingredientDictElRaw && ingredientDictElNormalized && ingredientDictElStripped) return true;
       if (ingredientDictElPromise) return ingredientDictElPromise;
-      ingredientDictElPromise = fetch("./ingredient_dict_el.json")
-        .then(r => (r.ok ? r.json() : {}))
-        .then(obj => {
-          const exact = {};
-          const normalized = {};
-          if (obj && typeof obj === "object"){
-            for (const [k, v] of Object.entries(obj)){
-              const raw = String(k || "").toLowerCase();
-              const nk = _normalizeIngredientToken(k);
-              if (typeof v === "string"){
-                if (raw) exact[raw] = v;
+      ingredientDictElLoadFailed = false;
+      ingredientDictElPromise = (async () => {
+        const triedUrls = [];
+        let lastError = null;
+
+        for (const candidateUrl of INGREDIENT_DICT_URLS){
+          const requestUrl = `${candidateUrl}${candidateUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+          triedUrls.push(candidateUrl);
+          try {
+            const response = await fetch(requestUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const obj = await response.json();
+            const raw = {};
+            const normalized = {};
+            const stripped = {};
+            if (obj && typeof obj === "object"){
+              for (const [k, v] of Object.entries(obj)){
+                const rk = String(k || "").toLowerCase().trim();
+                const nk = _normalizeIngredientToken(k);
+                const sk = _normalizeIngredientTokenLoose(k);
+                if (typeof v !== "string") continue;
+                if (rk) raw[rk] = v;
                 if (nk) normalized[nk] = v;
+                if (sk) stripped[sk] = v;
               }
             }
+            if (Object.keys(raw).length === 0) throw new Error("Dictionary JSON empty");
+
+            ingredientDictEl = obj;
+            ingredientDictElRaw = raw;
+            ingredientDictElNormalized = normalized;
+            ingredientDictElStripped = stripped;
+            ingredientDictElResolvedUrl = candidateUrl;
+            ingredientDictElLoadFailed = false;
+            if (!ingredientDictElLoadedLogged){
+              console.debug(`[ingredients-dict] loaded from ${candidateUrl} with ${Object.keys(raw).length} entries`);
+              ingredientDictElLoadedLogged = true;
+            }
+            render();
+            return true;
+          } catch (err) {
+            lastError = `${candidateUrl}: ${err && err.message ? err.message : err}`;
           }
-          ingredientDictElExact = exact;
-          ingredientDictElNormalized = normalized;
-          return ingredientDictElNormalized;
-        })
-        .catch(() => {
-          ingredientDictElExact = {};
-          ingredientDictElNormalized = {};
-          return ingredientDictElNormalized;
+        }
+
+        throw new Error(`Tried ${triedUrls.join(", ")}; final error: ${lastError || "unknown"}`);
+      })()
+        .catch((err) => {
+          ingredientDictEl = null;
+          ingredientDictElRaw = null;
+          ingredientDictElNormalized = null;
+          ingredientDictElStripped = null;
+          ingredientDictElResolvedUrl = null;
+          ingredientDictElLoadFailed = true;
+          if (!ingredientDictWarned){
+            console.warn(`[ingredients-dict] Failed to load dictionary from ${INGREDIENT_DICT_URLS.join(", ")}. ${err && err.message ? err.message : err}`);
+            ingredientDictWarned = true;
+          }
+          render();
+          return false;
         })
         .finally(() => {
           ingredientDictElPromise = null;
@@ -599,25 +699,37 @@
 
     function ingredientDisplayName(name){
       const original = String(name || "").trim();
-      if (!original) return "-";
-      if (!(lang === "el" && state.translateIngredients)) return original;
+      if (!original) return { primary: "-", secondary: "", translated: false };
+      if (!(lang === "el" && state.translateIngredients)) {
+        return { primary: _escapeHtml(original), secondary: "", translated: false };
+      }
 
-      const exactDict = ingredientDictElExact || {};
+      if (/^e\s*\d{3,4}[a-z]?$/i.test(original)) {
+        return { primary: _escapeHtml(original), secondary: "", translated: false };
+      }
+
+      const rawDict = ingredientDictElRaw || {};
       const normalizedDict = ingredientDictElNormalized || {};
-      const exactKey = String(original).toLowerCase();
+      const strippedDict = ingredientDictElStripped || {};
+      const rawKey = String(original).toLowerCase().trim();
       const normalizedKey = _normalizeIngredientToken(original);
-      const translated = exactDict[exactKey] || normalizedDict[normalizedKey];
-      if (!translated) return original;
+      const strippedKey = _normalizeIngredientTokenLoose(original);
+      if (!normalizedKey) return { primary: _escapeHtml(original), secondary: "", translated: false };
 
-      const escapedOriginal = original
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-      const escapedTranslated = String(translated)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-      return `${escapedTranslated} <span class="mini">(${escapedOriginal})</span>`;
+      const translated = rawDict[rawKey] || normalizedDict[normalizedKey] || strippedDict[strippedKey] || "";
+      if (!translated) {
+        return { primary: _escapeHtml(original), secondary: "", translated: false };
+      }
+      return { primary: _escapeHtml(translated), secondary: _escapeHtml(original), translated: true };
+    }
+
+    function localizedIngredientGroup(cls){
+      const key = String(cls || "").trim().toLowerCase();
+      if (key === "acidifier") return t("group_acidifier");
+      if (key === "colorant") return t("group_colorant");
+      if (key === "flavoring" || key === "flavouring") return t("group_flavoring");
+      if (key === "other") return t("group_other");
+      return cls || t("group_other");
     }
 
     const fmtNum = (x) => {
@@ -720,6 +832,7 @@
         groups[cls].push(ing);
       }
       const groupOrder = Object.keys(groups).sort((a,b)=> a.localeCompare(b));
+      const translationStats = { translated: 0, total: 0 };
 
       const scorePill = (score === null || score === undefined) ? `` : (
         score <= 2 ? `<span class="pill good">${t("processing")}: ${score}/10 | ${label}</span>` :
@@ -730,16 +843,21 @@
       const ePill = (eDetails.length ? `<span class="pill warn">${t("e_numbers")}: ${eDetails.length}</span>` : `<span class="pill">${t("e_numbers")}: ${t("none")}</span>`);
       const sweetPill = (markers?.sweeteners ? `<span class="pill warn">${t("sweeteners")}: ${markers.sweeteners}</span>` : ``);
 
-      return `
+      const html = `
         <div class="section">
           <div class="sectionTitle">${t("ingredients_title")}</div>
           <div class="mini">${t("ingredients_note")}</div>
-          <div class="mini" style="margin-top:8px;">
-            <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
-              <input id="translateIngredientsToggle" type="checkbox" ${state.translateIngredients ? "checked" : ""}/>
-              <span>${t("ingredients_translate_toggle")}</span>
-            </label>
-          </div>
+          ${lang === "el" ? `
+            <div class="mini" style="margin-top:8px;">
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                <input id="translateIngredientsToggle" type="checkbox" ${state.translateIngredients ? "checked" : ""}/>
+                <span>${t("ingredients_translate_toggle")}</span>
+              </label>
+              ${(state.translateIngredients && !ingredientDictElRaw && !ingredientDictElLoadFailed) ? `<div style="margin-top:6px;">${t("ingredients_translate_loading")}</div>` : ``}
+              ${state.translateIngredients ? `<div style="margin-top:6px;">Μεταφράστηκαν __TRANSLATED_COUNT__/__TOTAL_COUNT__</div>` : ``}
+              ${ingredientDictElLoadFailed ? `<div style="margin-top:6px;">${t("ingredients_translate_unavailable")}</div>` : ``}
+            </div>
+          ` : ``}
           <div class="pillRow"><span class="pill">${langBadge}</span></div>
 
           <div class="pillRow">
@@ -767,19 +885,23 @@
             <div class="box">
               <div class="sectionTitle" style="margin:0 0 8px 0;">${t("ingredients_grouped")}</div>
               ${groupOrder.length ? groupOrder.map(cls => `
-                <div class="groupTitle">${cls}</div>
+                <div class="groupTitle">${localizedIngredientGroup(cls)}</div>
                 ${groups[cls].map(ing => {
                   const nm = ingredientDisplayName(ing?.name || "-");
+                  translationStats.total += 1;
+                  if (nm.translated) translationStats.translated += 1;
                   const note = ing?.note || "";
                   const risk = (ing?.risk || "low").toLowerCase();
+                  const riskLabel = (risk === "high" ? t("risk_high") : (risk === "medium" ? t("risk_medium") : t("risk_low")));
                   const riskCls = (risk === "high" ? "risk high" : (risk === "medium" ? "risk medium" : "risk low"));
                   return `
                     <div class="ingItem">
                       <div class="ingLeft">
-                        <b>${nm}</b>
-                        <small>${note}</small>
+                        <b>${nm.primary}</b>
+                        ${nm.secondary ? `<small>${nm.secondary}</small>` : ``}
+                        ${note ? `<small>${note}</small>` : ``}
                       </div>
-                      <div class="${riskCls}">${risk}</div>
+                      <div class="${riskCls}">${riskLabel}</div>
                     </div>
                   `;
                 }).join("")}
@@ -793,6 +915,10 @@
           </div>
         </div>
       `;
+      ingredientTranslationStats = translationStats;
+      return html
+        .replace("__TRANSLATED_COUNT__", String(ingredientTranslationStats.translated))
+        .replace("__TOTAL_COUNT__", String(ingredientTranslationStats.total));
     }
 
     function render(){
@@ -885,13 +1011,43 @@
       }
 
       if (step === 3){
+        if (lang !== "el" && state.translateIngredients){
+          state.translateIngredients = false;
+          localStorage.setItem("nf_ing_translate", "0");
+        }
         app.innerHTML = renderIngredientsIntel(state.data || {});
         const translateToggle = document.getElementById("translateIngredientsToggle");
         if (translateToggle){
           translateToggle.onchange = (e) => {
-            state.translateIngredients = !!e.target.checked;
+            const nextEnabled = !!e.target.checked;
+            if (!nextEnabled){
+              state.translateIngredients = false;
+              localStorage.setItem("nf_ing_translate", "0");
+              render();
+              return;
+            }
+            state.translateIngredients = true;
+            localStorage.setItem("nf_ing_translate", "1");
             render();
+            ensureIngredientDictElLoaded().then(ok => {
+              if (!ok){
+                state.translateIngredients = false;
+                localStorage.setItem("nf_ing_translate", "0");
+                render();
+                return;
+              }
+              render();
+            });
           };
+        }
+        if (lang === "el" && state.translateIngredients){
+          ensureIngredientDictElLoaded().then(ok => {
+            if (!ok){
+              state.translateIngredients = false;
+              localStorage.setItem("nf_ing_translate", "0");
+              render();
+            }
+          });
         }
         document.getElementById("backBtn").onclick = () => { step = 2; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 4; render(); };
@@ -967,7 +1123,6 @@
       };
     }
 
-    ensureIngredientDictElLoaded();
     render();
   </script>
 </body>
