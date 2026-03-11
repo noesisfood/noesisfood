@@ -606,17 +606,25 @@
     let ingredientDictElLoadedLogged = false;
     let ingredientTranslationStats = { translated: 0, total: 0 };
 
+    function stripDiacritics(value){
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
     function _normalizeIngredientToken(value){
       return String(value || "")
+        .replace(/[.,;:!?()[\]{}"'`´’“”\-_/\\|+*=~]/g, " ")
+        .split(/\s+/)
+        .map(part => stripDiacritics(part))
+        .join(" ")
         .toLowerCase()
         .trim()
         .replace(/\s+/g, " ");
     }
 
     function _normalizeIngredientTokenLoose(value){
-      return _normalizeIngredientToken(value)
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
+      return stripDiacritics(_normalizeIngredientToken(value))
         .replace(/[.,;:!?()[\]{}"'`´’“”\-_/\\|+*=~]/g, " ")
         .trim()
         .replace(/\s+/g, " ");
