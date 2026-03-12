@@ -394,6 +394,7 @@
         err_not_found: "Product not found.",
         err_unanalyzable: "This product could not be analyzed.",
         err_missing_data: "Key data required for product assessment is missing.",
+        err_found_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
         err_network: "Network error. Is the server running?",
         fallback_title: "Alternative analysis path",
         fallback_not_found: "This product was not found in the available database.",
@@ -566,6 +567,7 @@
         err_not_found: "Το προϊόν δεν βρέθηκε.",
         err_unanalyzable: "Δεν ήταν δυνατή η ανάλυση αυτού του προϊόντος.",
         err_missing_data: "Λείπουν βασικά στοιχεία για την αξιολόγηση του προϊόντος.",
+        err_found_incomplete: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν ακόμη για αξιολόγηση.",
         err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
         fallback_title: "Εναλλακτική πορεία ανάλυσης",
         fallback_not_found: "Το προϊόν δεν βρέθηκε στη διαθέσιμη βάση δεδομένων.",
@@ -738,6 +740,7 @@
         err_not_found: "Produkt nicht gefunden.",
         err_unanalyzable: "Dieses Produkt konnte nicht analysiert werden.",
         err_missing_data: "Für die Bewertung fehlen wichtige Produktdaten.",
+        err_found_incomplete: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen noch nicht für eine Bewertung aus.",
         err_network: "Netzwerkfehler. Läuft der Server?",
         fallback_title: "Alternativer Analyseweg",
         fallback_not_found: "Dieses Produkt wurde in der verfügbaren Datenbank nicht gefunden.",
@@ -910,6 +913,7 @@
         err_not_found: "Produit introuvable.",
         err_unanalyzable: "Ce produit n’a pas pu être analysé.",
         err_missing_data: "Des données essentielles manquent pour évaluer ce produit.",
+        err_found_incomplete: "Le produit a été trouvé, mais les données disponibles ne suffisent pas encore pour une évaluation.",
         err_network: "Erreur réseau. Le serveur est-il démarré ?",
         fallback_title: "Parcours d’analyse alternatif",
         fallback_not_found: "Ce produit n’a pas été trouvé dans la base de données disponible.",
@@ -1004,9 +1008,13 @@
     function localizeScanError(data, status){
       const code = String(data?.error_code || "").toUpperCase();
       const rawError = String(data?.error || "").trim();
+      const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
+      const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (code === "INVALID_BARCODE" || status === 400) return t("err_invalid_barcode");
       if (code === "PRODUCT_NOT_FOUND" || status === 404) return t("err_not_found");
+      if (code === "MISSING_KEY_DATA" && lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
       if (code === "MISSING_KEY_DATA") return t("err_missing_data");
+      if (lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
       if (code === "ANALYSIS_UNAVAILABLE" || status === 422 || status === 502) return t("err_unanalyzable");
       if (/internal server error/i.test(rawError)) return t("err_unanalyzable");
       if (/product not found/i.test(rawError)) return t("err_not_found");
@@ -1016,7 +1024,10 @@
 
     function scanErrorCode(data, status){
       const code = String(data?.error_code || "").toUpperCase();
+      const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
+      const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (code) return code;
+      if (lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return "MISSING_KEY_DATA";
       if (status === 400) return "INVALID_BARCODE";
       if (status === 404) return "PRODUCT_NOT_FOUND";
       if (status === 422) return "ANALYSIS_UNAVAILABLE";

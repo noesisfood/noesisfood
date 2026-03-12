@@ -1396,7 +1396,7 @@ def _analysis_mode(
         return "partial_analysis", "high"
     if evidence_points >= 3:
         return "partial_analysis", "medium"
-    if evidence_points >= 2 and (nutriments_present >= 1 or ingredients_present):
+    if evidence_points >= 2:
         return "partial_analysis", "low"
     return "insufficient_data", "low"
 
@@ -1510,7 +1510,7 @@ def _analyze_normalized_product(
         dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
-        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
         err.update(_lookup_state_payload("found_but_incomplete", lookup_missing))
         err["analysis_state"] = "insufficient_data"
         err["analysis_confidence"] = "low"
@@ -1642,13 +1642,13 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     try:
         norm = _normalize(raw, source=source)
     except Exception:
-        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
         err.update(_lookup_state_payload("found_but_incomplete"))
         err["analysis_state"] = "insufficient_data"
         err["analysis_confidence"] = "low"
         return err
     if not isinstance(norm, dict) or not norm:
-        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
         err.update(_lookup_state_payload("found_but_incomplete"))
         err["analysis_state"] = "insufficient_data"
         err["analysis_confidence"] = "low"
@@ -1774,7 +1774,11 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
         },
     }
     if not _has_minimum_product_data(norm):
-        return _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
+        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete", _lookup_missing_fields(norm, payload if isinstance(payload, dict) else None)))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
+        return err
 
     return _analyze_normalized_product(
         key=f"manual:{re.sub(r'[^0-9]', '', str(payload.get('timestamp') or '')) or 'entry'}",
