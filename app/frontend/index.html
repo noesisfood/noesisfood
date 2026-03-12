@@ -249,9 +249,10 @@
 
   <script>
     let step = 1;
-    let state = { key:"", loading:false, error:"", data:null, translateIngredients:false };
+    let state = { key:"", loading:false, error:"", data:null, translateIngredients:false, compareTargetKey:"" };
     const supportedLangs = ["el", "en", "de", "fr"];
     const languageOptionLabels = { el: "EL", en: "EN", de: "DE", fr: "FR" };
+    const RECENT_PRODUCTS_KEY = "nf_recent_products_v1";
 
     const i18n = {
       en: {
@@ -270,6 +271,30 @@
         why_negative_title: "What weighs negatively",
         why_positive_title: "What helps",
         why_notable_title: "Notable signals",
+        compare_title: "Compare products",
+        compare_with: "Compare with",
+        compare_choose: "Choose a recent product",
+        compare_action: "Compare",
+        compare_none: "Scan another product to unlock side-by-side comparison.",
+        compare_verdict: "Better choice",
+        compare_verdict_tie: "Very similar choice",
+        compare_reason_title: "Why it is preferred",
+        compare_col_score: "VitaScore Hybrid",
+        compare_col_processing: "Processing level",
+        compare_col_additives: "Additives / E-numbers",
+        compare_col_caffeine: "Caffeine",
+        compare_col_sweeteners: "Sweeteners",
+        compare_col_colorants: "Colorants",
+        compare_col_flavourings: "Flavourings",
+        compare_col_reasons: "Top reasons",
+        compare_reason_score: "Higher VitaScore Hybrid result.",
+        compare_reason_processing: "Lower processing level.",
+        compare_reason_additives: "Fewer additives or E-numbers.",
+        compare_reason_sweeteners: "No sweeteners compared with the alternative.",
+        compare_reason_caffeine: "No caffeine compared with the alternative.",
+        compare_reason_colorants: "Fewer colourants.",
+        compare_reason_flavourings: "Fewer flavourings.",
+        compare_reason_simplicity: "Simpler ingredient profile.",
         tips: "Tips",
         why_foot: "Based on WHO guidance and EU reference intakes. Educational tool - not medical advice.",
         who_title: "WHO sugar impact",
@@ -369,6 +394,30 @@
         why_negative_title: "Τι επιβαρύνει",
         why_positive_title: "Τι βοηθά",
         why_notable_title: "Αξιοσημείωτα σήματα",
+        compare_title: "Σύγκριση προϊόντων",
+        compare_with: "Σύγκριση με",
+        compare_choose: "Επίλεξε πρόσφατο προϊόν",
+        compare_action: "Σύγκριση",
+        compare_none: "Σάρωσε ακόμη ένα προϊόν για σύγκριση δίπλα-δίπλα.",
+        compare_verdict: "Καλύτερη επιλογή",
+        compare_verdict_tie: "Πολύ παρόμοια επιλογή",
+        compare_reason_title: "Γιατί προτιμάται",
+        compare_col_score: "VitaScore Hybrid",
+        compare_col_processing: "Επίπεδο επεξεργασίας",
+        compare_col_additives: "Πρόσθετα / αριθμοί E",
+        compare_col_caffeine: "Καφεΐνη",
+        compare_col_sweeteners: "Γλυκαντικά",
+        compare_col_colorants: "Χρωστικές",
+        compare_col_flavourings: "Αρώματα",
+        compare_col_reasons: "Κύριοι λόγοι",
+        compare_reason_score: "Υψηλότερο αποτέλεσμα VitaScore Hybrid.",
+        compare_reason_processing: "Χαμηλότερο επίπεδο επεξεργασίας.",
+        compare_reason_additives: "Λιγότερα πρόσθετα ή αριθμοί E.",
+        compare_reason_sweeteners: "Χωρίς γλυκαντικά σε σχέση με την εναλλακτική.",
+        compare_reason_caffeine: "Χωρίς καφεΐνη σε σχέση με την εναλλακτική.",
+        compare_reason_colorants: "Λιγότερες χρωστικές.",
+        compare_reason_flavourings: "Λιγότερα αρώματα.",
+        compare_reason_simplicity: "Απλούστερο προφίλ συστατικών.",
         tips: "Συμβουλές",
         why_foot: "Βασίζεται σε οδηγίες WHO και EU reference intakes. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή.",
         who_title: "Επίδραση ζάχαρης WHO",
@@ -468,6 +517,30 @@
         why_negative_title: "Was negativ wirkt",
         why_positive_title: "Was hilft",
         why_notable_title: "Auffällige Signale",
+        compare_title: "Produkte vergleichen",
+        compare_with: "Vergleichen mit",
+        compare_choose: "Kürzliches Produkt wählen",
+        compare_action: "Vergleichen",
+        compare_none: "Scanne ein weiteres Produkt, um den Direktvergleich zu nutzen.",
+        compare_verdict: "Bessere Wahl",
+        compare_verdict_tie: "Sehr ähnliche Wahl",
+        compare_reason_title: "Warum es bevorzugt wird",
+        compare_col_score: "VitaScore Hybrid",
+        compare_col_processing: "Verarbeitungsgrad",
+        compare_col_additives: "Zusatzstoffe / E-Nummern",
+        compare_col_caffeine: "Koffein",
+        compare_col_sweeteners: "Süßstoffe",
+        compare_col_colorants: "Farbstoffe",
+        compare_col_flavourings: "Aromen",
+        compare_col_reasons: "Wichtigste Gründe",
+        compare_reason_score: "Höheres VitaScore-Hybrid-Ergebnis.",
+        compare_reason_processing: "Geringerer Verarbeitungsgrad.",
+        compare_reason_additives: "Weniger Zusatzstoffe oder E-Nummern.",
+        compare_reason_sweeteners: "Keine Süßstoffe im Vergleich zur Alternative.",
+        compare_reason_caffeine: "Kein Koffein im Vergleich zur Alternative.",
+        compare_reason_colorants: "Weniger Farbstoffe.",
+        compare_reason_flavourings: "Weniger Aromen.",
+        compare_reason_simplicity: "Einfacheres Zutatenprofil.",
         tips: "Tipps",
         why_foot: "Basiert auf WHO-Leitlinien und EU-Referenzwerten. Lernhilfe - keine medizinische Beratung.",
         who_title: "WHO-Zuckerwirkung",
@@ -567,6 +640,30 @@
         why_negative_title: "Ce qui pèse négativement",
         why_positive_title: "Ce qui aide",
         why_notable_title: "Signaux notables",
+        compare_title: "Comparer les produits",
+        compare_with: "Comparer avec",
+        compare_choose: "Choisir un produit récent",
+        compare_action: "Comparer",
+        compare_none: "Scannez un autre produit pour activer la comparaison côte à côte.",
+        compare_verdict: "Meilleur choix",
+        compare_verdict_tie: "Choix très proche",
+        compare_reason_title: "Pourquoi il est préféré",
+        compare_col_score: "VitaScore Hybrid",
+        compare_col_processing: "Niveau de transformation",
+        compare_col_additives: "Additifs / numéros E",
+        compare_col_caffeine: "Caféine",
+        compare_col_sweeteners: "Édulcorants",
+        compare_col_colorants: "Colorants",
+        compare_col_flavourings: "Arômes",
+        compare_col_reasons: "Raisons principales",
+        compare_reason_score: "Résultat VitaScore Hybrid plus élevé.",
+        compare_reason_processing: "Niveau de transformation plus faible.",
+        compare_reason_additives: "Moins d’additifs ou de numéros E.",
+        compare_reason_sweeteners: "Pas d’édulcorants par rapport à l’alternative.",
+        compare_reason_caffeine: "Pas de caféine par rapport à l’alternative.",
+        compare_reason_colorants: "Moins de colorants.",
+        compare_reason_flavourings: "Moins d’arômes.",
+        compare_reason_simplicity: "Profil d’ingrédients plus simple.",
         tips: "Conseils",
         why_foot: "Basé sur les recommandations WHO et les repères UE. Outil éducatif - pas un avis médical.",
         who_title: "Impact sucre WHO",
@@ -781,6 +878,46 @@
       } catch (_err) {
         return fallback;
       }
+    }
+
+    function _readRecentProducts(){
+      const raw = localStorage.getItem(RECENT_PRODUCTS_KEY);
+      const parsed = _safeJsonParse(raw, []);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+
+    function _writeRecentProducts(items){
+      try {
+        localStorage.setItem(RECENT_PRODUCTS_KEY, JSON.stringify(Array.isArray(items) ? items.slice(0, 6) : []));
+      } catch (_err) {}
+    }
+
+    function _productIdentity(data, fallbackKey = ""){
+      const product = data?.product || {};
+      const key = String(fallbackKey || product?.barcode || product?.code || data?.barcode || "").trim();
+      return {
+        key,
+        name: String(product?.name || data?.product_name || "").trim(),
+        brand: String(product?.brand || "").trim()
+      };
+    }
+
+    function _storeRecentProduct(data, key){
+      if (!data || typeof data !== "object") return;
+      const identity = _productIdentity(data, key);
+      if (!identity.key) return;
+      const existing = _readRecentProducts().filter(item => String(item?.key || "") !== identity.key);
+      const next = [{
+        key: identity.key,
+        name: identity.name,
+        brand: identity.brand,
+        data
+      }, ...existing].slice(0, 6);
+      _writeRecentProducts(next);
+    }
+
+    function _getComparisonCandidates(currentKey){
+      return _readRecentProducts().filter(item => String(item?.key || "") && String(item.key) !== String(currentKey || ""));
     }
 
     function _looksLikeCaptureNoise(value){
@@ -1528,6 +1665,148 @@
       return `<div class="whyGrid">${items.map(item => `<div class="whyRow"><span>${_escapeHtml(item.message || "")}</span></div>`).join("")}</div>`;
     }
 
+    function _comparisonBooleanValue(value){
+      return value ? t("yes") : t("no");
+    }
+
+    function _comparisonSummary(data, key){
+      const product = data?.product || {};
+      const intel = data?.ingredients_intelligence || {};
+      const markers = intel?.markers || {};
+      const scoreReasons = evaluateScoreExplanations(data);
+      const warnings = Number(!!markers?.sweeteners) + Number(!!markers?.caffeine) + Number(!!markers?.colorants) + Number(!!markers?.flavourings) + Number(!!markers?.preservatives);
+      const ingredientCount = Array.isArray(data?.ingredients) ? data.ingredients.length : 0;
+      return {
+        key: String(key || product?.barcode || product?.code || "").trim(),
+        name: String(product?.name || t("unknown_product")).trim() || t("unknown_product"),
+        brand: String(product?.brand || "").trim(),
+        score: Number(data?.vitascore ?? -999),
+        processingScore: Number(intel?.processing_score ?? 999),
+        processingLabel: String(intel?.processing_label || "").trim(),
+        eCount: Array.isArray(intel?.e_number_details) ? intel.e_number_details.length : 0,
+        sweeteners: Number(markers?.sweeteners || 0),
+        caffeine: Number(markers?.caffeine || 0),
+        colorants: Number(markers?.colorants || 0),
+        flavourings: Number(markers?.flavourings || 0),
+        preservatives: Number(markers?.preservatives || 0),
+        ingredientCount,
+        warnings,
+        reasons: [...scoreReasons.negative, ...scoreReasons.positive, ...scoreReasons.neutral].slice(0, 3)
+      };
+    }
+
+    function determineComparisonVerdict(currentData, compareData){
+      const left = _comparisonSummary(currentData, state.key);
+      const right = _comparisonSummary(compareData, state.compareTargetKey);
+      const scoredReasons = [];
+
+      if (left.score !== right.score){
+        const winner = left.score > right.score ? "left" : "right";
+        scoredReasons.push({ winner, weight: 100, message: t("compare_reason_score") });
+      }
+      if (left.processingScore !== right.processingScore){
+        const winner = left.processingScore < right.processingScore ? "left" : "right";
+        scoredReasons.push({ winner, weight: 90, message: t("compare_reason_processing") });
+      }
+      if (left.eCount !== right.eCount){
+        const winner = left.eCount < right.eCount ? "left" : "right";
+        scoredReasons.push({ winner, weight: 80, message: t("compare_reason_additives") });
+      }
+      if (!!left.sweeteners !== !!right.sweeteners){
+        const winner = !left.sweeteners ? "left" : "right";
+        scoredReasons.push({ winner, weight: 70, message: t("compare_reason_sweeteners") });
+      }
+      if (!!left.caffeine !== !!right.caffeine){
+        const winner = !left.caffeine ? "left" : "right";
+        scoredReasons.push({ winner, weight: 65, message: t("compare_reason_caffeine") });
+      }
+      if (left.colorants !== right.colorants){
+        const winner = left.colorants < right.colorants ? "left" : "right";
+        scoredReasons.push({ winner, weight: 60, message: t("compare_reason_colorants") });
+      }
+      if (left.flavourings !== right.flavourings){
+        const winner = left.flavourings < right.flavourings ? "left" : "right";
+        scoredReasons.push({ winner, weight: 55, message: t("compare_reason_flavourings") });
+      }
+      if (left.ingredientCount !== right.ingredientCount){
+        const winner = left.ingredientCount < right.ingredientCount ? "left" : "right";
+        scoredReasons.push({ winner, weight: 50, message: t("compare_reason_simplicity") });
+      }
+
+      let leftPoints = 0;
+      let rightPoints = 0;
+      for (const reason of scoredReasons){
+        if (reason.winner === "left") leftPoints += reason.weight;
+        if (reason.winner === "right") rightPoints += reason.weight;
+      }
+
+      let winner = "tie";
+      if (leftPoints > rightPoints) winner = "left";
+      else if (rightPoints > leftPoints) winner = "right";
+
+      const reasons = scoredReasons
+        .filter(reason => winner !== "tie" && reason.winner === winner)
+        .sort((a, b) => Number(b.weight || 0) - Number(a.weight || 0))
+        .slice(0, 4)
+        .map(reason => reason.message);
+
+      return { winner, reasons, left, right };
+    }
+
+    function renderComparisonPanel(currentData, compareData){
+      if (!compareData) return "";
+      const verdict = determineComparisonVerdict(currentData, compareData);
+      const leftBadge = verdict.winner === "left" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
+      const rightBadge = verdict.winner === "right" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
+      const verdictText = verdict.winner === "tie"
+        ? t("compare_verdict_tie")
+        : `${verdict.winner === "left" ? _escapeHtml(verdict.left.name) : _escapeHtml(verdict.right.name)} - ${t("compare_verdict")}`;
+
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("compare_title")}</div>
+          <div class="ok" style="margin-bottom:12px;"><b>${verdictText}</b></div>
+          <div class="split">
+            <div class="box">
+              <div class="prodMeta">
+                <b>${_escapeHtml(verdict.left.name)}</b>
+                <span>${_escapeHtml(verdict.left.brand)}</span>
+              </div>
+              <div class="pillRow" style="margin-top:8px;">${leftBadge}</div>
+              <div class="grid2" style="margin-top:8px;">
+                <div class="kv"><small>${t("compare_col_score")}</small><b>${verdict.left.score > -999 ? verdict.left.score : "-"}</b></div>
+                <div class="kv"><small>${t("compare_col_processing")}</small><b>${_escapeHtml(localizeProcessingLabel(verdict.left.processingLabel) || "-")}</b></div>
+                <div class="kv"><small>${t("compare_col_additives")}</small><b>${verdict.left.eCount}</b></div>
+                <div class="kv"><small>${t("compare_col_caffeine")}</small><b>${_comparisonBooleanValue(verdict.left.caffeine)}</b></div>
+                <div class="kv"><small>${t("compare_col_sweeteners")}</small><b>${_comparisonBooleanValue(verdict.left.sweeteners)}</b></div>
+                <div class="kv"><small>${t("compare_col_colorants")}</small><b>${verdict.left.colorants}</b></div>
+                <div class="kv"><small>${t("compare_col_flavourings")}</small><b>${verdict.left.flavourings}</b></div>
+              </div>
+              <div class="whyFoot" style="margin-top:10px;"><b>${t("compare_col_reasons")}</b><br/>${verdict.left.reasons.length ? verdict.left.reasons.map(item => `- ${_escapeHtml(item.message || "")}`).join("<br/>") : "-"}</div>
+            </div>
+            <div class="box">
+              <div class="prodMeta">
+                <b>${_escapeHtml(verdict.right.name)}</b>
+                <span>${_escapeHtml(verdict.right.brand)}</span>
+              </div>
+              <div class="pillRow" style="margin-top:8px;">${rightBadge}</div>
+              <div class="grid2" style="margin-top:8px;">
+                <div class="kv"><small>${t("compare_col_score")}</small><b>${verdict.right.score > -999 ? verdict.right.score : "-"}</b></div>
+                <div class="kv"><small>${t("compare_col_processing")}</small><b>${_escapeHtml(localizeProcessingLabel(verdict.right.processingLabel) || "-")}</b></div>
+                <div class="kv"><small>${t("compare_col_additives")}</small><b>${verdict.right.eCount}</b></div>
+                <div class="kv"><small>${t("compare_col_caffeine")}</small><b>${_comparisonBooleanValue(verdict.right.caffeine)}</b></div>
+                <div class="kv"><small>${t("compare_col_sweeteners")}</small><b>${_comparisonBooleanValue(verdict.right.sweeteners)}</b></div>
+                <div class="kv"><small>${t("compare_col_colorants")}</small><b>${verdict.right.colorants}</b></div>
+                <div class="kv"><small>${t("compare_col_flavourings")}</small><b>${verdict.right.flavourings}</b></div>
+              </div>
+              <div class="whyFoot" style="margin-top:10px;"><b>${t("compare_col_reasons")}</b><br/>${verdict.right.reasons.length ? verdict.right.reasons.map(item => `- ${_escapeHtml(item.message || "")}`).join("<br/>") : "-"}</div>
+            </div>
+          </div>
+          ${verdict.reasons.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("compare_reason_title")}</b><br/>${verdict.reasons.map(reason => `- ${_escapeHtml(reason)}`).join("<br/>")}</div>` : ``}
+        </div>
+      `;
+    }
+
     function whoServingBlock(data){
       const who = data?.who_impact;
       if (!who) return ``;
@@ -1752,6 +2031,9 @@
       if (step === 2){
         const d = state.data || {};
         const p = d.product || {};
+        const compareCandidates = _getComparisonCandidates(state.key);
+        const compareTarget = compareCandidates.find(item => String(item?.key || "") === String(state.compareTargetKey || "")) || compareCandidates[0] || null;
+        const compareTargetKey = String(compareTarget?.key || "");
         const score = d?.vitascore;
         const tier = tierFromScore(score);
         const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
@@ -1787,6 +2069,19 @@
             </div>
             ${buildWhyScoreHTML(d)}
             ${whoServingBlock(d)}
+            <div class="section" style="margin-top:12px;">
+              <div class="sectionTitle">${t("compare_title")}</div>
+              ${compareCandidates.length ? `
+                <div class="mini">${t("compare_with")}</div>
+                <div class="btns" style="margin-top:8px;">
+                  <select id="compareSelect" style="flex:1;">
+                    ${compareCandidates.map(item => `<option value="${_escapeHtml(String(item?.key || ""))}" ${String(item?.key || "") === compareTargetKey ? "selected" : ""}>${_escapeHtml(String(item?.name || t("unknown_product")))}${item?.brand ? ` | ${_escapeHtml(String(item.brand))}` : ""}</option>`).join("")}
+                  </select>
+                  <button class="ghost" id="compareBtn">${t("compare_action")}</button>
+                </div>
+                ${compareTarget ? renderComparisonPanel(d, compareTarget.data) : ``}
+              ` : `<div class="mini">${t("compare_none")}</div>`}
+            </div>
             <div class="btns">
               <button class="ghost" id="backBtn">${t("back")}</button>
               <button class="primary" id="nextBtn">${t("next")}</button>
@@ -1794,6 +2089,19 @@
           </div>
         `;
         ensureScoreExplanationRulesLoaded();
+        const compareSelect = document.getElementById("compareSelect");
+        const compareBtn = document.getElementById("compareBtn");
+        if (compareSelect){
+          compareSelect.onchange = (e) => {
+            state.compareTargetKey = String(e.target.value || "");
+          };
+        }
+        if (compareBtn){
+          compareBtn.onclick = () => {
+            if (compareSelect) state.compareTargetKey = String(compareSelect.value || "");
+            render();
+          };
+        }
         document.getElementById("backBtn").onclick = () => { step = 1; render(); };
         document.getElementById("nextBtn").onclick = () => { step = 3; render(); };
         return;
@@ -1869,7 +2177,7 @@
           </div>
         `;
         document.getElementById("backBtn").onclick = () => { step = 3; render(); };
-        document.getElementById("againBtn").onclick = () => { step = 1; state.error = ""; state.data = null; render(); };
+        document.getElementById("againBtn").onclick = () => { step = 1; state.error = ""; state.data = null; state.compareTargetKey = ""; render(); };
       }
     }
 
@@ -1893,6 +2201,11 @@
           return;
         }
         state.data = data;
+        _storeRecentProduct(data, state.key);
+        if (!state.compareTargetKey){
+          const nextCompare = _getComparisonCandidates(state.key)[0] || null;
+          state.compareTargetKey = String(nextCompare?.key || "");
+        }
         state.loading = false;
         step = 2;
         render();
@@ -1911,6 +2224,7 @@
         const data = await res.json().catch(()=> ({}));
         if (!res.ok || data?.error) throw new Error(data?.error || `Request failed (${res.status})`);
         state.data = data;
+        _storeRecentProduct(data, state.key);
       }catch(e){
         console.warn(`[lang-switch] Failed to refresh data for ${lang}: ${e && e.message ? e.message : e}`);
       }finally{
