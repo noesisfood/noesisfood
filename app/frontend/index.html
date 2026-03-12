@@ -251,6 +251,7 @@
     let step = 1;
     let state = { key:"", loading:false, error:"", data:null, translateIngredients:false };
     const supportedLangs = ["el", "en", "de", "fr"];
+    const languageOptionLabels = { el: "EL", en: "EN", de: "DE", fr: "FR" };
 
     const i18n = {
       en: {
@@ -596,6 +597,13 @@
 
     function t(key){
       return i18n[lang]?.[key] || i18n.en[key] || key;
+    }
+
+    function syncLanguageSelector(){
+      if (!langSel) return;
+      const expectedOptions = supportedLangs.map(code => `<option value="${code}">${languageOptionLabels[code] || code.toUpperCase()}</option>`).join("");
+      if (langSel.innerHTML !== expectedOptions) langSel.innerHTML = expectedOptions;
+      if (langSel.value !== lang) langSel.value = lang;
     }
 
     const INGREDIENT_GLOSSARY_URLS = ["/static/ingredient_glossary.json"];
@@ -1046,7 +1054,7 @@
       barFill.style.width = `${(step/4)*100}%`;
       document.querySelector(".title span").textContent = t("tagline");
       document.documentElement.lang = lang;
-      if (langSel && langSel.value !== lang) langSel.value = lang;
+      syncLanguageSelector();
 
       if (step === 1){
         app.innerHTML = `
@@ -1229,13 +1237,35 @@
       }
     }
 
+    async function refreshCurrentDataForLanguage(){
+      if (!state.key || !state.data) return;
+      const preservedStep = step;
+      try{
+        const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok || data?.error) throw new Error(data?.error || `Request failed (${res.status})`);
+        state.data = data;
+      }catch(e){
+        console.warn(`[lang-switch] Failed to refresh data for ${lang}: ${e && e.message ? e.message : e}`);
+      }finally{
+        step = preservedStep;
+        render();
+      }
+    }
+
     if (langSel){
-      langSel.value = lang;
+      syncLanguageSelector();
       langSel.onchange = (e) => {
         const next = String(e.target.value || "en").toLowerCase();
-        lang = supportedLangs.includes(next) ? next : "en";
+        const resolved = supportedLangs.includes(next) ? next : "en";
+        if (resolved === lang){
+          syncLanguageSelector();
+          return;
+        }
+        lang = resolved;
         localStorage.setItem("nf_lang", lang);
         render();
+        refreshCurrentDataForLanguage();
       };
     }
 
