@@ -1361,6 +1361,54 @@ def _manual_ingredients_from_text(text: Any) -> List[Dict[str, Any]]:
     return [{"name": part, "class": "U", "note": "From manual"} for part in parts]
 
 
+def _analysis_mode(
+    *,
+    lookup_state: str,
+    per100: Dict[str, Optional[float]],
+    ingredients: List[Dict[str, Any]],
+    ingredients_intelligence: Dict[str, Any],
+    categories: Any,
+) -> Tuple[str, str]:
+    nutriments_present = sum(
+        1 for k in ("energy_kcal", "sugar_g", "salt_g", "saturated_fat_g", "protein_g")
+        if per100.get(k) is not None
+    )
+    ingredients_present = bool(_as_list(ingredients))
+    categories_present = bool(categories if isinstance(categories, list) else str(categories or "").strip())
+    markers = ingredients_intelligence.get("markers") if isinstance(ingredients_intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    signal_present = any(
+        int(markers.get(k) or 0) > 0
+        for k in ("sweeteners", "preservatives", "colorants", "flavourings", "caffeine", "emulsifiers_stabilizers")
+    )
+
+    evidence_points = (
+        (2 if nutriments_present >= 3 else 1 if nutriments_present >= 1 else 0)
+        + (1 if ingredients_present else 0)
+        + (1 if categories_present else 0)
+        + (1 if signal_present else 0)
+    )
+
+    if lookup_state == "found_and_analyzable" and nutriments_present >= 3 and ingredients_present:
+        return "full_analysis", "high"
+    if evidence_points >= 4:
+        return "partial_analysis", "high"
+    if evidence_points >= 3:
+        return "partial_analysis", "medium"
+    if evidence_points >= 2 and (nutriments_present >= 1 or ingredients_present):
+        return "partial_analysis", "low"
+    return "insufficient_data", "low"
+
+
+def _conservative_partial_score(score: int, confidence: str) -> int:
+    if confidence == "low":
+        return int(round(_clamp(score, 25.0, 72.0)))
+    if confidence == "medium":
+        return int(round(_clamp(score, 18.0, 82.0)))
+    return int(round(_clamp(score, 12.0, 90.0)))
+
+
 def _analyze_normalized_product(
     *,
     key: str,
@@ -1405,6 +1453,20 @@ def _analyze_normalized_product(
         )
 
         per100 = _nutrients_per_100(norm)
+        product_categories = norm.get("categories") or norm.get("categories_tags") or []
+        analysis_state, analysis_confidence = _analysis_mode(
+            lookup_state=lookup_state,
+            per100=per100,
+            ingredients=ingredients,
+            ingredients_intelligence=ingredients_intelligence,
+            categories=product_categories,
+        )
+        if analysis_state == "insufficient_data":
+            err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
+            err.update(_lookup_state_payload("found_but_incomplete", lookup_missing))
+            err["analysis_state"] = analysis_state
+            err["analysis_confidence"] = analysis_confidence
+            return err
 
         net100, part100 = _score_per100(per100, is_bev, _cfg)
         netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
@@ -1432,19 +1494,28 @@ def _analyze_normalized_product(
         if isinstance(score_cap, int):
             score = min(score, score_cap)
         score = int(round(_clamp(score, 1.0, 100.0)))
+        if analysis_state == "partial_analysis":
+            score = _conservative_partial_score(score, analysis_confidence)
 
         breakdown["who_baseline"] = who_breakdown
         breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
         breakdown["pre_pattern_score"] = base_score
         breakdown["pattern_adjustments"] = pattern_adjustments
+        breakdown["analysis_mode"] = {
+            "state": analysis_state,
+            "confidence": analysis_confidence,
+        }
 
         why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
         dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
-        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete", lookup_missing))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
+        return err
 
-    product_categories = norm.get("categories") or norm.get("categories_tags") or []
     if isinstance(product_categories, str):
         product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
 
@@ -1467,6 +1538,8 @@ def _analyze_normalized_product(
         "matched_by": matched_by,
         "lookup_state": lookup_state,
         "lookup_missing_fields": lookup_missing,
+        "analysis_state": analysis_state,
+        "analysis_confidence": analysis_confidence,
         "product": product_block,
         "alerts": alerts,
         "ingredients": ingredients,
@@ -1483,6 +1556,8 @@ def _analyze_normalized_product(
             "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
             "lookup_state": lookup_state,
             "lookup_missing_fields": lookup_missing,
+            "analysis_state": analysis_state,
+            "analysis_confidence": analysis_confidence,
         },
     }
 
@@ -1491,9 +1566,17 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     lang = lang if lang in SUPPORTED_LANGS else "en"
     key = (key or "").strip()
     if not key:
-        return _scan_error("INVALID_BARCODE", "Missing product id or barcode.", 400)
+        err = _scan_error("INVALID_BARCODE", "Missing product id or barcode.", 400)
+        err.update(_lookup_state_payload("invalid_barcode"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
+        return err
     if not _is_supported_lookup_key(key):
-        return _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
+        err = _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
+        err.update(_lookup_state_payload("invalid_barcode"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
+        return err
 
     products = _load_json(PRODUCTS_FILE, [])
     if isinstance(products, dict) and isinstance(products.get("products"), list):
@@ -1541,13 +1624,19 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         if status == 404:
             err = _scan_error("PRODUCT_NOT_FOUND", "Product not found.", 404)
             err.update(_lookup_state_payload("not_found"))
+            err["analysis_state"] = "insufficient_data"
+            err["analysis_confidence"] = "low"
             return err
         if status == 400:
             err = _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
             err.update(_lookup_state_payload("invalid_barcode"))
+            err["analysis_state"] = "insufficient_data"
+            err["analysis_confidence"] = "low"
             return err
         err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 502)
         err.update(_lookup_state_payload("found_but_incomplete"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
         return err
 
     try:
@@ -1555,14 +1644,20 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     except Exception:
         err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
         err.update(_lookup_state_payload("found_but_incomplete"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
         return err
     if not isinstance(norm, dict) or not norm:
         err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
         err.update(_lookup_state_payload("found_but_incomplete"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
         return err
     if not _has_minimum_product_data(norm):
         err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
         err.update(_lookup_state_payload("found_but_incomplete", _lookup_missing_fields(norm, raw if isinstance(raw, dict) else None)))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
         return err
     if source == "local":
         curated = raw if isinstance(raw, dict) else {}

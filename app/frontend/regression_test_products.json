@@ -399,6 +399,7 @@
     "expected_e_numbers": [],
     "expected_error_code": "INVALID_BARCODE",
     "expected_lookup_state": "invalid_barcode",
+    "expected_analysis_state": "insufficient_data",
     "priority": "P1",
     "smoke_test": false
   },
@@ -414,6 +415,7 @@
     "expected_e_numbers": [],
     "expected_error_code": "PRODUCT_NOT_FOUND",
     "expected_lookup_state": "not_found",
+    "expected_analysis_state": "insufficient_data",
     "priority": "P1",
     "smoke_test": false
   },
@@ -428,6 +430,7 @@
     "expected_flags": [],
     "expected_e_numbers": [],
     "expected_lookup_state": "found_but_incomplete",
+    "expected_analysis_state": "partial_analysis",
     "priority": "P1",
     "smoke_test": false
   },
@@ -444,6 +447,7 @@
     "expected_flags": ["contains_caffeine"],
     "expected_e_numbers": [],
     "expected_lookup_state": "found_and_analyzable",
+    "expected_analysis_state": "full_analysis",
     "priority": "P1",
     "smoke_test": false
   }
