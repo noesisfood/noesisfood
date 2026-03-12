@@ -253,6 +253,8 @@
     const supportedLangs = ["el", "en", "de", "fr"];
     const languageOptionLabels = { el: "EL", en: "EN", de: "DE", fr: "FR" };
     const RECENT_PRODUCTS_KEY = "nf_recent_products_v1";
+    const ANALYSIS_HISTORY_KEY = "nf_analysis_history_v1";
+    const COMPARISON_HISTORY_KEY = "nf_comparison_history_v1";
 
     const i18n = {
       en: {
@@ -295,6 +297,15 @@
         compare_reason_colorants: "Fewer colourants.",
         compare_reason_flavourings: "Fewer flavourings.",
         compare_reason_simplicity: "Simpler ingredient profile.",
+        history_title: "Recent history",
+        history_analyses: "Recent analyses",
+        history_comparisons: "Recent comparisons",
+        history_empty_analyses: "No recent analyses yet.",
+        history_empty_comparisons: "No recent comparisons yet.",
+        history_open_analysis: "Open analysis",
+        history_open_comparison: "Open comparison",
+        history_at: "Saved",
+        history_verdict: "Verdict",
         tips: "Tips",
         why_foot: "Based on WHO guidance and EU reference intakes. Educational tool - not medical advice.",
         who_title: "WHO sugar impact",
@@ -418,6 +429,15 @@
         compare_reason_colorants: "Λιγότερες χρωστικές.",
         compare_reason_flavourings: "Λιγότερα αρώματα.",
         compare_reason_simplicity: "Απλούστερο προφίλ συστατικών.",
+        history_title: "Πρόσφατο ιστορικό",
+        history_analyses: "Πρόσφατες αναλύσεις",
+        history_comparisons: "Πρόσφατες συγκρίσεις",
+        history_empty_analyses: "Δεν υπάρχουν ακόμη πρόσφατες αναλύσεις.",
+        history_empty_comparisons: "Δεν υπάρχουν ακόμη πρόσφατες συγκρίσεις.",
+        history_open_analysis: "Άνοιγμα ανάλυσης",
+        history_open_comparison: "Άνοιγμα σύγκρισης",
+        history_at: "Αποθηκεύτηκε",
+        history_verdict: "Ετυμηγορία",
         tips: "Συμβουλές",
         why_foot: "Βασίζεται σε οδηγίες WHO και EU reference intakes. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή.",
         who_title: "Επίδραση ζάχαρης WHO",
@@ -541,6 +561,15 @@
         compare_reason_colorants: "Weniger Farbstoffe.",
         compare_reason_flavourings: "Weniger Aromen.",
         compare_reason_simplicity: "Einfacheres Zutatenprofil.",
+        history_title: "Letzte Historie",
+        history_analyses: "Letzte Analysen",
+        history_comparisons: "Letzte Vergleiche",
+        history_empty_analyses: "Noch keine letzten Analysen.",
+        history_empty_comparisons: "Noch keine letzten Vergleiche.",
+        history_open_analysis: "Analyse öffnen",
+        history_open_comparison: "Vergleich öffnen",
+        history_at: "Gespeichert",
+        history_verdict: "Urteil",
         tips: "Tipps",
         why_foot: "Basiert auf WHO-Leitlinien und EU-Referenzwerten. Lernhilfe - keine medizinische Beratung.",
         who_title: "WHO-Zuckerwirkung",
@@ -664,6 +693,15 @@
         compare_reason_colorants: "Moins de colorants.",
         compare_reason_flavourings: "Moins d’arômes.",
         compare_reason_simplicity: "Profil d’ingrédients plus simple.",
+        history_title: "Historique récent",
+        history_analyses: "Analyses récentes",
+        history_comparisons: "Comparaisons récentes",
+        history_empty_analyses: "Aucune analyse récente pour le moment.",
+        history_empty_comparisons: "Aucune comparaison récente pour le moment.",
+        history_open_analysis: "Ouvrir l’analyse",
+        history_open_comparison: "Ouvrir la comparaison",
+        history_at: "Enregistré",
+        history_verdict: "Verdict",
         tips: "Conseils",
         why_foot: "Basé sur les recommandations WHO et les repères UE. Outil éducatif - pas un avis médical.",
         who_title: "Impact sucre WHO",
@@ -886,6 +924,30 @@
       return Array.isArray(parsed) ? parsed : [];
     }
 
+    function _readAnalysisHistory(){
+      const raw = localStorage.getItem(ANALYSIS_HISTORY_KEY);
+      const parsed = _safeJsonParse(raw, []);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+
+    function _writeAnalysisHistory(items){
+      try {
+        localStorage.setItem(ANALYSIS_HISTORY_KEY, JSON.stringify(Array.isArray(items) ? items.slice(0, 20) : []));
+      } catch (_err) {}
+    }
+
+    function _readComparisonHistory(){
+      const raw = localStorage.getItem(COMPARISON_HISTORY_KEY);
+      const parsed = _safeJsonParse(raw, []);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+
+    function _writeComparisonHistory(items){
+      try {
+        localStorage.setItem(COMPARISON_HISTORY_KEY, JSON.stringify(Array.isArray(items) ? items.slice(0, 20) : []));
+      } catch (_err) {}
+    }
+
     function _writeRecentProducts(items){
       try {
         localStorage.setItem(RECENT_PRODUCTS_KEY, JSON.stringify(Array.isArray(items) ? items.slice(0, 6) : []));
@@ -918,6 +980,134 @@
 
     function _getComparisonCandidates(currentKey){
       return _readRecentProducts().filter(item => String(item?.key || "") && String(item.key) !== String(currentKey || ""));
+    }
+
+    function _analysisSnapshot(data, key){
+      const product = data?.product || {};
+      const intel = data?.ingredients_intelligence || {};
+      const markers = intel?.markers || {};
+      return {
+        key: String(key || product?.barcode || product?.code || "").trim(),
+        product_name: String(product?.name || "").trim(),
+        brand: String(product?.brand || "").trim(),
+        timestamp: new Date().toISOString(),
+        vitascore: data?.vitascore ?? null,
+        processing_level: String(intel?.processing_label || "").trim(),
+        processing_score: intel?.processing_score ?? null,
+        flags: {
+          caffeine: !!markers?.caffeine,
+          sweeteners: Number(markers?.sweeteners || 0),
+          colorants: Number(markers?.colorants || 0),
+          flavourings: Number(markers?.flavourings || 0),
+          e_numbers: Array.isArray(intel?.e_number_details) ? intel.e_number_details.length : 0
+        },
+        summary: {
+          reasons: [...evaluateScoreExplanations(data).negative, ...evaluateScoreExplanations(data).positive, ...evaluateScoreExplanations(data).neutral]
+            .slice(0, 2)
+            .map(item => item.message)
+        },
+        data
+      };
+    }
+
+    function _storeAnalysisHistory(data, key){
+      const snapshot = _analysisSnapshot(data, key);
+      if (!snapshot.key) return;
+      const existing = _readAnalysisHistory().filter(item => String(item?.key || "") !== snapshot.key);
+      _writeAnalysisHistory([snapshot, ...existing]);
+    }
+
+    function _storeComparisonHistory(productAData, productBData, productAKey, productBKey){
+      if (!productAData || !productBData) return;
+      const verdict = determineComparisonVerdict(productAData, productBData);
+      const pairKey = `${String(productAKey || verdict.left.key || "").trim()}::${String(productBKey || verdict.right.key || "").trim()}`;
+      if (!pairKey || pairKey === "::") return;
+      const entry = {
+        pair_key: pairKey,
+        timestamp: new Date().toISOString(),
+        product_a: _analysisSnapshot(productAData, productAKey),
+        product_b: _analysisSnapshot(productBData, productBKey),
+        verdict: verdict.winner,
+        verdict_label: verdict.winner === "tie" ? t("compare_verdict_tie") : t("compare_verdict"),
+        reasons: verdict.reasons.slice(0, 4)
+      };
+      const existing = _readComparisonHistory().filter(item => String(item?.pair_key || "") !== pairKey);
+      _writeComparisonHistory([entry, ...existing]);
+    }
+
+    function _historyTimeLabel(value){
+      const raw = String(value || "").trim();
+      if (!raw) return "-";
+      const dt = new Date(raw);
+      if (Number.isNaN(dt.getTime())) return raw;
+      return dt.toLocaleString();
+    }
+
+    function _reopenAnalysisFromHistory(key){
+      const entry = _readAnalysisHistory().find(item => String(item?.key || "") === String(key || ""));
+      if (!entry?.data) return;
+      state.key = String(entry.key || "");
+      state.data = entry.data;
+      state.error = "";
+      state.loading = false;
+      step = 2;
+      const compareCandidate = _getComparisonCandidates(state.key)[0] || null;
+      state.compareTargetKey = String(compareCandidate?.key || "");
+      render();
+    }
+
+    function _reopenComparisonFromHistory(pairKey){
+      const entry = _readComparisonHistory().find(item => String(item?.pair_key || "") === String(pairKey || ""));
+      if (!entry?.product_a?.data || !entry?.product_b?.data) return;
+      _storeRecentProduct(entry.product_a.data, entry.product_a.key);
+      _storeRecentProduct(entry.product_b.data, entry.product_b.key);
+      state.key = String(entry.product_a.key || "");
+      state.data = entry.product_a.data;
+      state.compareTargetKey = String(entry.product_b.key || "");
+      state.error = "";
+      state.loading = false;
+      step = 2;
+      render();
+    }
+
+    function renderHistoryPanel(){
+      const analyses = _readAnalysisHistory();
+      const comparisons = _readComparisonHistory();
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("history_title")}</div>
+          <div class="split">
+            <div class="box">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("history_analyses")}</div>
+              ${analyses.length ? analyses.map(item => `
+                <div class="ingItem">
+                  <div class="ingLeft">
+                    <b>${_escapeHtml(String(item?.product_name || t("unknown_product")))}</b>
+                    <small>${_escapeHtml(String(item?.brand || ""))}</small>
+                    <small>${t("history_at")}: ${_escapeHtml(_historyTimeLabel(item?.timestamp))}</small>
+                    <small>${t("compare_col_score")}: ${_escapeHtml(String(item?.vitascore ?? "-"))} | ${t("compare_col_processing")}: ${_escapeHtml(localizeProcessingLabel(String(item?.processing_level || "")) || "-")}</small>
+                  </div>
+                  <button class="ghost historyAnalysisBtn" data-key="${_escapeHtml(String(item?.key || ""))}">${t("history_open_analysis")}</button>
+                </div>
+              `).join("") : `<div class="mini">${t("history_empty_analyses")}</div>`}
+            </div>
+            <div class="box">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("history_comparisons")}</div>
+              ${comparisons.length ? comparisons.map(item => `
+                <div class="ingItem">
+                  <div class="ingLeft">
+                    <b>${_escapeHtml(String(item?.product_a?.product_name || t("unknown_product")))} vs ${_escapeHtml(String(item?.product_b?.product_name || t("unknown_product")))}</b>
+                    <small>${t("history_at")}: ${_escapeHtml(_historyTimeLabel(item?.timestamp))}</small>
+                    <small>${t("history_verdict")}: ${_escapeHtml(String(item?.verdict_label || ""))}</small>
+                    <small>${Array.isArray(item?.reasons) && item.reasons.length ? _escapeHtml(item.reasons.slice(0, 2).join(" | ")) : "-"}</small>
+                  </div>
+                  <button class="ghost historyComparisonBtn" data-pair-key="${_escapeHtml(String(item?.pair_key || ""))}">${t("history_open_comparison")}</button>
+                </div>
+              `).join("") : `<div class="mini">${t("history_empty_comparisons")}</div>`}
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     function _looksLikeCaptureNoise(value){
@@ -2016,6 +2206,7 @@
                 <div class="sectionTitle">${t("how_title")}</div>
                 <div class="mini">- ${t("how_l1")}<br/>- ${t("how_l2")}<br/>- ${t("how_l3")}</div>
               </div>
+              ${renderHistoryPanel()}
             </div>
           </div>
         `;
@@ -2025,6 +2216,12 @@
           scanBtn.onclick = () => doScan(keyInput.value);
           keyInput.onkeydown = (e) => { if (e.key === "Enter") doScan(keyInput.value); };
         }
+        Array.from(document.querySelectorAll(".historyAnalysisBtn")).forEach(btn => {
+          btn.onclick = () => _reopenAnalysisFromHistory(btn.getAttribute("data-key"));
+        });
+        Array.from(document.querySelectorAll(".historyComparisonBtn")).forEach(btn => {
+          btn.onclick = () => _reopenComparisonFromHistory(btn.getAttribute("data-pair-key"));
+        });
         return;
       }
 
@@ -2099,6 +2296,10 @@
         if (compareBtn){
           compareBtn.onclick = () => {
             if (compareSelect) state.compareTargetKey = String(compareSelect.value || "");
+            const targetEntry = compareCandidates.find(item => String(item?.key || "") === String(state.compareTargetKey || ""));
+            if (targetEntry?.data){
+              _storeComparisonHistory(d, targetEntry.data, state.key, targetEntry.key);
+            }
             render();
           };
         }
@@ -2202,6 +2403,7 @@
         }
         state.data = data;
         _storeRecentProduct(data, state.key);
+        _storeAnalysisHistory(data, state.key);
         if (!state.compareTargetKey){
           const nextCompare = _getComparisonCandidates(state.key)[0] || null;
           state.compareTargetKey = String(nextCompare?.key || "");
