@@ -1516,7 +1516,7 @@ def _analysis_mode(
         return "partial_analysis", "medium"
     if evidence_points >= 2:
         return "partial_analysis", "low"
-    return "insufficient_data", "low"
+    return "limited_estimate", "low"
 
 
 def _conservative_partial_score(score: int, confidence: str) -> int:
@@ -1525,6 +1525,132 @@ def _conservative_partial_score(score: int, confidence: str) -> int:
     if confidence == "medium":
         return int(round(_clamp(score, 18.0, 82.0)))
     return int(round(_clamp(score, 12.0, 90.0)))
+
+
+def _limited_estimate_score(
+    per100: Dict[str, Optional[float]],
+    ingredients: List[Dict[str, Any]],
+    ingredients_intelligence: Dict[str, Any],
+) -> int:
+    markers = ingredients_intelligence.get("markers") if isinstance(ingredients_intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    score = 50.0
+    sugar = _to_float(per100.get("sugar_g"))
+    salt = _to_float(per100.get("salt_g"))
+    satfat = _to_float(per100.get("saturated_fat_g"))
+    if sugar is not None:
+        if sugar >= 10:
+            score -= 10
+        elif sugar >= 5:
+            score -= 5
+        elif sugar <= 2:
+            score += 3
+    if salt is not None and salt >= 1:
+        score -= 5
+    if satfat is not None and satfat >= 5:
+        score -= 4
+    score -= min(12, Number(markers.get("sweeteners") or 0) * 6) if False else 0
+    score -= min(8, float(markers.get("sweeteners") or 0) * 4.0)
+    score -= min(6, float(markers.get("colorants") or 0) * 3.0)
+    score -= min(6, float(markers.get("preservatives") or 0) * 3.0)
+    score -= min(5, float(markers.get("flavourings") or 0) * 2.0)
+    score -= min(6, float(markers.get("e_numbers") or 0) * 2.0)
+    ingredient_count = len(_as_list(ingredients))
+    if ingredient_count and ingredient_count <= 5 and not any(float(markers.get(k) or 0) > 0 for k in ("sweeteners", "colorants", "preservatives", "flavourings")):
+        score += 4
+    return int(round(_clamp(score, 30.0, 70.0)))
+
+
+def _fallback_assessment_response(
+    *,
+    key: str,
+    norm: Dict[str, Any],
+    raw: Optional[Dict[str, Any]],
+    source: Optional[str],
+    matched_by: Optional[str],
+    lang: str,
+    lookup_state: str,
+) -> Dict[str, Any]:
+    norm = norm if isinstance(norm, dict) else {}
+    product_categories = norm.get("categories") or norm.get("categories_tags") or []
+    if isinstance(product_categories, str):
+      product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
+    ingredients_raw = _as_list(norm.get("ingredients"))
+    try:
+        additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
+        ingredients, ingredients_intelligence = _ingredients_intelligence(
+            ingredients_raw,
+            is_beverage=bool(_get_path(norm, "meta", "is_beverage")),
+            additives_e_numbers=additives_e_numbers,
+        )
+    except Exception:
+        ingredients = ingredients_raw
+        ingredients_intelligence = {
+            "processing_score": None,
+            "processing_label": "",
+            "markers": {},
+            "flags": [],
+            "e_number_details": [],
+        }
+    try:
+        per100 = _nutrients_per_100(norm)
+    except Exception:
+        per100 = {"energy_kcal": None, "sugar_g": None, "salt_g": None, "saturated_fat_g": None, "fiber_g": None, "protein_g": None, "fruits_veg_percent": None}
+    score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
+    lookup_missing = _lookup_missing_fields(norm, raw)
+    qty = norm.get("quantity")
+    if isinstance(qty, str) and qty.strip().startswith("0"):
+        qty = None
+    return {
+        "key": key,
+        "source": source,
+        "matched_by": matched_by,
+        "lookup_state": lookup_state,
+        "lookup_missing_fields": lookup_missing,
+        "analysis_state": "limited_estimate",
+        "analysis_confidence": "low",
+        "product": {
+            "name": norm.get("name") or "Unknown product",
+            "brand": norm.get("brand"),
+            "image_url": norm.get("image_url"),
+            "quantity": qty,
+            "categories": product_categories,
+            "barcode": key if key and not key.startswith("manual:") else None,
+        },
+        "alerts": [],
+        "ingredients": ingredients,
+        "ingredients_intelligence": ingredients_intelligence,
+        "vitascore": score,
+        "vitascore_version": "v3_hybrid_pro",
+        "vitascore_breakdown": {
+            "model": "v3_hybrid_pro",
+            "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
+            "per_100": {"inputs": {
+                "sugar_g_per_100": per100.get("sugar_g"),
+                "salt_g_per_100": per100.get("salt_g"),
+                "saturated_fat_g_per_100": per100.get("saturated_fat_g"),
+                "protein_g_per_100": per100.get("protein_g"),
+                "energy_kcal_per_100": per100.get("energy_kcal"),
+            }},
+            "per_serving": {"inputs": {}},
+            "hybrid_score": score,
+            "who_baseline": {"score": score},
+            "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
+        },
+        "why_this_score": [],
+        "tips": [],
+        "who_impact": None,
+        "data_quality": {"confidence": 0.2, "missing_core_fields": lookup_missing, "has_serving": False, "beverage_detection": {"value": _get_path(norm, "meta", "is_beverage"), "signal": "fallback_estimate"}},
+        "meta": {
+            "is_beverage": bool(_get_path(norm, "meta", "is_beverage")),
+            "serving": {"amount": None, "unit": None, "source": "fallback_estimate"},
+            "lookup_state": lookup_state,
+            "lookup_missing_fields": lookup_missing,
+            "analysis_state": "limited_estimate",
+            "analysis_confidence": "low",
+        },
+    }
 
 
 def _analyze_normalized_product(
@@ -1579,13 +1705,6 @@ def _analyze_normalized_product(
             ingredients_intelligence=ingredients_intelligence,
             categories=product_categories,
         )
-        if analysis_state == "insufficient_data":
-            err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
-            err.update(_lookup_state_payload("found_but_incomplete", lookup_missing))
-            err["analysis_state"] = analysis_state
-            err["analysis_confidence"] = analysis_confidence
-            return err
-
         net100, part100 = _score_per100(per100, is_bev, _cfg)
         netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
         net = (_cfg.w_per100 * net100) + (_cfg.w_serving * netS)
@@ -1614,6 +1733,8 @@ def _analyze_normalized_product(
         score = int(round(_clamp(score, 1.0, 100.0)))
         if analysis_state == "partial_analysis":
             score = _conservative_partial_score(score, analysis_confidence)
+        elif analysis_state == "limited_estimate":
+            score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
 
         breakdown["who_baseline"] = who_breakdown
         breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
@@ -1628,11 +1749,15 @@ def _analyze_normalized_product(
         dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
-        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
-        err.update(_lookup_state_payload("found_but_incomplete", lookup_missing))
-        err["analysis_state"] = "insufficient_data"
-        err["analysis_confidence"] = "low"
-        return err
+        return _fallback_assessment_response(
+            key=key,
+            norm=norm,
+            raw=raw,
+            source=source,
+            matched_by=matched_by,
+            lang=lang,
+            lookup_state="found_but_incomplete",
+        )
 
     if isinstance(product_categories, str):
         product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
@@ -1740,43 +1865,63 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     if raw is None:
         status = int((off_error or {}).get("status") or 0)
         if status == 404:
-            err = _scan_error("PRODUCT_NOT_FOUND", "Product not found.", 404)
-            err.update(_lookup_state_payload("not_found"))
-            err["analysis_state"] = "insufficient_data"
-            err["analysis_confidence"] = "low"
-            return err
+            return _fallback_assessment_response(
+                key=key,
+                norm={"name": "Unknown product", "barcode": key},
+                raw=None,
+                source="openfoodfacts",
+                matched_by="barcode_or_key",
+                lang=lang,
+                lookup_state="not_found",
+            )
         if status == 400:
             err = _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
             err.update(_lookup_state_payload("invalid_barcode"))
             err["analysis_state"] = "insufficient_data"
             err["analysis_confidence"] = "low"
             return err
-        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 502)
-        err.update(_lookup_state_payload("found_but_incomplete"))
-        err["analysis_state"] = "insufficient_data"
-        err["analysis_confidence"] = "low"
-        return err
+        return _fallback_assessment_response(
+            key=key,
+            norm={"name": "Unknown product", "barcode": key},
+            raw=None,
+            source="openfoodfacts",
+            matched_by="barcode_or_key",
+            lang=lang,
+            lookup_state="found_but_incomplete",
+        )
 
     try:
         norm = _normalize(raw, source=source)
     except Exception:
-        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
-        err.update(_lookup_state_payload("found_but_incomplete"))
-        err["analysis_state"] = "insufficient_data"
-        err["analysis_confidence"] = "low"
-        return err
+        return _fallback_assessment_response(
+            key=key,
+            norm={"name": "Unknown product", "barcode": key},
+            raw=raw if isinstance(raw, dict) else None,
+            source=source,
+            matched_by=matched_by,
+            lang=lang,
+            lookup_state="found_but_incomplete",
+        )
     if not isinstance(norm, dict) or not norm:
-        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
-        err.update(_lookup_state_payload("found_but_incomplete"))
-        err["analysis_state"] = "insufficient_data"
-        err["analysis_confidence"] = "low"
-        return err
+        return _fallback_assessment_response(
+            key=key,
+            norm={"name": "Unknown product", "barcode": key},
+            raw=raw if isinstance(raw, dict) else None,
+            source=source,
+            matched_by=matched_by,
+            lang=lang,
+            lookup_state="found_but_incomplete",
+        )
     if not _has_minimum_product_data(norm):
-        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
-        err.update(_lookup_state_payload("found_but_incomplete", _lookup_missing_fields(norm, raw if isinstance(raw, dict) else None)))
-        err["analysis_state"] = "insufficient_data"
-        err["analysis_confidence"] = "low"
-        return err
+        return _fallback_assessment_response(
+            key=key,
+            norm=norm,
+            raw=raw if isinstance(raw, dict) else None,
+            source=source,
+            matched_by=matched_by,
+            lang=lang,
+            lookup_state="found_but_incomplete",
+        )
     if source == "local":
         curated = raw if isinstance(raw, dict) else {}
 

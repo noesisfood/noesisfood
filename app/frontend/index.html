@@ -369,6 +369,8 @@
         final_assessment: "Final assessment",
         partial_assessment: "Partial assessment",
         partial_assessment_note: "Estimate based on available data",
+        limited_estimate: "Estimate based on limited data",
+        limited_estimate_note: "Estimate based on limited data",
         quick_verdict_title: "Quick verdict",
         quick_verdict_better: "Better choice",
         quick_verdict_moderate: "Moderate choice",
@@ -384,6 +386,7 @@
         baseline_criteria: "based on international nutrition criteria",
         full_analysis: "Full analysis",
         partial_analysis: "Partial analysis",
+        limited_estimate_state: "Estimate based on limited data",
         insufficient_data: "Insufficient data",
         partial_missing_data: "Key data required for full assessment is missing.",
         confidence_high: "high",
@@ -561,6 +564,8 @@
         final_assessment: "Τελική αξιολόγηση",
         partial_assessment: "Μερική αξιολόγηση",
         partial_assessment_note: "Εκτίμηση με διαθέσιμα στοιχεία",
+        limited_estimate: "Εκτίμηση με περιορισμένα στοιχεία",
+        limited_estimate_note: "Εκτίμηση με περιορισμένα στοιχεία",
         quick_verdict_title: "Συνοπτική αξιολόγηση",
         quick_verdict_better: "Καλή επιλογή",
         quick_verdict_moderate: "Μέτρια επιλογή",
@@ -576,6 +581,7 @@
         baseline_criteria: "με βάση διεθνή διατροφικά κριτήρια",
         full_analysis: "Πλήρης αξιολόγηση",
         partial_analysis: "Μερική αξιολόγηση",
+        limited_estimate_state: "Εκτίμηση με περιορισμένα στοιχεία",
         insufficient_data: "Ανεπαρκή στοιχεία",
         partial_missing_data: "Λείπουν βασικά στοιχεία για πλήρη αξιολόγηση.",
         confidence_high: "υψηλή",
@@ -753,6 +759,8 @@
         final_assessment: "Endbewertung",
         partial_assessment: "Teilbewertung",
         partial_assessment_note: "Schätzung auf Basis der verfügbaren Daten",
+        limited_estimate: "Schätzung auf Basis begrenzter Daten",
+        limited_estimate_note: "Schätzung auf Basis begrenzter Daten",
         quick_verdict_title: "Schnellbewertung",
         quick_verdict_better: "Bessere Wahl",
         quick_verdict_moderate: "Mittlere Wahl",
@@ -768,6 +776,7 @@
         baseline_criteria: "basierend auf internationalen Ernährungskriterien",
         full_analysis: "Vollständige Bewertung",
         partial_analysis: "Teilbewertung",
+        limited_estimate_state: "Schätzung auf Basis begrenzter Daten",
         insufficient_data: "Unzureichende Daten",
         partial_missing_data: "Für eine vollständige Bewertung fehlen wichtige Daten.",
         confidence_high: "hoch",
@@ -945,6 +954,8 @@
         final_assessment: "Évaluation finale",
         partial_assessment: "Évaluation partielle",
         partial_assessment_note: "Estimation basée sur les données disponibles",
+        limited_estimate: "Estimation basée sur des données limitées",
+        limited_estimate_note: "Estimation basée sur des données limitées",
         quick_verdict_title: "Verdict rapide",
         quick_verdict_better: "Meilleur choix",
         quick_verdict_moderate: "Choix moyen",
@@ -960,6 +971,7 @@
         baseline_criteria: "basée sur des critères nutritionnels internationaux",
         full_analysis: "Évaluation complète",
         partial_analysis: "Évaluation partielle",
+        limited_estimate_state: "Estimation basée sur des données limitées",
         insufficient_data: "Données insuffisantes",
         partial_missing_data: "Des données essentielles manquent pour une évaluation complète.",
         confidence_high: "élevée",
@@ -1159,6 +1171,7 @@
       const key = String(value || "").toLowerCase();
       if (key === "full_analysis") return t("full_analysis");
       if (key === "partial_analysis") return t("partial_analysis");
+      if (key === "limited_estimate") return t("limited_estimate_state");
       if (key === "insufficient_data") return t("insufficient_data");
       return value || "-";
     }
@@ -1173,14 +1186,16 @@
 
     function renderAnalysisStateNotice(data){
       const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
-      if (analysisState !== "partial_analysis") return "";
+      if (analysisState !== "partial_analysis" && analysisState !== "limited_estimate") return "";
       const confidenceTier = localizedConfidenceTier(data?.analysis_confidence || data?.meta?.analysis_confidence || "");
       const missing = Array.isArray(data?.lookup_missing_fields)
         ? data.lookup_missing_fields
         : (Array.isArray(data?.meta?.lookup_missing_fields) ? data.meta.lookup_missing_fields : []);
+      const title = analysisState === "limited_estimate" ? t("limited_estimate") : t("partial_assessment");
+      const note = analysisState === "limited_estimate" ? t("limited_estimate_note") : t("partial_assessment_note");
       return `
         <div class="ok" style="margin-top:12px;">
-          <b>${t("partial_assessment")}</b><br/>${t("partial_assessment_note")}<br/>
+          <b>${title}</b><br/>${note}<br/>
           ${t("confidence")}: <b>${_escapeHtml(confidenceTier)}</b><br/>
           <span class="mini">${t("partial_missing_data")}${missing.length ? ` (${_escapeHtml(missing.join(", "))})` : ``}</span>
         </div>
@@ -2918,9 +2933,11 @@
         const baselineScore = d?.vitascore_breakdown?.who_baseline?.score;
         const analysisState = String(d?.analysis_state || d?.meta?.analysis_state || "full_analysis").toLowerCase();
         const analysisConfidence = localizedConfidenceTier(d?.analysis_confidence || d?.meta?.analysis_confidence || "high");
-        const assessmentLabel = analysisState === "partial_analysis" ? t("partial_assessment") : t("final_assessment");
-        const assessmentSubline = analysisState === "partial_analysis"
-          ? `${t("partial_assessment_note")} | ${t("confidence")}: ${analysisConfidence}`
+        const assessmentLabel = analysisState === "partial_analysis"
+          ? t("partial_assessment")
+          : (analysisState === "limited_estimate" ? t("limited_estimate") : t("final_assessment"));
+        const assessmentSubline = (analysisState === "partial_analysis" || analysisState === "limited_estimate")
+          ? `${analysisState === "limited_estimate" ? t("limited_estimate_note") : t("partial_assessment_note")} | ${t("confidence")}: ${analysisConfidence}`
           : t("vitascore");
         const quickReasons = quickReasonItems(d);
         const quickSignals = quickSignalItems(d);
@@ -2954,7 +2971,7 @@
               </div>
               <div class="ok" style="margin-top:12px;"><b>${quickVerdict}</b></div>
               <div class="grid2">
-                ${analysisState === "partial_analysis" ? `<div class="kv"><small>${t("confidence")}</small><b>${analysisConfidence}</b></div>` : ``}
+                ${(analysisState === "partial_analysis" || analysisState === "limited_estimate") ? `<div class="kv"><small>${t("confidence")}</small><b>${analysisConfidence}</b></div>` : ``}
                 <div class="kv"><small>${t("baseline_assessment")}</small><b>${baselineScore ?? "-"}/100</b></div>
                 <div class="kv"><small>${t("sugar")}</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
                 <div class="kv"><small>${t("salt")}</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
