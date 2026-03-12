@@ -594,7 +594,7 @@
       return i18n[lang]?.[key] || i18n.en[key] || key;
     }
 
-    const INGREDIENT_DICT_URLS = [new URL("/static/ingredient_dict_el.json", window.location.origin).toString()];
+    const INGREDIENT_DICT_URLS = ["/static/ingredient_dict_el.json"];
     let ingredientDictEl = null;
     let ingredientDictElRaw = null;
     let ingredientDictElNormalized = null;
