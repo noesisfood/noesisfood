@@ -74,7 +74,7 @@
   "flavouring": {
     "translations": {
       "el": "Άρωμα",
-      "en": "Flavoring",
+      "en": "Flavouring",
       "fr": "Arôme",
       "de": "Aroma"
     },
@@ -83,7 +83,7 @@
   "natural flavouring": {
     "translations": {
       "el": "Φυσικό άρωμα",
-      "en": "Natural flavoring",
+      "en": "Natural flavouring",
       "fr": "Arôme naturel",
       "de": "Natürliches Aroma"
     },
@@ -92,8 +92,8 @@
   "caffeine flavouring": {
     "translations": {
       "el": "Άρωμα καφεΐνης",
-      "en": "Caffeine flavoring",
-      "fr": "Arôme caféine",
+      "en": "Caffeine flavouring",
+      "fr": "Arôme caféiné",
       "de": "Aroma Koffein"
     },
     "aliases": ["caffeine flavouring", "caffeine flavoring", "arôme caféine", "arome cafeine", "aroma koffein"]
