@@ -1,0 +1,155 @@
+{
+  "water": {
+    "translations": {
+      "el": "Νερό",
+      "en": "Water",
+      "fr": "Eau",
+      "de": "Wasser"
+    },
+    "aliases": ["water", "eau", "wasser"]
+  },
+  "carbonated water": {
+    "translations": {
+      "el": "Ανθρακούχο νερό",
+      "en": "Carbonated water",
+      "fr": "Eau gazeuse",
+      "de": "Sprudelwasser"
+    },
+    "aliases": ["carbonated water", "sparkling water", "eau gazeuse", "sprudelwasser", "wasser mit kohlensäure"]
+  },
+  "carbon dioxide": {
+    "translations": {
+      "el": "Διοξείδιο του άνθρακα",
+      "en": "Carbon dioxide",
+      "fr": "Dioxyde de carbone",
+      "de": "Kohlensäure"
+    },
+    "aliases": ["carbon dioxide", "carbonation", "co2", "dioxyde de carbone", "kohlensäure", "kohlensaeure", "kohlendioxid"]
+  },
+  "sugar": {
+    "translations": {
+      "el": "Ζάχαρη",
+      "en": "Sugar",
+      "fr": "Sucre",
+      "de": "Zucker"
+    },
+    "aliases": ["sugar", "sucre", "zucker"]
+  },
+  "salt": {
+    "translations": {
+      "el": "Αλάτι",
+      "en": "Salt",
+      "fr": "Sel",
+      "de": "Salz"
+    },
+    "aliases": ["salt", "sel", "salz"]
+  },
+  "acidifier": {
+    "translations": {
+      "el": "Ρυθμιστής οξύτητας",
+      "en": "Acidifier",
+      "fr": "Acidifiant",
+      "de": "Säuerungsmittel"
+    },
+    "aliases": ["acidifier", "acidity regulator", "acidifiant", "säuerungsmittel", "saeuerungsmittel"]
+  },
+  "colorant": {
+    "translations": {
+      "el": "Χρωστική",
+      "en": "Colorant",
+      "fr": "Colorant",
+      "de": "Farbstoff"
+    },
+    "aliases": ["colorant", "colouring", "coloring", "colorant alimentaire", "farbstoff"]
+  },
+  "caramel colour": {
+    "translations": {
+      "el": "Χρωστική καραμέλας",
+      "en": "Caramel colour",
+      "fr": "Colorant caramel",
+      "de": "Karamellfarbstoff"
+    },
+    "aliases": ["caramel colour", "caramel color", "colour caramel", "colorant caramel", "karamellfarbstoff"]
+  },
+  "flavouring": {
+    "translations": {
+      "el": "Άρωμα",
+      "en": "Flavoring",
+      "fr": "Arôme",
+      "de": "Aroma"
+    },
+    "aliases": ["flavouring", "flavoring", "arôme", "arome", "aroma"]
+  },
+  "natural flavouring": {
+    "translations": {
+      "el": "Φυσικό άρωμα",
+      "en": "Natural flavoring",
+      "fr": "Arôme naturel",
+      "de": "Natürliches Aroma"
+    },
+    "aliases": ["natural flavouring", "natural flavoring", "arôme naturel", "arome naturel", "natürliches aroma", "natuerliches aroma"]
+  },
+  "caffeine flavouring": {
+    "translations": {
+      "el": "Άρωμα καφεΐνης",
+      "en": "Caffeine flavoring",
+      "fr": "Arôme caféine",
+      "de": "Aroma Koffein"
+    },
+    "aliases": ["caffeine flavouring", "caffeine flavoring", "arôme caféine", "arome cafeine", "aroma koffein"]
+  },
+  "caffeine": {
+    "translations": {
+      "el": "Καφεΐνη",
+      "en": "Caffeine",
+      "fr": "Caféine",
+      "de": "Koffein"
+    },
+    "aliases": ["caffeine", "caféine", "cafeine", "koffein"]
+  },
+  "phosphoric acid": {
+    "translations": {
+      "el": "Φωσφορικό οξύ",
+      "en": "Phosphoric acid",
+      "fr": "Acide phosphorique",
+      "de": "Phosphorsäure"
+    },
+    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure"]
+  },
+  "citric acid": {
+    "translations": {
+      "el": "Κιτρικό οξύ",
+      "en": "Citric acid",
+      "fr": "Acide citrique",
+      "de": "Zitronensäure"
+    },
+    "aliases": ["citric acid", "acide citrique", "zitronensäure", "zitronensaeure"]
+  },
+  "glucose syrup": {
+    "translations": {
+      "el": "Σιρόπι γλυκόζης",
+      "en": "Glucose syrup",
+      "fr": "Sirop de glucose",
+      "de": "Glukosesirup"
+    },
+    "aliases": ["glucose syrup", "sirop de glucose", "glukosesirup"]
+  },
+  "preservative": {
+    "translations": {
+      "el": "Συντηρητικό",
+      "en": "Preservative",
+      "fr": "Conservateur",
+      "de": "Konservierungsstoff"
+    },
+    "aliases": ["preservative", "conservateur", "konservierungsstoff"]
+  },
+  "sweetener": {
+    "translations": {
+      "el": "Γλυκαντικό",
+      "en": "Sweetener",
+      "fr": "Édulcorant",
+      "de": "Süßungsmittel"
+    },
+    "aliases": ["sweetener", "édulcorant", "edulcorant", "süßungsmittel", "suessungsmittel"]
+  }
+}

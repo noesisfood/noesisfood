@@ -321,9 +321,10 @@
         tier_good: "Good",
         tier_okay: "Okay",
         tier_caution: "Caution",
-        ingredients_translate_toggle: "Translate ingredients (dictionary)",
-        ingredients_translate_unavailable: "Dictionary unavailable. Keeping original ingredient names.",
-        ingredients_translate_loading: "Loading dictionary...",
+        ingredients_translate_toggle: "Translate ingredients (glossary)",
+        ingredients_translate_unavailable: "Glossary unavailable. Keeping original ingredient names.",
+        ingredients_translate_loading: "Loading glossary...",
+        ingredients_translate_count: "Translated __TRANSLATED_COUNT__/__TOTAL_COUNT__",
         group_acidifier: "Acidifier",
         group_colorant: "Colorant",
         group_flavoring: "Flavoring",
@@ -400,9 +401,10 @@
         tier_good: "Καλό",
         tier_okay: "OK",
         tier_caution: "Προσοχή",
-        ingredients_translate_toggle: "Μετάφραση συστατικών (λεξικό)",
-        ingredients_translate_unavailable: "Το λεξικό δεν είναι διαθέσιμο. Διατηρούνται τα αρχικά ονόματα.",
-        ingredients_translate_loading: "Φόρτωση λεξικού...",
+        ingredients_translate_toggle: "Μετάφραση συστατικών (γλωσσάρι)",
+        ingredients_translate_unavailable: "Το γλωσσάρι δεν είναι διαθέσιμο. Διατηρούνται τα αρχικά ονόματα.",
+        ingredients_translate_loading: "Φόρτωση γλωσσαρίου...",
+        ingredients_translate_count: "Μεταφράστηκαν __TRANSLATED_COUNT__/__TOTAL_COUNT__",
         group_acidifier: "Οξινιστής",
         group_colorant: "Χρωστική",
         group_flavoring: "Αρωματική ύλη",
@@ -479,9 +481,10 @@
         tier_good: "Gut",
         tier_okay: "Okay",
         tier_caution: "Vorsicht",
-        ingredients_translate_toggle: "Zutaten übersetzen (Wörterbuch)",
-        ingredients_translate_unavailable: "Wörterbuch nicht verfügbar. Originale Zutatennamen bleiben erhalten.",
-        ingredients_translate_loading: "Wörterbuch wird geladen...",
+        ingredients_translate_toggle: "Zutaten übersetzen (Glossar)",
+        ingredients_translate_unavailable: "Glossar nicht verfügbar. Originale Zutatennamen bleiben erhalten.",
+        ingredients_translate_loading: "Glossar wird geladen...",
+        ingredients_translate_count: "Übersetzt __TRANSLATED_COUNT__/__TOTAL_COUNT__",
         group_acidifier: "Säuerungsmittel",
         group_colorant: "Farbstoff",
         group_flavoring: "Aroma",
@@ -558,9 +561,10 @@
         tier_good: "Bon",
         tier_okay: "Correct",
         tier_caution: "Attention",
-        ingredients_translate_toggle: "Traduire les ingrédients (dictionnaire)",
-        ingredients_translate_unavailable: "Dictionnaire indisponible. Les noms d'ingrédients d'origine sont conservés.",
-        ingredients_translate_loading: "Chargement du dictionnaire...",
+        ingredients_translate_toggle: "Traduire les ingrédients (glossaire)",
+        ingredients_translate_unavailable: "Glossaire indisponible. Les noms d'ingrédients d'origine sont conservés.",
+        ingredients_translate_loading: "Chargement du glossaire...",
+        ingredients_translate_count: "Traduit __TRANSLATED_COUNT__/__TOTAL_COUNT__",
         group_acidifier: "Acidifiant",
         group_colorant: "Colorant",
         group_flavoring: "Arôme",
@@ -594,16 +598,17 @@
       return i18n[lang]?.[key] || i18n.en[key] || key;
     }
 
-    const INGREDIENT_DICT_URLS = ["/static/ingredient_dict_el.json"];
-    let ingredientDictEl = null;
-    let ingredientDictElRaw = null;
-    let ingredientDictElNormalized = null;
-    let ingredientDictElStripped = null;
-    let ingredientDictElPromise = null;
-    let ingredientDictElLoadFailed = false;
-    let ingredientDictWarned = false;
-    let ingredientDictElResolvedUrl = null;
-    let ingredientDictElLoadedLogged = false;
+    const INGREDIENT_GLOSSARY_URLS = ["/static/ingredient_glossary.json"];
+    let ingredientGlossary = null;
+    let ingredientGlossaryEntries = null;
+    let ingredientGlossaryAliasRaw = null;
+    let ingredientGlossaryAliasNormalized = null;
+    let ingredientGlossaryAliasStripped = null;
+    let ingredientGlossaryPromise = null;
+    let ingredientGlossaryLoadFailed = false;
+    let ingredientGlossaryWarned = false;
+    let ingredientGlossaryResolvedUrl = null;
+    let ingredientGlossaryLoadedLogged = false;
     let ingredientTranslationStats = { translated: 0, total: 0 };
 
     function stripDiacritics(value){
@@ -645,46 +650,75 @@
         .replace(/\s+/g, " ");
     }
 
-    async function ensureIngredientDictElLoaded(){
-      if (ingredientDictElRaw && ingredientDictElNormalized && ingredientDictElStripped) return true;
-      if (ingredientDictElPromise) return ingredientDictElPromise;
-      ingredientDictElLoadFailed = false;
-      ingredientDictElPromise = (async () => {
+    function _buildGlossaryAliasMaps(obj){
+      const entries = {};
+      const aliasRaw = {};
+      const aliasNormalized = {};
+      const aliasStripped = {};
+
+      if (!obj || typeof obj !== "object") return { entries, aliasRaw, aliasNormalized, aliasStripped };
+
+      for (const [canonicalKey, entry] of Object.entries(obj)){
+        if (!entry || typeof entry !== "object") continue;
+        const translations = {};
+        for (const code of supportedLangs){
+          if (typeof entry?.translations?.[code] === "string" && entry.translations[code].trim()){
+            translations[code] = entry.translations[code].trim();
+          }
+        }
+        if (!Object.keys(translations).length) continue;
+
+        const canonical = _ingredientLookupKey(canonicalKey);
+        if (!canonical) continue;
+
+        const aliases = Array.from(new Set([canonicalKey, ...(Array.isArray(entry.aliases) ? entry.aliases : [])]
+          .map(value => String(value || "").trim())
+          .filter(Boolean)));
+
+        const glossaryEntry = { canonical, translations, aliases };
+        entries[canonical] = glossaryEntry;
+
+        for (const alias of aliases){
+          const rawKey = _ingredientLookupKey(alias);
+          const normalizedKey = _normalizeIngredientToken(alias);
+          const strippedKey = _normalizeIngredientTokenLoose(alias);
+          if (rawKey) aliasRaw[rawKey] = canonical;
+          if (normalizedKey) aliasNormalized[normalizedKey] = canonical;
+          if (strippedKey) aliasStripped[strippedKey] = canonical;
+        }
+      }
+
+      return { entries, aliasRaw, aliasNormalized, aliasStripped };
+    }
+
+    async function ensureIngredientGlossaryLoaded(){
+      if (ingredientGlossaryEntries && ingredientGlossaryAliasRaw && ingredientGlossaryAliasNormalized && ingredientGlossaryAliasStripped) return true;
+      if (ingredientGlossaryPromise) return ingredientGlossaryPromise;
+      ingredientGlossaryLoadFailed = false;
+      ingredientGlossaryPromise = (async () => {
         const triedUrls = [];
         let lastError = null;
 
-        for (const candidateUrl of INGREDIENT_DICT_URLS){
+        for (const candidateUrl of INGREDIENT_GLOSSARY_URLS){
           const requestUrl = `${candidateUrl}${candidateUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
           triedUrls.push(candidateUrl);
           try {
             const response = await fetch(requestUrl);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const obj = await response.json();
-            const raw = {};
-            const normalized = {};
-            const stripped = {};
-            if (obj && typeof obj === "object"){
-              for (const [k, v] of Object.entries(obj)){
-                const rk = String(k || "").toLowerCase().trim();
-                const nk = _normalizeIngredientToken(k);
-                const sk = _normalizeIngredientTokenLoose(k);
-                if (typeof v !== "string") continue;
-                if (rk) raw[rk] = v;
-                if (nk) normalized[nk] = v;
-                if (sk) stripped[sk] = v;
-              }
-            }
-            if (Object.keys(raw).length === 0) throw new Error("Dictionary JSON empty");
+            const maps = _buildGlossaryAliasMaps(obj);
+            if (Object.keys(maps.entries).length === 0) throw new Error("Glossary JSON empty");
 
-            ingredientDictEl = obj;
-            ingredientDictElRaw = raw;
-            ingredientDictElNormalized = normalized;
-            ingredientDictElStripped = stripped;
-            ingredientDictElResolvedUrl = candidateUrl;
-            ingredientDictElLoadFailed = false;
-            if (!ingredientDictElLoadedLogged){
-              console.debug(`[ingredients-dict] loaded from ${candidateUrl} with ${Object.keys(raw).length} entries`);
-              ingredientDictElLoadedLogged = true;
+            ingredientGlossary = obj;
+            ingredientGlossaryEntries = maps.entries;
+            ingredientGlossaryAliasRaw = maps.aliasRaw;
+            ingredientGlossaryAliasNormalized = maps.aliasNormalized;
+            ingredientGlossaryAliasStripped = maps.aliasStripped;
+            ingredientGlossaryResolvedUrl = candidateUrl;
+            ingredientGlossaryLoadFailed = false;
+            if (!ingredientGlossaryLoadedLogged){
+              console.debug(`[ingredients-glossary] loaded from ${candidateUrl} with ${Object.keys(maps.entries).length} entries`);
+              ingredientGlossaryLoadedLogged = true;
             }
             render();
             return true;
@@ -696,29 +730,46 @@
         throw new Error(`Tried ${triedUrls.join(", ")}; final error: ${lastError || "unknown"}`);
       })()
         .catch((err) => {
-          ingredientDictEl = null;
-          ingredientDictElRaw = null;
-          ingredientDictElNormalized = null;
-          ingredientDictElStripped = null;
-          ingredientDictElResolvedUrl = null;
-          ingredientDictElLoadFailed = true;
-          if (!ingredientDictWarned){
-            console.warn(`[ingredients-dict] Failed to load dictionary from ${INGREDIENT_DICT_URLS.join(", ")}. ${err && err.message ? err.message : err}`);
-            ingredientDictWarned = true;
+          ingredientGlossary = null;
+          ingredientGlossaryEntries = null;
+          ingredientGlossaryAliasRaw = null;
+          ingredientGlossaryAliasNormalized = null;
+          ingredientGlossaryAliasStripped = null;
+          ingredientGlossaryResolvedUrl = null;
+          ingredientGlossaryLoadFailed = true;
+          if (!ingredientGlossaryWarned){
+            console.warn(`[ingredients-glossary] Failed to load glossary from ${INGREDIENT_GLOSSARY_URLS.join(", ")}. ${err && err.message ? err.message : err}`);
+            ingredientGlossaryWarned = true;
           }
           render();
           return false;
         })
         .finally(() => {
-          ingredientDictElPromise = null;
+          ingredientGlossaryPromise = null;
         });
-      return ingredientDictElPromise;
+      return ingredientGlossaryPromise;
+    }
+
+    function resolveIngredientGlossaryEntry(value){
+      const rawKey = _ingredientLookupKey(value);
+      const normalizedKey = _normalizeIngredientToken(value);
+      const strippedKey = _normalizeIngredientTokenLoose(value);
+      const strippedAsciiKey = _normalizeIngredientTokenLoose(
+        String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      );
+      const canonical = (ingredientGlossaryAliasRaw || {})[rawKey]
+        || (ingredientGlossaryAliasNormalized || {})[normalizedKey]
+        || (ingredientGlossaryAliasStripped || {})[strippedKey]
+        || (ingredientGlossaryAliasStripped || {})[strippedAsciiKey]
+        || "";
+      if (!canonical) return null;
+      return (ingredientGlossaryEntries || {})[canonical] || null;
     }
 
     function ingredientDisplayName(name){
       const original = String(name || "").trim();
       if (!original) return { primary: "-", secondary: "", translated: false };
-      if (!(lang === "el" && state.translateIngredients)) {
+      if (!(supportedLangs.includes(lang) && state.translateIngredients)) {
         return { primary: _escapeHtml(original), secondary: "", translated: false };
       }
 
@@ -726,26 +777,28 @@
         return { primary: _escapeHtml(original), secondary: "", translated: false };
       }
 
-      const rawDict = ingredientDictElRaw || {};
-      const normalizedDict = ingredientDictElNormalized || {};
-      const strippedDict = ingredientDictElStripped || {};
-      const rawKey = _ingredientLookupKey(original);
-      const normalizedKey = _normalizeIngredientToken(original);
-      const strippedKey = _normalizeIngredientTokenLoose(original);
-      const strippedAsciiKey = _normalizeIngredientTokenLoose(
-        String(original || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      );
-      if (!normalizedKey) return { primary: _escapeHtml(original), secondary: "", translated: false };
-
-      const translated = rawDict[rawKey] || normalizedDict[normalizedKey] || strippedDict[strippedKey] || strippedDict[strippedAsciiKey] || "";
-      if (!translated) {
+      const glossaryEntry = resolveIngredientGlossaryEntry(original);
+      if (!glossaryEntry) {
         return { primary: _escapeHtml(original), secondary: "", translated: false };
       }
-      return { primary: _escapeHtml(translated), secondary: _escapeHtml(original), translated: true };
+      const translated = glossaryEntry.translations?.[lang]
+        || glossaryEntry.translations?.en
+        || glossaryEntry.translations?.el
+        || original;
+      const showSecondary = _ingredientLookupKey(translated) !== _ingredientLookupKey(original);
+      return {
+        primary: _escapeHtml(translated),
+        secondary: showSecondary ? _escapeHtml(original) : "",
+        translated: true
+      };
     }
 
     function localizedIngredientGroup(cls){
       const key = String(cls || "").trim().toLowerCase();
+      const glossaryEntry = resolveIngredientGlossaryEntry(key);
+      if (glossaryEntry){
+        return glossaryEntry.translations?.[lang] || glossaryEntry.translations?.en || cls || t("group_other");
+      }
       if (key === "acidifier") return t("group_acidifier");
       if (key === "colorant") return t("group_colorant");
       if (key === "flavoring" || key === "flavouring") return t("group_flavoring");
@@ -869,15 +922,15 @@
         <div class="section">
           <div class="sectionTitle">${t("ingredients_title")}</div>
           <div class="mini">${t("ingredients_note")}</div>
-          ${lang === "el" ? `
+          ${supportedLangs.includes(lang) ? `
             <div class="mini" style="margin-top:8px;">
               <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
                 <input id="translateIngredientsToggle" type="checkbox" ${state.translateIngredients ? "checked" : ""}/>
                 <span>${t("ingredients_translate_toggle")}</span>
               </label>
-              ${(state.translateIngredients && !ingredientDictElRaw && !ingredientDictElLoadFailed) ? `<div style="margin-top:6px;">${t("ingredients_translate_loading")}</div>` : ``}
-              ${state.translateIngredients ? `<div style="margin-top:6px;">Μεταφράστηκαν __TRANSLATED_COUNT__/__TOTAL_COUNT__</div>` : ``}
-              ${ingredientDictElLoadFailed ? `<div style="margin-top:6px;">${t("ingredients_translate_unavailable")}</div>` : ``}
+              ${(state.translateIngredients && !ingredientGlossaryEntries && !ingredientGlossaryLoadFailed) ? `<div style="margin-top:6px;">${t("ingredients_translate_loading")}</div>` : ``}
+              ${state.translateIngredients ? `<div style="margin-top:6px;">${t("ingredients_translate_count")}</div>` : ``}
+              ${ingredientGlossaryLoadFailed ? `<div style="margin-top:6px;">${t("ingredients_translate_unavailable")}</div>` : ``}
             </div>
           ` : ``}
           <div class="pillRow"><span class="pill">${langBadge}</span></div>
@@ -939,10 +992,10 @@
         </div>
       `;
       ingredientTranslationStats = translationStats;
-      if (lang === "el" && state.translateIngredients && ingredientDictElRaw && ingredientDictElResolvedUrl) {
+      if (supportedLangs.includes(lang) && state.translateIngredients && ingredientGlossaryEntries && ingredientGlossaryResolvedUrl) {
         const unmatchedPreview = unmatchedIngredientNames.filter(Boolean).slice(0, 10);
         console.debug(
-          `[ingredients-dict] toggle enabled; url=${ingredientDictElResolvedUrl}; entries=${Object.keys(ingredientDictElRaw).length}; unmatched=${unmatchedPreview.join(" | ")}`
+          `[ingredients-glossary] toggle enabled; url=${ingredientGlossaryResolvedUrl}; entries=${Object.keys(ingredientGlossaryEntries).length}; unmatched=${unmatchedPreview.join(" | ")}`
         );
       }
       return html
@@ -1040,10 +1093,6 @@
       }
 
       if (step === 3){
-        if (lang !== "el" && state.translateIngredients){
-          state.translateIngredients = false;
-          localStorage.setItem("nf_ing_translate", "0");
-        }
         app.innerHTML = renderIngredientsIntel(state.data || {});
         const translateToggle = document.getElementById("translateIngredientsToggle");
         if (translateToggle){
@@ -1058,7 +1107,7 @@
             state.translateIngredients = true;
             localStorage.setItem("nf_ing_translate", "1");
             render();
-            ensureIngredientDictElLoaded().then(ok => {
+            ensureIngredientGlossaryLoaded().then(ok => {
               if (!ok){
                 state.translateIngredients = false;
                 localStorage.setItem("nf_ing_translate", "0");
@@ -1069,8 +1118,8 @@
             });
           };
         }
-        if (lang === "el" && state.translateIngredients){
-          ensureIngredientDictElLoaded().then(ok => {
+        if (supportedLangs.includes(lang) && state.translateIngredients){
+          ensureIngredientGlossaryLoaded().then(ok => {
             if (!ok){
               state.translateIngredients = false;
               localStorage.setItem("nf_ing_translate", "0");
