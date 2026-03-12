@@ -1671,6 +1671,15 @@ def _fallback_assessment_response(
         "alerts": [],
         "ingredients": ingredients,
         "ingredients_intelligence": ingredients_intelligence,
+        "nutrition_per_100": {
+            "unit": str(per100.get("unit") or _get_path(norm, "nutrition_per_100", "unit") or "g").strip().lower() or "g",
+            "sugar_g": per100.get("sugar_g"),
+            "salt_g": per100.get("salt_g"),
+            "sat_fat_g": per100.get("saturated_fat_g"),
+            "protein_g": per100.get("protein_g"),
+            "energy_kcal": per100.get("energy_kcal"),
+            "serving_size": _to_float(_get_path(norm, "nutrition_per_100", "serving_size") or serving_amount),
+        },
         "vitascore": score,
         "vitascore_version": "v3_hybrid_pro",
         "vitascore_breakdown": {
@@ -1837,6 +1846,15 @@ def _analyze_normalized_product(
         "alerts": alerts,
         "ingredients": ingredients,
         "ingredients_intelligence": ingredients_intelligence,
+        "nutrition_per_100": {
+            "unit": str(per100.get("unit") or _get_path(norm, "nutrition_per_100", "unit") or "g").strip().lower() or "g",
+            "sugar_g": per100.get("sugar_g"),
+            "salt_g": per100.get("salt_g"),
+            "sat_fat_g": per100.get("saturated_fat_g"),
+            "protein_g": per100.get("protein_g"),
+            "energy_kcal": per100.get("energy_kcal"),
+            "serving_size": _to_float(_get_path(norm, "nutrition_per_100", "serving_size")),
+        },
         "vitascore": score,
         "vitascore_version": "v3_hybrid_pro",
         "vitascore_breakdown": breakdown,
@@ -2072,7 +2090,7 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
     norm = {
         "name": name,
         "brand": brand,
-        "image_url": None,
+        "image_url": str(payload.get("image_url") or "").strip() or None,
         "quantity": str(payload.get("quantity") or "").strip() or None,
         "categories": categories,
         "categories_tags": [],
@@ -2136,6 +2154,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         "timestamp": payload.get("timestamp"),
         "quantity": _first_present(payload.get("quantity"), existing_product.get("quantity")),
         "serving_size": _first_present(nutrition.get("serving_size"), existing_serving.get("amount")),
+        "image_url": _first_present(payload.get("image_url"), existing_product.get("image_url")),
     }
 
     if not merged_payload["name"]:
@@ -2156,6 +2175,14 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         if isinstance(existing_missing, list) and existing_missing:
             result["lookup_missing_fields"] = list(dict.fromkeys([*existing_missing, *(_as_list(result.get("lookup_missing_fields")))]))
         if isinstance(result.get("product"), dict):
+            if existing_product.get("name") and not str(result["product"].get("name") or "").strip():
+                result["product"]["name"] = str(existing_product.get("name"))
+            if existing_product.get("brand") and not str(result["product"].get("brand") or "").strip():
+                result["product"]["brand"] = str(existing_product.get("brand"))
+            if existing_product.get("image_url") and not str(result["product"].get("image_url") or "").strip():
+                result["product"]["image_url"] = str(existing_product.get("image_url"))
+            if existing_product.get("quantity") and not str(result["product"].get("quantity") or "").strip():
+                result["product"]["quantity"] = str(existing_product.get("quantity"))
             if existing_key and not str(result["product"].get("barcode") or "").strip():
                 result["product"]["barcode"] = existing_key
         result["photo_extraction"] = {
