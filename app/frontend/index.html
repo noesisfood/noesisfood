@@ -609,6 +609,7 @@
     let ingredientGlossaryWarned = false;
     let ingredientGlossaryResolvedUrl = null;
     let ingredientGlossaryLoadedLogged = false;
+    const INGREDIENT_GLOSSARY_UNMATCHED_KEY = "nf_glossary_unmatched";
     let ingredientTranslationStats = { translated: 0, total: 0 };
 
     function stripDiacritics(value){
@@ -648,6 +649,35 @@
         .toLowerCase()
         .trim()
         .replace(/\s+/g, " ");
+    }
+
+    function _ingredientLookupVariants(value){
+      const raw = String(value || "").trim();
+      if (!raw) return [];
+      const variants = new Set([raw]);
+      const withoutPercentages = raw.replace(/\b\d+(?:[.,]\d+)?\s*%/g, " ").trim();
+      if (withoutPercentages) variants.add(withoutPercentages);
+      const withoutParens = raw.replace(/\([^)]*\)/g, " ").trim();
+      if (withoutParens) variants.add(withoutParens);
+      const beforeColon = raw.split(":")[0]?.trim();
+      if (beforeColon) variants.add(beforeColon);
+      const firstSegment = raw.split(/[;,]/)[0]?.trim();
+      if (firstSegment) variants.add(firstSegment);
+
+      return Array.from(variants)
+        .map(item => item.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+    }
+
+    function _recordUnmatchedIngredient(value){
+      const key = _ingredientLookupKey(value);
+      if (!key) return;
+      try {
+        const raw = sessionStorage.getItem(INGREDIENT_GLOSSARY_UNMATCHED_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        parsed[key] = (parsed[key] || 0) + 1;
+        sessionStorage.setItem(INGREDIENT_GLOSSARY_UNMATCHED_KEY, JSON.stringify(parsed));
+      } catch (_err) {}
     }
 
     function _buildGlossaryAliasMaps(obj){
@@ -751,19 +781,22 @@
     }
 
     function resolveIngredientGlossaryEntry(value){
-      const rawKey = _ingredientLookupKey(value);
-      const normalizedKey = _normalizeIngredientToken(value);
-      const strippedKey = _normalizeIngredientTokenLoose(value);
-      const strippedAsciiKey = _normalizeIngredientTokenLoose(
-        String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      );
-      const canonical = (ingredientGlossaryAliasRaw || {})[rawKey]
-        || (ingredientGlossaryAliasNormalized || {})[normalizedKey]
-        || (ingredientGlossaryAliasStripped || {})[strippedKey]
-        || (ingredientGlossaryAliasStripped || {})[strippedAsciiKey]
-        || "";
-      if (!canonical) return null;
-      return (ingredientGlossaryEntries || {})[canonical] || null;
+      for (const candidate of _ingredientLookupVariants(value)){
+        const rawKey = _ingredientLookupKey(candidate);
+        const normalizedKey = _normalizeIngredientToken(candidate);
+        const strippedKey = _normalizeIngredientTokenLoose(candidate);
+        const strippedAsciiKey = _normalizeIngredientTokenLoose(
+          String(candidate || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        );
+        const canonical = (ingredientGlossaryAliasRaw || {})[rawKey]
+          || (ingredientGlossaryAliasNormalized || {})[normalizedKey]
+          || (ingredientGlossaryAliasStripped || {})[strippedKey]
+          || (ingredientGlossaryAliasStripped || {})[strippedAsciiKey]
+          || "";
+        if (canonical) return (ingredientGlossaryEntries || {})[canonical] || null;
+      }
+      _recordUnmatchedIngredient(value);
+      return null;
     }
 
     function ingredientDisplayName(name){
@@ -994,8 +1027,13 @@
       ingredientTranslationStats = translationStats;
       if (supportedLangs.includes(lang) && state.translateIngredients && ingredientGlossaryEntries && ingredientGlossaryResolvedUrl) {
         const unmatchedPreview = unmatchedIngredientNames.filter(Boolean).slice(0, 10);
+        let unmatchedCount = 0;
+        try {
+          const raw = sessionStorage.getItem(INGREDIENT_GLOSSARY_UNMATCHED_KEY);
+          unmatchedCount = raw ? Object.keys(JSON.parse(raw)).length : 0;
+        } catch (_err) {}
         console.debug(
-          `[ingredients-glossary] toggle enabled; url=${ingredientGlossaryResolvedUrl}; entries=${Object.keys(ingredientGlossaryEntries).length}; unmatched=${unmatchedPreview.join(" | ")}`
+          `[ingredients-glossary] toggle enabled; url=${ingredientGlossaryResolvedUrl}; entries=${Object.keys(ingredientGlossaryEntries).length}; unmatched=${unmatchedPreview.join(" | ")}; unmatched_store=${unmatchedCount}`
         );
       }
       return html

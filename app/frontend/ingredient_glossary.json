@@ -15,7 +15,7 @@
       "fr": "Eau gazeuse",
       "de": "Sprudelwasser"
     },
-    "aliases": ["carbonated water", "sparkling water", "eau gazeuse", "sprudelwasser", "wasser mit kohlensäure"]
+    "aliases": ["carbonated water", "sparkling water", "eau gazeuse", "sprudelwasser", "wasser mit kohlensäure", "wasser mit kohlensaeure"]
   },
   "carbon dioxide": {
     "translations": {
@@ -33,7 +33,52 @@
       "fr": "Sucre",
       "de": "Zucker"
     },
-    "aliases": ["sugar", "sucre", "zucker"]
+    "aliases": ["sugar", "sucres", "sucre", "zucker"]
+  },
+  "glucose": {
+    "translations": {
+      "el": "Γλυκόζη",
+      "en": "Glucose",
+      "fr": "Glucose",
+      "de": "Glukose"
+    },
+    "aliases": ["glucose", "glukose"]
+  },
+  "fructose": {
+    "translations": {
+      "el": "Φρουκτόζη",
+      "en": "Fructose",
+      "fr": "Fructose",
+      "de": "Fruktose"
+    },
+    "aliases": ["fructose", "fruktose"]
+  },
+  "glucose syrup": {
+    "translations": {
+      "el": "Σιρόπι γλυκόζης",
+      "en": "Glucose syrup",
+      "fr": "Sirop de glucose",
+      "de": "Glukosesirup"
+    },
+    "aliases": ["glucose syrup", "glucose-fructose syrup", "sirop de glucose", "sirop de glucose-fructose", "glukosesirup", "glukose-fruktose-sirup"]
+  },
+  "fructose syrup": {
+    "translations": {
+      "el": "Σιρόπι φρουκτόζης",
+      "en": "Fructose syrup",
+      "fr": "Sirop de fructose",
+      "de": "Fruktosesirup"
+    },
+    "aliases": ["fructose syrup", "sirop de fructose", "fruktosesirup"]
+  },
+  "corn syrup": {
+    "translations": {
+      "el": "Σιρόπι καλαμποκιού",
+      "en": "Corn syrup",
+      "fr": "Sirop de maïs",
+      "de": "Maissirup"
+    },
+    "aliases": ["corn syrup", "sirop de maïs", "sirop de mais", "maissirup"]
   },
   "salt": {
     "translations": {
@@ -44,6 +89,24 @@
     },
     "aliases": ["salt", "sel", "salz"]
   },
+  "starch": {
+    "translations": {
+      "el": "Άμυλο",
+      "en": "Starch",
+      "fr": "Amidon",
+      "de": "Stärke"
+    },
+    "aliases": ["starch", "amidon", "stärke", "staerke"]
+  },
+  "modified starch": {
+    "translations": {
+      "el": "Τροποποιημένο άμυλο",
+      "en": "Modified starch",
+      "fr": "Amidon modifié",
+      "de": "Modifizierte Stärke"
+    },
+    "aliases": ["modified starch", "modified starches", "amidon modifié", "amidons modifiés", "modifizierte stärke", "modifizierte staerke"]
+  },
   "acidifier": {
     "translations": {
       "el": "Ρυθμιστής οξύτητας",
@@ -51,70 +114,7 @@
       "fr": "Acidifiant",
       "de": "Säuerungsmittel"
     },
-    "aliases": ["acidifier", "acidity regulator", "acidifiant", "säuerungsmittel", "saeuerungsmittel"]
-  },
-  "colorant": {
-    "translations": {
-      "el": "Χρωστική",
-      "en": "Colorant",
-      "fr": "Colorant",
-      "de": "Farbstoff"
-    },
-    "aliases": ["colorant", "colouring", "coloring", "colorant alimentaire", "farbstoff"]
-  },
-  "caramel colour": {
-    "translations": {
-      "el": "Χρωστική καραμέλας",
-      "en": "Caramel colour",
-      "fr": "Colorant caramel",
-      "de": "Karamellfarbstoff"
-    },
-    "aliases": ["caramel colour", "caramel color", "colour caramel", "colorant caramel", "karamellfarbstoff"]
-  },
-  "flavouring": {
-    "translations": {
-      "el": "Άρωμα",
-      "en": "Flavouring",
-      "fr": "Arôme",
-      "de": "Aroma"
-    },
-    "aliases": ["flavouring", "flavoring", "arôme", "arome", "aroma"]
-  },
-  "natural flavouring": {
-    "translations": {
-      "el": "Φυσικό άρωμα",
-      "en": "Natural flavouring",
-      "fr": "Arôme naturel",
-      "de": "Natürliches Aroma"
-    },
-    "aliases": ["natural flavouring", "natural flavoring", "arôme naturel", "arome naturel", "natürliches aroma", "natuerliches aroma"]
-  },
-  "caffeine flavouring": {
-    "translations": {
-      "el": "Άρωμα καφεΐνης",
-      "en": "Caffeine flavouring",
-      "fr": "Arôme caféiné",
-      "de": "Aroma Koffein"
-    },
-    "aliases": ["caffeine flavouring", "caffeine flavoring", "arôme caféine", "arome cafeine", "aroma koffein"]
-  },
-  "caffeine": {
-    "translations": {
-      "el": "Καφεΐνη",
-      "en": "Caffeine",
-      "fr": "Caféine",
-      "de": "Koffein"
-    },
-    "aliases": ["caffeine", "caféine", "cafeine", "koffein"]
-  },
-  "phosphoric acid": {
-    "translations": {
-      "el": "Φωσφορικό οξύ",
-      "en": "Phosphoric acid",
-      "fr": "Acide phosphorique",
-      "de": "Phosphorsäure"
-    },
-    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure"]
+    "aliases": ["acidifier", "acidifiers", "acidity regulator", "acidity regulators", "acidifiant", "acidifiants", "säuerungsmittel", "saeuerungsmittel"]
   },
   "citric acid": {
     "translations": {
@@ -125,14 +125,59 @@
     },
     "aliases": ["citric acid", "acide citrique", "zitronensäure", "zitronensaeure"]
   },
-  "glucose syrup": {
+  "phosphoric acid": {
     "translations": {
-      "el": "Σιρόπι γλυκόζης",
-      "en": "Glucose syrup",
-      "fr": "Sirop de glucose",
-      "de": "Glukosesirup"
+      "el": "Φωσφορικό οξύ",
+      "en": "Phosphoric acid",
+      "fr": "Acide phosphorique",
+      "de": "Phosphorsäure"
     },
-    "aliases": ["glucose syrup", "sirop de glucose", "glukosesirup"]
+    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure"]
+  },
+  "malic acid": {
+    "translations": {
+      "el": "Μηλικό οξύ",
+      "en": "Malic acid",
+      "fr": "Acide malique",
+      "de": "Apfelsäure"
+    },
+    "aliases": ["malic acid", "acide malique", "apfelsäure", "apfelsaeure"]
+  },
+  "lactic acid": {
+    "translations": {
+      "el": "Γαλακτικό οξύ",
+      "en": "Lactic acid",
+      "fr": "Acide lactique",
+      "de": "Milchsäure"
+    },
+    "aliases": ["lactic acid", "acide lactique", "milchsäure", "milchsaeure"]
+  },
+  "ascorbic acid": {
+    "translations": {
+      "el": "Ασκορβικό οξύ",
+      "en": "Ascorbic acid",
+      "fr": "Acide ascorbique",
+      "de": "Ascorbinsäure"
+    },
+    "aliases": ["ascorbic acid", "acide ascorbique", "ascorbinsäure", "ascorbinsaeure"]
+  },
+  "colorant": {
+    "translations": {
+      "el": "Χρωστική",
+      "en": "Colorant",
+      "fr": "Colorant",
+      "de": "Farbstoff"
+    },
+    "aliases": ["colorant", "colorants", "colouring", "coloring", "colorant alimentaire", "farbstoff", "farbstoffe"]
+  },
+  "caramel colour": {
+    "translations": {
+      "el": "Χρωστική καραμέλας",
+      "en": "Caramel colour",
+      "fr": "Colorant caramel",
+      "de": "Karamellfarbstoff"
+    },
+    "aliases": ["caramel colour", "caramel color", "colour caramel", "colorant caramel", "karamellfarbstoff"]
   },
   "preservative": {
     "translations": {
@@ -141,7 +186,7 @@
       "fr": "Conservateur",
       "de": "Konservierungsstoff"
     },
-    "aliases": ["preservative", "conservateur", "konservierungsstoff"]
+    "aliases": ["preservative", "preservatives", "conservateur", "conservateurs", "konservierungsstoff", "konservierungsstoffe"]
   },
   "sweetener": {
     "translations": {
@@ -150,6 +195,294 @@
       "fr": "Édulcorant",
       "de": "Süßungsmittel"
     },
-    "aliases": ["sweetener", "édulcorant", "edulcorant", "süßungsmittel", "suessungsmittel"]
+    "aliases": ["sweetener", "sweeteners", "édulcorant", "édulcorants", "edulcorant", "edulcorants", "süßungsmittel", "suessungsmittel"]
+  },
+  "emulsifier": {
+    "translations": {
+      "el": "Γαλακτωματοποιητής",
+      "en": "Emulsifier",
+      "fr": "Émulsifiant",
+      "de": "Emulgator"
+    },
+    "aliases": ["emulsifier", "emulsifiers", "émulsifiant", "émulsifiants", "emulsifiant", "emulsifiants", "emulgator", "emulgatoren"]
+  },
+  "stabilizer": {
+    "translations": {
+      "el": "Σταθεροποιητής",
+      "en": "Stabilizer",
+      "fr": "Stabilisant",
+      "de": "Stabilisator"
+    },
+    "aliases": ["stabilizer", "stabilizers", "stabiliser", "stabilisers", "stabilisant", "stabilisants", "stabilisator", "stabilisatoren"]
+  },
+  "thickener": {
+    "translations": {
+      "el": "Πηκτικό μέσο",
+      "en": "Thickener",
+      "fr": "Épaississant",
+      "de": "Verdickungsmittel"
+    },
+    "aliases": ["thickener", "thickeners", "épaississant", "épaississants", "epaississant", "epaississants", "verdickungsmittel"]
+  },
+  "flavouring": {
+    "translations": {
+      "el": "Άρωμα",
+      "en": "Flavouring",
+      "fr": "Arôme",
+      "de": "Aroma"
+    },
+    "aliases": ["flavouring", "flavourings", "flavoring", "flavorings", "arôme", "aromes", "arome", "aroma", "aromen"]
+  },
+  "natural flavouring": {
+    "translations": {
+      "el": "Φυσικό άρωμα",
+      "en": "Natural flavouring",
+      "fr": "Arôme naturel",
+      "de": "Natürliches Aroma"
+    },
+    "aliases": ["natural flavouring", "natural flavourings", "natural flavoring", "natural flavorings", "arôme naturel", "arômes naturels", "arome naturel", "natürliches aroma", "natuerliches aroma"]
+  },
+  "caffeine flavouring": {
+    "translations": {
+      "el": "Άρωμα καφεΐνης",
+      "en": "Caffeine flavouring",
+      "fr": "Arôme caféiné",
+      "de": "Aroma Koffein"
+    },
+    "aliases": ["caffeine flavouring", "caffeine flavoring", "arôme caféine", "arôme caféiné", "arome cafeine", "aroma koffein"]
+  },
+  "caffeine": {
+    "translations": {
+      "el": "Καφεΐνη",
+      "en": "Caffeine",
+      "fr": "Caféine",
+      "de": "Koffein"
+    },
+    "aliases": ["caffeine", "caféine", "cafeine", "koffein"]
+  },
+  "vegetable oil": {
+    "translations": {
+      "el": "Φυτικό έλαιο",
+      "en": "Vegetable oil",
+      "fr": "Huile végétale",
+      "de": "Pflanzenöl"
+    },
+    "aliases": ["vegetable oil", "vegetable oils", "huile végétale", "huiles végétales", "huile vegetale", "pflanzenöl", "pflanzenoel"]
+  },
+  "sunflower oil": {
+    "translations": {
+      "el": "Ηλιέλαιο",
+      "en": "Sunflower oil",
+      "fr": "Huile de tournesol",
+      "de": "Sonnenblumenöl"
+    },
+    "aliases": ["sunflower oil", "huile de tournesol", "sonnenblumenöl", "sonnenblumenoel"]
+  },
+  "palm oil": {
+    "translations": {
+      "el": "Φοινικέλαιο",
+      "en": "Palm oil",
+      "fr": "Huile de palme",
+      "de": "Palmöl"
+    },
+    "aliases": ["palm oil", "huile de palme", "palmöl", "palmoel"]
+  },
+  "olive oil": {
+    "translations": {
+      "el": "Ελαιόλαδο",
+      "en": "Olive oil",
+      "fr": "Huile d'olive",
+      "de": "Olivenöl"
+    },
+    "aliases": ["olive oil", "huile d'olive", "olivenöl", "olivenoel"]
+  },
+  "milk": {
+    "translations": {
+      "el": "Γάλα",
+      "en": "Milk",
+      "fr": "Lait",
+      "de": "Milch"
+    },
+    "aliases": ["milk", "lait", "milch"]
+  },
+  "skimmed milk powder": {
+    "translations": {
+      "el": "Αποβουτυρωμένο γάλα σε σκόνη",
+      "en": "Skimmed milk powder",
+      "fr": "Lait écrémé en poudre",
+      "de": "Magermilchpulver"
+    },
+    "aliases": ["skimmed milk powder", "milk powder", "lait écrémé en poudre", "lait ecreme en poudre", "magermilchpulver"]
+  },
+  "whey powder": {
+    "translations": {
+      "el": "Σκόνη ορού γάλακτος",
+      "en": "Whey powder",
+      "fr": "Poudre de lactosérum",
+      "de": "Molkenpulver"
+    },
+    "aliases": ["whey powder", "whey", "poudre de lactosérum", "poudre de lactoserum", "molkenpulver"]
+  },
+  "cream": {
+    "translations": {
+      "el": "Κρέμα γάλακτος",
+      "en": "Cream",
+      "fr": "Crème",
+      "de": "Sahne"
+    },
+    "aliases": ["cream", "crème", "creme", "sahne"]
+  },
+  "butter": {
+    "translations": {
+      "el": "Βούτυρο",
+      "en": "Butter",
+      "fr": "Beurre",
+      "de": "Butter"
+    },
+    "aliases": ["butter", "beurre"]
+  },
+  "cocoa": {
+    "translations": {
+      "el": "Κακάο",
+      "en": "Cocoa",
+      "fr": "Cacao",
+      "de": "Kakao"
+    },
+    "aliases": ["cocoa", "cacao", "kakao"]
+  },
+  "cocoa powder": {
+    "translations": {
+      "el": "Σκόνη κακάο",
+      "en": "Cocoa powder",
+      "fr": "Poudre de cacao",
+      "de": "Kakaopulver"
+    },
+    "aliases": ["cocoa powder", "cacao powder", "poudre de cacao", "kakaopulver"]
+  },
+  "chocolate": {
+    "translations": {
+      "el": "Σοκολάτα",
+      "en": "Chocolate",
+      "fr": "Chocolat",
+      "de": "Schokolade"
+    },
+    "aliases": ["chocolate", "chocolat", "schokolade"]
+  },
+  "wheat flour": {
+    "translations": {
+      "el": "Αλεύρι σίτου",
+      "en": "Wheat flour",
+      "fr": "Farine de blé",
+      "de": "Weizenmehl"
+    },
+    "aliases": ["wheat flour", "flour", "farine de blé", "farine de ble", "weizenmehl"]
+  },
+  "oats": {
+    "translations": {
+      "el": "Βρώμη",
+      "en": "Oats",
+      "fr": "Avoine",
+      "de": "Hafer"
+    },
+    "aliases": ["oats", "oat", "avoine", "hafer"]
+  },
+  "barley malt": {
+    "translations": {
+      "el": "Βυνοποιημένο κριθάρι",
+      "en": "Barley malt",
+      "fr": "Malt d'orge",
+      "de": "Gerstenmalz"
+    },
+    "aliases": ["barley malt", "malt d'orge", "malt dorge", "gerstenmalz"]
+  },
+  "rice flour": {
+    "translations": {
+      "el": "Αλεύρι ρυζιού",
+      "en": "Rice flour",
+      "fr": "Farine de riz",
+      "de": "Reismehl"
+    },
+    "aliases": ["rice flour", "farine de riz", "reismehl"]
+  },
+  "fruit juice concentrate": {
+    "translations": {
+      "el": "Συμπυκνωμένος χυμός φρούτων",
+      "en": "Fruit juice concentrate",
+      "fr": "Concentré de jus de fruits",
+      "de": "Fruchtsaftkonzentrat"
+    },
+    "aliases": ["fruit juice concentrate", "fruit concentrate", "concentré de jus de fruits", "concentre de jus de fruits", "fruchtsaftkonzentrat"]
+  },
+  "orange juice concentrate": {
+    "translations": {
+      "el": "Συμπυκνωμένος χυμός πορτοκαλιού",
+      "en": "Orange juice concentrate",
+      "fr": "Concentré de jus d'orange",
+      "de": "Orangensaftkonzentrat"
+    },
+    "aliases": ["orange juice concentrate", "concentré de jus d'orange", "concentre de jus d'orange", "orangensaftkonzentrat"]
+  },
+  "apple juice concentrate": {
+    "translations": {
+      "el": "Συμπυκνωμένος χυμός μήλου",
+      "en": "Apple juice concentrate",
+      "fr": "Concentré de jus de pomme",
+      "de": "Apfelsaftkonzentrat"
+    },
+    "aliases": ["apple juice concentrate", "concentré de jus de pomme", "concentre de jus de pomme", "apfelsaftkonzentrat"]
+  },
+  "fruit juice": {
+    "translations": {
+      "el": "Χυμός φρούτων",
+      "en": "Fruit juice",
+      "fr": "Jus de fruits",
+      "de": "Fruchtsaft"
+    },
+    "aliases": ["fruit juice", "jus de fruits", "fruchtsaft"]
+  },
+  "orange juice": {
+    "translations": {
+      "el": "Χυμός πορτοκαλιού",
+      "en": "Orange juice",
+      "fr": "Jus d'orange",
+      "de": "Orangensaft"
+    },
+    "aliases": ["orange juice", "jus d'orange", "orangensaft"]
+  },
+  "apple juice": {
+    "translations": {
+      "el": "Χυμός μήλου",
+      "en": "Apple juice",
+      "fr": "Jus de pomme",
+      "de": "Apfelsaft"
+    },
+    "aliases": ["apple juice", "jus de pomme", "apfelsaft"]
+  },
+  "natural orange flavouring": {
+    "translations": {
+      "el": "Φυσικό άρωμα πορτοκαλιού",
+      "en": "Natural orange flavouring",
+      "fr": "Arôme naturel d'orange",
+      "de": "Natürliches Orangenaroma"
+    },
+    "aliases": ["natural orange flavouring", "natural orange flavoring", "arôme naturel d'orange", "arome naturel d'orange", "natürliches orangenaroma", "natuerliches orangenaroma"]
+  },
+  "dextrose": {
+    "translations": {
+      "el": "Δεξτρόζη",
+      "en": "Dextrose",
+      "fr": "Dextrose",
+      "de": "Dextrose"
+    },
+    "aliases": ["dextrose"]
+  },
+  "maltodextrin": {
+    "translations": {
+      "el": "Μαλτοδεξτρίνη",
+      "en": "Maltodextrin",
+      "fr": "Maltodextrine",
+      "de": "Maltodextrin"
+    },
+    "aliases": ["maltodextrin", "maltodextrine"]
   }
 }
