@@ -16,7 +16,8 @@
     ],
     "expected_flags": ["additives_detected", "contains_caffeine"],
     "expected_e_numbers": ["E150", "E338"],
-    "priority": "P0"
+    "priority": "P0",
+    "smoke_test": true
   },
   {
     "product_name": "Red Bull Energy Drink",
@@ -36,7 +37,8 @@
     ],
     "expected_flags": ["additives_detected", "contains_caffeine"],
     "expected_e_numbers": [],
-    "priority": "P0"
+    "priority": "P0",
+    "smoke_test": true
   },
   {
     "product_name": "Fanta Orange",
@@ -52,7 +54,8 @@
     ],
     "expected_flags": ["additives_detected"],
     "expected_e_numbers": ["E330"],
-    "priority": "P1"
+    "priority": "P1",
+    "smoke_test": true
   },
   {
     "product_name": "Sprite",
@@ -68,7 +71,8 @@
     ],
     "expected_flags": ["additives_detected"],
     "expected_e_numbers": ["E330"],
-    "priority": "P1"
+    "priority": "P1",
+    "smoke_test": true
   },
   {
     "product_name": "Schweppes Indian Tonic",
@@ -84,7 +88,8 @@
     ],
     "expected_flags": ["additives_detected"],
     "expected_e_numbers": [],
-    "priority": "P2"
+    "priority": "P2",
+    "smoke_test": true
   },
   {
     "product_name": "Volvic Touch Citron",
@@ -100,7 +105,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P1"
+    "priority": "P1",
+    "smoke_test": false
   },
   {
     "product_name": "Innocent Orange Juice",
@@ -114,7 +120,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P1"
+    "priority": "P1",
+    "smoke_test": false
   },
   {
     "product_name": "Haribo Goldbears",
@@ -131,7 +138,8 @@
     ],
     "expected_flags": ["additives_detected"],
     "expected_e_numbers": [],
-    "priority": "P2"
+    "priority": "P2",
+    "smoke_test": false
   },
   {
     "product_name": "Oreo Original",
@@ -147,7 +155,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P2"
+    "priority": "P2",
+    "smoke_test": false
   },
   {
     "product_name": "LU Petit Beurre",
@@ -163,7 +172,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P2"
+    "priority": "P2",
+    "smoke_test": false
   },
   {
     "product_name": "Nestlé Chocapic",
@@ -196,7 +206,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P3"
+    "priority": "P3",
+    "smoke_test": false
   },
   {
     "product_name": "Danone Natural Yogurt",
@@ -210,7 +221,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P3"
+    "priority": "P3",
+    "smoke_test": false
   },
   {
     "product_name": "Milka Alpine Milk Chocolate",
@@ -227,7 +239,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P2"
+    "priority": "P2",
+    "smoke_test": false
   },
   {
     "product_name": "Lay's Classic",
@@ -243,7 +256,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P3"
+    "priority": "P3",
+    "smoke_test": false
   },
   {
     "product_name": "Pringles Original",
@@ -259,7 +273,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P3"
+    "priority": "P3",
+    "smoke_test": false
   },
   {
     "product_name": "Heinz Tomato Ketchup",
@@ -274,7 +289,8 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P3"
+    "priority": "P3",
+    "smoke_test": false
   },
   {
     "product_name": "Maille Dijon Mustard",
@@ -305,6 +321,7 @@
     ],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "priority": "P3"
+    "priority": "P3",
+    "smoke_test": false
   }
 ]
