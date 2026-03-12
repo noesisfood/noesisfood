@@ -386,5 +386,62 @@
     "expected_e_numbers": [],
     "priority": "P2",
     "smoke_test": false
+  },
+  {
+    "product_name": "Invalid barcode input",
+    "brand": "",
+    "barcode": "12AB",
+    "expected_source_language": "",
+    "category": "error handling",
+    "notes": "Manual input validation should reject this before fetch and show a friendly localized invalid-barcode message.",
+    "key_expected_matches": [],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "expected_error_code": "INVALID_BARCODE",
+    "priority": "P1",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Nonexistent barcode",
+    "brand": "",
+    "barcode": "0000000000000",
+    "expected_source_language": "",
+    "category": "error handling",
+    "notes": "Should return a friendly product-not-found message instead of a raw server error.",
+    "key_expected_matches": [],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "expected_error_code": "PRODUCT_NOT_FOUND",
+    "priority": "P1",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Incomplete product payload",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "",
+    "category": "error handling",
+    "notes": "Use a known problematic local or OFF payload with missing fields. The app should keep a graceful partial state or show a friendly analysis-unavailable message, never a raw internal server error.",
+    "key_expected_matches": [],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "expected_error_code": "ANALYSIS_UNAVAILABLE",
+    "priority": "P1",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Known valid barcode",
+    "brand": "Red Bull",
+    "barcode": "9002490100070",
+    "expected_source_language": "PL",
+    "category": "success control",
+    "notes": "Control case for manual barcode entry. This should still load and analyze successfully after error-handling changes.",
+    "key_expected_matches": [
+      { "source": "kofeina", "canonical": "caffeine", "expected_en": "Caffeine" }
+    ],
+    "expected_flags": ["contains_caffeine"],
+    "expected_e_numbers": [],
+    "priority": "P1",
+    "smoke_test": false
   }
 ]

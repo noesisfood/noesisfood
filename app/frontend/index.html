@@ -361,6 +361,10 @@
         no: "no",
         scan_another: "Scan another",
         err_enter_key: "Please enter a product id or barcode.",
+        err_invalid_barcode: "Invalid barcode.",
+        err_not_found: "Product not found.",
+        err_unanalyzable: "This product could not be analyzed.",
+        err_missing_data: "Key data required for product assessment is missing.",
         err_network: "Network error. Is the server running?",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -497,6 +501,10 @@
         no: "όχι",
         scan_another: "Νέα σάρωση",
         err_enter_key: "Βάλε product id ή barcode.",
+        err_invalid_barcode: "Μη έγκυρο barcode.",
+        err_not_found: "Το προϊόν δεν βρέθηκε.",
+        err_unanalyzable: "Δεν ήταν δυνατή η ανάλυση αυτού του προϊόντος.",
+        err_missing_data: "Λείπουν βασικά στοιχεία για την αξιολόγηση του προϊόντος.",
         err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
         tier_na: "N/A",
         tier_excellent: "Εξαιρετικό",
@@ -633,6 +641,10 @@
         no: "nein",
         scan_another: "Weiteres Produkt scannen",
         err_enter_key: "Bitte Produkt-ID oder Barcode eingeben.",
+        err_invalid_barcode: "Ungültiger Barcode.",
+        err_not_found: "Produkt nicht gefunden.",
+        err_unanalyzable: "Dieses Produkt konnte nicht analysiert werden.",
+        err_missing_data: "Für die Bewertung fehlen wichtige Produktdaten.",
         err_network: "Netzwerkfehler. Läuft der Server?",
         tier_na: "N/A",
         tier_excellent: "Exzellent",
@@ -769,6 +781,10 @@
         no: "non",
         scan_another: "Scanner un autre",
         err_enter_key: "Entrez un id produit ou un code-barres.",
+        err_invalid_barcode: "Code-barres invalide.",
+        err_not_found: "Produit introuvable.",
+        err_unanalyzable: "Ce produit n’a pas pu être analysé.",
+        err_missing_data: "Des données essentielles manquent pour évaluer ce produit.",
         err_network: "Erreur réseau. Le serveur est-il démarré ?",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -824,6 +840,30 @@
 
     function t(key){
       return i18n[lang]?.[key] || i18n.en[key] || key;
+    }
+
+    function normalizeLookupKey(value){
+      return String(value || "").trim().replace(/\s+/g, "");
+    }
+
+    function isSupportedLookupKey(value){
+      const key = normalizeLookupKey(value);
+      if (!key) return false;
+      if (/^\d+$/.test(key)) return [8, 12, 13, 14].includes(key.length);
+      return /^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(key);
+    }
+
+    function localizeScanError(data, status){
+      const code = String(data?.error_code || "").toUpperCase();
+      const rawError = String(data?.error || "").trim();
+      if (code === "INVALID_BARCODE" || status === 400) return t("err_invalid_barcode");
+      if (code === "PRODUCT_NOT_FOUND" || status === 404) return t("err_not_found");
+      if (code === "MISSING_KEY_DATA") return t("err_missing_data");
+      if (code === "ANALYSIS_UNAVAILABLE" || status === 422 || status === 502) return t("err_unanalyzable");
+      if (/internal server error/i.test(rawError)) return t("err_unanalyzable");
+      if (/product not found/i.test(rawError)) return t("err_not_found");
+      if (/missing product id|invalid barcode|empty barcode/i.test(rawError)) return t("err_invalid_barcode");
+      return rawError || t("err_unanalyzable");
     }
 
     function syncLanguageSelector(){
@@ -2438,9 +2478,14 @@
     }
 
     async function doScan(key){
-      state.key = (key || "").trim();
+      state.key = normalizeLookupKey(key);
       if (!state.key){
         state.error = t("err_enter_key");
+        render();
+        return;
+      }
+      if (!isSupportedLookupKey(state.key)){
+        state.error = t("err_invalid_barcode");
         render();
         return;
       }
@@ -2451,7 +2496,8 @@
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
         const data = await res.json().catch(()=> ({}));
         if (!res.ok || data?.error){
-          state.error = data?.error || `Request failed (${res.status})`;
+          state.error = localizeScanError(data, res.status);
+          state.data = null;
           state.loading = false;
           render();
           return;
@@ -2479,7 +2525,7 @@
       try{
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
         const data = await res.json().catch(()=> ({}));
-        if (!res.ok || data?.error) throw new Error(data?.error || `Request failed (${res.status})`);
+        if (!res.ok || data?.error) throw new Error(localizeScanError(data, res.status));
         state.data = data;
         _storeRecentProduct(data, state.key);
       }catch(e){

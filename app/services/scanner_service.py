@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.services.openfoodfacts_service import fetch_openfoodfacts_product
+from app.services.openfoodfacts_service import fetch_off_product
 from app.services.product_normalizer import normalize_product
 
 
@@ -1275,11 +1275,46 @@ def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]]
 _cfg = VitaScoreConfig()
 
 
+def _scan_error(code: str, message: str, status_code: int) -> Dict[str, Any]:
+    return {
+        "error": message,
+        "error_code": code,
+        "status_code": int(status_code),
+    }
+
+
+def _is_supported_lookup_key(value: str) -> bool:
+    key = str(value or "").strip()
+    if not key:
+        return False
+    if key.isdigit():
+        return len(key) in {8, 12, 13, 14}
+    return bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{1,63}", key))
+
+
+def _has_minimum_product_data(normalized: Dict[str, Any]) -> bool:
+    name = str(normalized.get("name") or "").strip()
+    ingredients = _as_list(normalized.get("ingredients"))
+    nutrition = normalized.get("nutrition_per_100") or {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+    nutrition_values = [
+        nutrition.get("sugar_g"),
+        nutrition.get("salt_g"),
+        nutrition.get("sat_fat_g"),
+        nutrition.get("protein_g"),
+    ]
+    has_nutrition = any(v is not None for v in nutrition_values)
+    return bool(name or ingredients or has_nutrition)
+
+
 async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     lang = lang if lang in SUPPORTED_LANGS else "en"
     key = (key or "").strip()
     if not key:
-        return {"error": "Missing product id or barcode."}
+        return _scan_error("INVALID_BARCODE", "Missing product id or barcode.", 400)
+    if not _is_supported_lookup_key(key):
+        return _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
 
     products = _load_json(PRODUCTS_FILE, [])
     if isinstance(products, dict) and isinstance(products.get("products"), list):
@@ -1293,6 +1328,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     source: Optional[str] = None
     curated_is_beverage = False
     curated_beverage_signal: Optional[str] = None
+    off_error: Optional[Dict[str, Any]] = None
 
     local = _find_local_product(_as_list(products), key)
     if local:
@@ -1307,16 +1343,36 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
 
     if raw is None:
         try:
-            raw = await fetch_openfoodfacts_product(key)
-            source = "openfoodfacts"
-            matched_by = "barcode_or_key"
+            off_result = await fetch_off_product(key)
+            if off_result.ok and isinstance(off_result.payload, dict):
+                raw = off_result.payload
+                source = "openfoodfacts"
+                matched_by = "barcode_or_key"
+            else:
+                off_error = {
+                    "status": int(off_result.status or 0),
+                    "error": str(off_result.error or "").strip(),
+                }
         except Exception:
             raw = None
+            off_error = {"status": 502, "error": "OpenFoodFacts request failed"}
 
     if raw is None:
-        return {"error": "Product not found (local DB + OpenFoodFacts)."}
+        status = int((off_error or {}).get("status") or 0)
+        if status == 404:
+            return _scan_error("PRODUCT_NOT_FOUND", "Product not found.", 404)
+        if status == 400:
+            return _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
+        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 502)
 
-    norm = _normalize(raw, source=source)
+    try:
+        norm = _normalize(raw, source=source)
+    except Exception:
+        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+    if not isinstance(norm, dict) or not norm:
+        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+    if not _has_minimum_product_data(norm):
+        return _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
     if source == "local":
         curated = raw if isinstance(raw, dict) else {}
 
@@ -1381,69 +1437,72 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     alerts = _collect_alerts(_as_list(rasff), norm)
     ingredients_raw = norm.get("ingredients") or []
 
-    is_bev, bev_meta = _guess_is_beverage(norm)
-    if curated_is_beverage:
-        is_bev = True
-        bev_meta = {
-            "signal": curated_beverage_signal or "curated",
-            "value": True,
-            "confidence": 0.99,
+    try:
+        is_bev, bev_meta = _guess_is_beverage(norm)
+        if curated_is_beverage:
+            is_bev = True
+            bev_meta = {
+                "signal": curated_beverage_signal or "curated",
+                "value": True,
+                "confidence": 0.99,
+            }
+        serving_amount, serving_unit, serving_note = _serving_size_in_g_or_ml(norm, is_bev)
+
+        # NEW: collect E-numbers from additives_tags (raw + norm)
+        additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
+        if source == "local":
+            merged_e_numbers = list(additives_e_numbers)
+            for additive in (_as_list(norm.get("additives")) or _as_list(raw.get("additives") if isinstance(raw, dict) else [])):
+                token = str(additive).strip().upper()
+                if token and token not in merged_e_numbers:
+                    merged_e_numbers.append(token)
+            additives_e_numbers = merged_e_numbers
+
+        ingredients, ingredients_intelligence = _ingredients_intelligence(
+            _as_list(ingredients_raw),
+            is_beverage=is_bev,
+            additives_e_numbers=additives_e_numbers,
+        )
+
+        per100 = _nutrients_per_100(norm)
+
+        net100, part100 = _score_per100(per100, is_bev, _cfg)
+        netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
+        net = (_cfg.w_per100 * net100) + (_cfg.w_serving * netS)
+        hybrid_score = _map_net_to_vitascore(net, _cfg)
+
+        breakdown = {
+            "model": "v3_hybrid_pro",
+            "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
+            "per_100": part100,
+            "per_serving": partS,
+            "net_hybrid": round(net, 2),
+            "hybrid_score": hybrid_score,
         }
-    serving_amount, serving_unit, serving_note = _serving_size_in_g_or_ml(norm, is_bev)
 
-    # NEW: collect E-numbers from additives_tags (raw + norm)
-    additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
-    if source == "local":
-        merged_e_numbers = list(additives_e_numbers)
-        for additive in (_as_list(norm.get("additives")) or _as_list(raw.get("additives") if isinstance(raw, dict) else [])):
-            token = str(additive).strip().upper()
-            if token and token not in merged_e_numbers:
-                merged_e_numbers.append(token)
-        additives_e_numbers = merged_e_numbers
+        who = _who_sugar_impact(norm, per100, is_bev)
+        who_score, who_breakdown = _who_baseline_score(who, per100, is_beverage=is_bev)
 
-    ingredients, ingredients_intelligence = _ingredients_intelligence(
-        _as_list(ingredients_raw),
-        is_beverage=is_bev,
-        additives_e_numbers=additives_e_numbers,
-    )
+        w_who = 0.85 if is_bev else 0.75
+        w_hyb = 1.0 - w_who
+        base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
+        pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
+        score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0)
+        score_cap = pattern_adjustments.get("score_cap")
+        if isinstance(score_cap, int):
+            score = min(score, score_cap)
+        score = int(round(_clamp(score, 1.0, 100.0)))
 
-    per100 = _nutrients_per_100(norm)
+        breakdown["who_baseline"] = who_breakdown
+        breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
+        breakdown["pre_pattern_score"] = base_score
+        breakdown["pattern_adjustments"] = pattern_adjustments
 
-    net100, part100 = _score_per100(per100, is_bev, _cfg)
-    netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
-    net = (_cfg.w_per100 * net100) + (_cfg.w_serving * netS)
-    hybrid_score = _map_net_to_vitascore(net, _cfg)
-
-    breakdown = {
-        "model": "v3_hybrid_pro",
-        "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
-        "per_100": part100,
-        "per_serving": partS,
-        "net_hybrid": round(net, 2),
-        "hybrid_score": hybrid_score,
-    }
-
-    who = _who_sugar_impact(norm, per100, is_bev)
-    who_score, who_breakdown = _who_baseline_score(who, per100, is_beverage=is_bev)
-
-    w_who = 0.85 if is_bev else 0.75
-    w_hyb = 1.0 - w_who
-    base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
-    pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
-    score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0)
-    score_cap = pattern_adjustments.get("score_cap")
-    if isinstance(score_cap, int):
-        score = min(score, score_cap)
-    score = int(round(_clamp(score, 1.0, 100.0)))
-
-    breakdown["who_baseline"] = who_breakdown
-    breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
-    breakdown["pre_pattern_score"] = base_score
-    breakdown["pattern_adjustments"] = pattern_adjustments
-
-    why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
-    dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
-    ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
+        why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
+        dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
+        ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
+    except Exception:
+        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
 
     product_categories = norm.get("categories") or norm.get("categories_tags") or []
     if isinstance(product_categories, str):

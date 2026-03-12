@@ -252,7 +252,11 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
       - is_beverage_inferred
       - serving_size_inferred
     """
+    if not isinstance(off_payload, dict):
+        off_payload = {}
     off_product = off_payload.get("product") if isinstance(off_payload.get("product"), dict) else off_payload
+    if not isinstance(off_product, dict):
+        off_product = {}
     nutriments = off_product.get("nutriments") or {}
 
     sugar = _get_nutriment(nutriments, "sugars_100g", "sugar_100g", "sugars", "sugar")
@@ -314,10 +318,10 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
         "ingredients": _parse_ingredients_as_objects(off_product),
         "nutrition_per_100": {
             "unit": unit,
-            "sugar_g": float(sugar),
-            "salt_g": float(salt),
-            "sat_fat_g": float(sat_fat),
-            "protein_g": float(protein),
+            "sugar_g": _clamp_nonneg(sugar),
+            "salt_g": _clamp_nonneg(salt),
+            "sat_fat_g": _clamp_nonneg(sat_fat),
+            "protein_g": _clamp_nonneg(protein),
             "serving_size": float(serving),
         },
     }
