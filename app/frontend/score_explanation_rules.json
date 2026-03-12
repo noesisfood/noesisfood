@@ -1,0 +1,234 @@
+[
+  {
+    "rule_id": "high_sugar_per_100",
+    "score_dimension": "sugar",
+    "trigger_type": "data_threshold",
+    "trigger_conditions": { "path": "nutrition_per_100.sugar_g", "gte": 10 },
+    "impact_direction": "negative",
+    "impact_weight": 100,
+    "message": {
+      "el": "Η υψηλή περιεκτικότητα σε ζάχαρη επιβαρύνει την αξιολόγηση.",
+      "en": "High sugar weighs negatively on the assessment.",
+      "de": "Ein hoher Zuckergehalt wirkt sich negativ auf die Bewertung aus.",
+      "fr": "Une teneur élevée en sucre pèse négativement sur l’évaluation."
+    }
+  },
+  {
+    "rule_id": "high_sugar_per_serving",
+    "score_dimension": "sugar",
+    "trigger_type": "data_threshold",
+    "trigger_conditions": { "path": "who_impact.sugar.percent_of_ideal_25g", "gte": 50 },
+    "impact_direction": "negative",
+    "impact_weight": 95,
+    "message": {
+      "el": "Η ζάχαρη ανά μερίδα καλύπτει μεγάλο μέρος του ημερήσιου ιδανικού ορίου.",
+      "en": "Sugar per serving covers a large share of the ideal daily limit.",
+      "de": "Der Zucker pro Portion deckt einen großen Teil des idealen Tageslimits ab.",
+      "fr": "Le sucre par portion couvre une grande part de la limite idéale quotidienne."
+    }
+  },
+  {
+    "rule_id": "multiple_sweeteners",
+    "score_dimension": "sweeteners",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "sweeteners", "min": 2 },
+    "impact_direction": "negative",
+    "impact_weight": 88,
+    "message": {
+      "el": "Η παρουσία πολλών γλυκαντικών επιβαρύνει την αξιολόγηση.",
+      "en": "Multiple sweeteners weigh negatively on the assessment.",
+      "de": "Mehrere Süßstoffe wirken sich negativ auf die Bewertung aus.",
+      "fr": "La présence de plusieurs édulcorants pèse négativement sur l’évaluation."
+    }
+  },
+  {
+    "rule_id": "high_additive_load",
+    "score_dimension": "additives",
+    "trigger_type": "e_number_count_min",
+    "trigger_conditions": { "min": 3 },
+    "impact_direction": "negative",
+    "impact_weight": 84,
+    "message": {
+      "el": "Η παρουσία πολλών προσθέτων επιβαρύνει την αξιολόγηση.",
+      "en": "Multiple additives weigh negatively on the assessment.",
+      "de": "Mehrere Zusatzstoffe wirken sich negativ auf die Bewertung aus.",
+      "fr": "La présence de plusieurs additifs pèse négativement sur l’évaluation."
+    }
+  },
+  {
+    "rule_id": "highly_processed_pattern",
+    "score_dimension": "processing",
+    "trigger_type": "processing_label_any",
+    "trigger_terms": ["Highly processed"],
+    "impact_direction": "negative",
+    "impact_weight": 82,
+    "message": {
+      "el": "Το μοτίβο συστατικών δείχνει πιο έντονη επεξεργασία.",
+      "en": "The ingredient pattern suggests heavier processing.",
+      "de": "Das Zutatenmuster deutet auf eine stärkere Verarbeitung hin.",
+      "fr": "Le profil d’ingrédients suggère une transformation plus poussée."
+    }
+  },
+  {
+    "rule_id": "colorants_present",
+    "score_dimension": "colorants",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "colorants", "min": 1 },
+    "impact_direction": "negative",
+    "impact_weight": 70,
+    "message": {
+      "el": "Οι χρωστικές προσθέτουν πολυπλοκότητα στη σύνθεση.",
+      "en": "Colorants add complexity to the ingredient profile.",
+      "de": "Farbstoffe erhöhen die Komplexität der Zutatenliste.",
+      "fr": "Les colorants ajoutent de la complexité à la composition."
+    }
+  },
+  {
+    "rule_id": "preservatives_present",
+    "score_dimension": "preservatives",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "preservatives", "min": 1 },
+    "impact_direction": "negative",
+    "impact_weight": 68,
+    "message": {
+      "el": "Η παρουσία συντηρητικών επιβαρύνει το προφίλ του προϊόντος.",
+      "en": "Preservatives weigh negatively on the product profile.",
+      "de": "Konservierungsstoffe belasten das Produktprofil.",
+      "fr": "Les conservateurs pèsent négativement sur le profil du produit."
+    }
+  },
+  {
+    "rule_id": "flavourings_present",
+    "score_dimension": "flavourings",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "flavourings", "min": 1 },
+    "impact_direction": "negative",
+    "impact_weight": 60,
+    "message": {
+      "el": "Τα αρώματα δείχνουν πιο σύνθετη διαμόρφωση γεύσης.",
+      "en": "Flavourings point to a more engineered flavour profile.",
+      "de": "Aromen sprechen für ein stärker gestaltetes Geschmacksprofil.",
+      "fr": "Les arômes indiquent un profil de goût plus élaboré."
+    }
+  },
+  {
+    "rule_id": "syrup_or_simple_sugar_pattern",
+    "score_dimension": "sugar",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["glucose syrup", "glucose-fructose syrup", "fructose-glucose syrup", "invert sugar syrup", "corn syrup", "sucrose", "glucose", "fructose"],
+    "impact_direction": "negative",
+    "impact_weight": 64,
+    "message": {
+      "el": "Σιρόπια ή απλά σάκχαρα επιβαρύνουν την αξιολόγηση.",
+      "en": "Syrups or simple sugars weigh negatively on the assessment.",
+      "de": "Sirupe oder einfache Zucker wirken sich negativ auf die Bewertung aus.",
+      "fr": "Les sirops ou sucres simples pèsent négativement sur l’évaluation."
+    }
+  },
+  {
+    "rule_id": "salt_indicator",
+    "score_dimension": "salt",
+    "trigger_type": "data_threshold",
+    "trigger_conditions": { "path": "nutrition_per_100.salt_g", "gte": 1 },
+    "impact_direction": "negative",
+    "impact_weight": 62,
+    "message": {
+      "el": "Η σχετικά υψηλή περιεκτικότητα σε αλάτι επιβαρύνει την εικόνα του προϊόντος.",
+      "en": "Relatively high salt weighs negatively on the product profile.",
+      "de": "Ein relativ hoher Salzgehalt wirkt sich negativ auf das Produktprofil aus.",
+      "fr": "Une teneur en sel relativement élevée pèse négativement sur le profil du produit."
+    }
+  },
+  {
+    "rule_id": "simple_ingredient_profile",
+    "score_dimension": "simplicity",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "ingredient_count_lte", "trigger_conditions": { "max": 6 } },
+        { "trigger_type": "e_number_count_max", "trigger_conditions": { "max": 1 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "colorants", "max": 0 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "preservatives", "max": 0 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "sweeteners", "max": 0 } }
+      ]
+    },
+    "impact_direction": "positive",
+    "impact_weight": 90,
+    "message": {
+      "el": "Η σχετικά απλή σύνθεση λειτουργεί θετικά.",
+      "en": "The relatively simple ingredient profile helps the assessment.",
+      "de": "Ein relativ einfaches Zutatenprofil wirkt sich positiv aus.",
+      "fr": "Un profil d’ingrédients relativement simple aide l’évaluation."
+    }
+  },
+  {
+    "rule_id": "minimally_processed_pattern",
+    "score_dimension": "processing",
+    "trigger_type": "processing_label_any",
+    "trigger_terms": ["Minimally processed"],
+    "impact_direction": "positive",
+    "impact_weight": 86,
+    "message": {
+      "el": "Η χαμηλότερη επεξεργασία βοηθά την αξιολόγηση.",
+      "en": "Lower processing helps the assessment.",
+      "de": "Eine geringere Verarbeitung hilft der Bewertung.",
+      "fr": "Une transformation limitée aide l’évaluation."
+    }
+  },
+  {
+    "rule_id": "fortified_vitamins_minerals",
+    "score_dimension": "fortification",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["vitamins", "vitamin c", "vitamin b6", "vitamin b12", "niacin", "riboflavin", "thiamine", "biotin", "calcium", "magnesium", "potassium"],
+    "impact_direction": "neutral",
+    "impact_weight": 55,
+    "message": {
+      "el": "Εντοπίστηκαν πρόσθετες βιταμίνες ή μέταλλα.",
+      "en": "Added vitamins or minerals were detected.",
+      "de": "Es wurden zugesetzte Vitamine oder Mineralstoffe erkannt.",
+      "fr": "Des vitamines ou minéraux ajoutés ont été détectés."
+    }
+  },
+  {
+    "rule_id": "caffeine_present",
+    "score_dimension": "caffeine",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "caffeine", "min": 1 },
+    "impact_direction": "neutral",
+    "impact_weight": 58,
+    "message": {
+      "el": "Περιέχει καφεΐνη ως αξιοσημείωτο σήμα.",
+      "en": "Caffeine is present as a notable signal.",
+      "de": "Koffein ist als auffälliges Signal vorhanden.",
+      "fr": "La caféine est présente comme signal notable."
+    }
+  },
+  {
+    "rule_id": "carbonated_beverage_pattern",
+    "score_dimension": "carbonation",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["carbonated water", "carbon dioxide"],
+    "impact_direction": "neutral",
+    "impact_weight": 50,
+    "message": {
+      "el": "Το προϊόν μοιάζει με ανθρακούχο ποτό.",
+      "en": "The product looks like a carbonated drink.",
+      "de": "Das Produkt wirkt wie ein kohlensäurehaltiges Getränk.",
+      "fr": "Le produit ressemble à une boisson gazeuse."
+    }
+  },
+  {
+    "rule_id": "acidifier_pattern",
+    "score_dimension": "acidifier",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["acidifier", "citric acid", "phosphoric acid", "malic acid", "lactic acid", "sodium citrate"],
+    "impact_direction": "neutral",
+    "impact_weight": 46,
+    "message": {
+      "el": "Εντοπίστηκαν συστατικά που ρυθμίζουν την οξύτητα.",
+      "en": "Ingredients used to control acidity were detected.",
+      "de": "Zutaten zur Regulierung der Säure wurden erkannt.",
+      "fr": "Des ingrédients utilisés pour ajuster l’acidité ont été détectés."
+    }
+  }
+]
