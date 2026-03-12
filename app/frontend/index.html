@@ -2596,19 +2596,32 @@
     }
 
     function evaluateScoreExplanations(data){
-      if (!Array.isArray(scoreExplanationRules) || !scoreExplanationRules.length) return { negative: [], positive: [], neutral: [] };
-
-      const evidence = buildNutritionInsightEvidence(data);
       const groups = { negative: [], positive: [], neutral: [] };
+      if (Array.isArray(scoreExplanationRules) && scoreExplanationRules.length){
+        const evidence = buildNutritionInsightEvidence(data);
+        for (const rule of scoreExplanationRules){
+          if (!rule || !_matchesScoreExplanationTrigger(evidence, rule)) continue;
+          const direction = ["negative", "positive", "neutral"].includes(rule.impact_direction) ? rule.impact_direction : "neutral";
+          const message = String(rule?.message?.[lang] || rule?.message?.en || rule?.message?.el || "").trim();
+          if (!message) continue;
+          groups[direction].push({
+            rule_id: rule.rule_id,
+            impact_weight: Number(rule.impact_weight || 0),
+            message
+          });
+        }
+      }
 
-      for (const rule of scoreExplanationRules){
-        if (!rule || !_matchesScoreExplanationTrigger(evidence, rule)) continue;
-        const direction = ["negative", "positive", "neutral"].includes(rule.impact_direction) ? rule.impact_direction : "neutral";
-        const message = String(rule?.message?.[lang] || rule?.message?.en || rule?.message?.el || "").trim();
+      const backendBalanceReasons = Array.isArray(data?.vitascore_breakdown?.balance_adjustments?.applied)
+        ? data.vitascore_breakdown.balance_adjustments.applied
+        : [];
+      for (const item of backendBalanceReasons){
+        const message = String(item?.message || "").trim();
         if (!message) continue;
+        const direction = ["negative", "positive", "neutral"].includes(item?.impact_direction) ? item.impact_direction : "positive";
         groups[direction].push({
-          rule_id: rule.rule_id,
-          impact_weight: Number(rule.impact_weight || 0),
+          rule_id: String(item?.rule_id || "balance_adjustment"),
+          impact_weight: Number(item?.impact_weight || 0),
           message
         });
       }

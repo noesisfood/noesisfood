@@ -424,6 +424,20 @@ _REDUCED_FAT_MARKERS = [
     "χαμηλα λιπαρα", "χαμηλά λιπαρά", "μειωμενα λιπαρα", "μειωμένα λιπαρά",
 ]
 
+_NUTS_SEEDS_MARKERS = [
+    "walnut", "walnuts", "nut", "nuts", "almond", "almonds", "hazelnut", "hazelnuts", "pistachio", "pistachios",
+    "cashew", "cashews", "pecan", "pecans", "peanut", "peanuts", "seed", "seeds", "sesame", "sunflower seed",
+    "pumpkin seed", "linseed", "flaxseed", "chia", "καρύδι", "καρύδια", "ξηροί καρποί", "σπόροι",
+]
+
+_LEGUME_MARKERS = [
+    "legume", "legumes", "pulse", "pulses", "bean", "beans", "lentil", "lentils", "chickpea", "chickpeas",
+    "pea", "peas", "fagioli", "lenticchie", "ρεβίθια", "φακές", "φασόλια", "όσπρια",
+]
+
+_YOGURT_MARKERS = ["yogurt", "yoghurt", "jogurt", "yaourt", "γιαούρτι", "γιαουρτι"]
+_CHEESE_MARKERS = ["cheese", "käse", "fromage", "feta", "τυρί", "τυρι", "φέτα", "φετα"]
+
 _ING_MAP = {
     "Sweetener": ["aspartame", "acesulfame", "acesulfame-k", "sucralose", "stevia", "steviol", "saccharin",
                   "cyclamate", "neotame", "advantame", "süßstoff", "sweetener", "sweeteners"],
@@ -560,6 +574,123 @@ def _pattern_score_adjustments(
             "zero_sweetened_beverage": zero_sweetened_beverage,
             "simple_reduced_fat_dairy": simple_dairy,
             "additive_heavy_light_dairy": additive_heavy_dairy,
+        },
+    }
+
+
+def _traditional_balance_adjustments(
+    normalized: Dict[str, Any],
+    per100: Dict[str, Optional[float]],
+    intelligence: Dict[str, Any],
+    *,
+    is_beverage: bool,
+    lang: str,
+) -> Dict[str, Any]:
+    if is_beverage:
+        return {"applied": [], "total_delta": 0}
+
+    markers = intelligence.get("markers", {}) if isinstance(intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    product_text = _normalized_product_text(normalized)
+    ingredients = _as_list(normalized.get("ingredients"))
+    ingredient_count = len(ingredients)
+    processing_score = int(_to_float(intelligence.get("processing_score")) or 0) if isinstance(intelligence, dict) else 0
+    e_count = int(markers.get("e_numbers") or 0)
+    salt = _to_float(per100.get("salt_g"))
+    satfat = _to_float(per100.get("saturated_fat_g"))
+    energy = _to_float(per100.get("energy_kcal"))
+
+    no_additives = all(int(markers.get(k) or 0) == 0 for k in (
+        "sweeteners", "flavourings", "colorants", "preservatives", "emulsifiers_stabilizers", "e_numbers"
+    ))
+    minimally_processed = processing_score <= 2
+    simple_single = ingredient_count <= 2
+    simple_short = ingredient_count <= 4
+    nuts_or_seeds = _contains_any(product_text, _NUTS_SEEDS_MARKERS)
+    legumes = _contains_any(product_text, _LEGUME_MARKERS)
+    plain_yogurt = _contains_any(product_text, _YOGURT_MARKERS) and int(markers.get("sweeteners", 0)) == 0 and int(markers.get("flavourings", 0)) == 0
+    simple_cheese = _contains_any(product_text, _CHEESE_MARKERS) and ingredient_count <= 5 and int(markers.get("sweeteners", 0)) == 0
+    nutrient_dense_category = nuts_or_seeds or legumes or plain_yogurt or simple_cheese
+
+    message_map = {
+        "single_ingredient_simple": {
+            "el": "Η απλή, μονοσυστατική σύνθεση λειτουργεί θετικά.",
+            "en": "The simple single-ingredient composition helps the assessment.",
+            "de": "Die einfache Zusammensetzung aus nur einer Zutat wirkt sich positiv aus.",
+            "fr": "La composition simple à ingrédient unique aide l’évaluation.",
+        },
+        "minimal_processing": {
+            "el": "Το προϊόν είναι ελάχιστα επεξεργασμένο.",
+            "en": "The product is minimally processed.",
+            "de": "Das Produkt ist nur minimal verarbeitet.",
+            "fr": "Le produit est très peu transformé.",
+        },
+        "nutrient_dense_category": {
+            "el": "Η κατηγορία του προϊόντος έχει υψηλή θρεπτική πυκνότητα.",
+            "en": "This product category has high nutrient density.",
+            "de": "Diese Produktkategorie weist eine hohe Nährstoffdichte auf.",
+            "fr": "Cette catégorie de produit présente une forte densité nutritionnelle.",
+        },
+        "no_additives_simple": {
+            "el": "Η απουσία προσθέτων λειτουργεί θετικά.",
+            "en": "The absence of additives helps the assessment.",
+            "de": "Das Fehlen von Zusatzstoffen wirkt sich positiv aus.",
+            "fr": "L’absence d’additifs aide l’évaluation.",
+        },
+        "traditional_simple": {
+            "el": "Η απλή παραδοσιακή σύνθεση βελτιώνει τη συνολική εικόνα.",
+            "en": "The simple traditional composition improves the overall picture.",
+            "de": "Die einfache traditionelle Zusammensetzung verbessert das Gesamtbild.",
+            "fr": "La composition simple et traditionnelle améliore l’ensemble.",
+        },
+    }
+
+    applied: List[Dict[str, Any]] = []
+
+    if simple_single and minimally_processed:
+        applied.append({"rule_id": "single_ingredient_simple", "delta": 3, "impact_weight": 58})
+    if minimally_processed and simple_short:
+        applied.append({"rule_id": "minimal_processing", "delta": 2, "impact_weight": 56})
+    if no_additives and simple_short:
+        applied.append({"rule_id": "no_additives_simple", "delta": 2, "impact_weight": 54})
+    if nutrient_dense_category:
+        applied.append({"rule_id": "nutrient_dense_category", "delta": 2, "impact_weight": 52})
+    if (plain_yogurt or simple_cheese) and simple_short and no_additives:
+        applied.append({"rule_id": "traditional_simple", "delta": 1, "impact_weight": 50})
+
+    total_delta = sum(int(item.get("delta", 0)) for item in applied)
+    if salt is not None and salt >= 1.8:
+        total_delta -= 2
+    if satfat is not None and satfat >= 10:
+        total_delta -= 1
+    if energy is not None and energy >= 650 and not nuts_or_seeds:
+        total_delta -= 1
+
+    total_delta = max(0, min(7, total_delta))
+    running = 0
+    kept: List[Dict[str, Any]] = []
+    for item in applied:
+        delta = int(item.get("delta", 0))
+        if running + delta > total_delta:
+            continue
+        running += delta
+        kept.append({
+            "rule_id": item["rule_id"],
+            "delta": delta,
+            "impact_direction": "positive",
+            "impact_weight": item.get("impact_weight", 50),
+            "message": message_map[item["rule_id"]].get(lang) or message_map[item["rule_id"]]["en"],
+        })
+
+    return {
+        "applied": kept,
+        "total_delta": total_delta,
+        "flags": {
+            "simple_single": simple_single,
+            "minimally_processed": minimally_processed,
+            "nutrient_dense_category": nutrient_dense_category,
+            "no_additives": no_additives,
         },
     }
 
@@ -1695,6 +1826,7 @@ def _fallback_assessment_response(
             "per_serving": {"inputs": {}},
             "hybrid_score": score,
             "who_baseline": {"score": score},
+            "balance_adjustments": {"applied": [], "total_delta": 0},
             "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
         },
         "why_this_score": [],
@@ -1785,7 +1917,8 @@ def _analyze_normalized_product(
         w_hyb = 1.0 - w_who
         base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
         pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
-        score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0)
+        balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
+        score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0) + int(balance_adjustments.get("total_delta", 0) or 0)
         score_cap = pattern_adjustments.get("score_cap")
         if isinstance(score_cap, int):
             score = min(score, score_cap)
@@ -1799,6 +1932,7 @@ def _analyze_normalized_product(
         breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
         breakdown["pre_pattern_score"] = base_score
         breakdown["pattern_adjustments"] = pattern_adjustments
+        breakdown["balance_adjustments"] = balance_adjustments
         breakdown["analysis_mode"] = {
             "state": analysis_state,
             "confidence": analysis_confidence,
