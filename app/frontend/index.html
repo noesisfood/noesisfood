@@ -435,6 +435,9 @@
         photo_ready_ingredient: "Ingredient photo added.",
         photo_ready_nutrition: "Nutrition table photo added.",
         photo_source_note: "Analysis uses uploaded label data.",
+        enrich_title: "Improve this result",
+        enrich_note: "This assessment is based on limited data.",
+        enrich_help: "You can improve the result with an ingredient photo or nutrition table photo.",
         refresh_updated: "The assessment was updated with new data.",
         refresh_after_photo: "The result was refreshed after photo analysis.",
         refresh_confidence_up: "Confidence increased thanks to the new data.",
@@ -637,6 +640,9 @@
         photo_ready_ingredient: "Προστέθηκε φωτογραφία συστατικών.",
         photo_ready_nutrition: "Προστέθηκε φωτογραφία διατροφικού πίνακα.",
         photo_source_note: "Η ανάλυση βασίζεται σε δεδομένα από ανεβασμένη ετικέτα.",
+        enrich_title: "Βελτίωσε αυτό το αποτέλεσμα",
+        enrich_note: "Η αξιολόγηση βασίζεται σε περιορισμένα στοιχεία.",
+        enrich_help: "Μπορείς να βελτιώσεις το αποτέλεσμα με φωτογραφία συστατικών ή διατροφικού πίνακα.",
         refresh_updated: "Η αξιολόγηση ενημερώθηκε με νέα στοιχεία.",
         refresh_after_photo: "Το αποτέλεσμα ανανεώθηκε μετά την ανάλυση της φωτογραφίας.",
         refresh_confidence_up: "Η βεβαιότητα αυξήθηκε χάρη στα νέα δεδομένα.",
@@ -839,6 +845,9 @@
         photo_ready_ingredient: "Zutatenfoto hinzugefügt.",
         photo_ready_nutrition: "Nährwertfoto hinzugefügt.",
         photo_source_note: "Die Analyse nutzt hochgeladene Etikettendaten.",
+        enrich_title: "Dieses Ergebnis verbessern",
+        enrich_note: "Diese Bewertung basiert auf begrenzten Daten.",
+        enrich_help: "Du kannst das Ergebnis mit einem Zutatenfoto oder Nährwertfoto verbessern.",
         refresh_updated: "Die Bewertung wurde mit neuen Daten aktualisiert.",
         refresh_after_photo: "Das Ergebnis wurde nach der Fotoanalyse aktualisiert.",
         refresh_confidence_up: "Die Sicherheit ist dank der neuen Daten gestiegen.",
@@ -1041,6 +1050,9 @@
         photo_ready_ingredient: "Photo des ingrédients ajoutée.",
         photo_ready_nutrition: "Photo du tableau nutritionnel ajoutée.",
         photo_source_note: "L’analyse utilise des données d’étiquette téléchargées.",
+        enrich_title: "Améliorer ce résultat",
+        enrich_note: "Cette évaluation repose sur des données limitées.",
+        enrich_help: "Vous pouvez améliorer le résultat avec une photo des ingrédients ou du tableau nutritionnel.",
         refresh_updated: "L’évaluation a été mise à jour avec de nouvelles données.",
         refresh_after_photo: "Le résultat a été actualisé après l’analyse de la photo.",
         refresh_confidence_up: "La confiance a augmenté grâce aux nouvelles données.",
@@ -1175,6 +1187,28 @@
           <div class="mini" style="margin-top:6px;">${t("fallback_continue")}</div>
           ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
           <div class="btns">
+            <button class="ghost" id="ingredientPhotoBtn">${t("fallback_ingredient_photo")}</button>
+            <button class="ghost" id="nutritionPhotoBtn">${t("fallback_nutrition_photo")}</button>
+            <button class="primary" id="manualEntryBtn">${t("fallback_manual_entry")}</button>
+          </div>
+          ${state.recoveryOpen ? renderManualEntryForm() : ``}
+          <input id="ingredientPhotoInput" type="file" accept="image/*" style="display:none;" />
+          <input id="nutritionPhotoInput" type="file" accept="image/*" style="display:none;" />
+        </div>
+      `;
+    }
+
+    function renderEnrichmentBlock(data){
+      const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
+      const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
+      if (analysisState === "full_analysis" && lookupState !== "found_but_incomplete") return "";
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("enrich_title")}</div>
+          <div class="mini">${t("enrich_note")}</div>
+          <div class="mini" style="margin-top:6px;">${t("enrich_help")}</div>
+          ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
+          <div class="btns" style="margin-top:8px;">
             <button class="ghost" id="ingredientPhotoBtn">${t("fallback_ingredient_photo")}</button>
             <button class="ghost" id="nutritionPhotoBtn">${t("fallback_nutrition_photo")}</button>
             <button class="primary" id="manualEntryBtn">${t("fallback_manual_entry")}</button>
@@ -1438,6 +1472,76 @@
         state.recoveryOpen = true;
         state.recoveryPhotoMessage = t("err_photo_retry");
         render();
+      }
+    }
+
+    function bindEnrichmentActions(){
+      const ingredientPhotoBtn = document.getElementById("ingredientPhotoBtn");
+      const nutritionPhotoBtn = document.getElementById("nutritionPhotoBtn");
+      const ingredientPhotoInput = document.getElementById("ingredientPhotoInput");
+      const nutritionPhotoInput = document.getElementById("nutritionPhotoInput");
+      const manualEntryBtn = document.getElementById("manualEntryBtn");
+      const manualSubmitBtn = document.getElementById("manualSubmitBtn");
+      const manualCancelBtn = document.getElementById("manualCancelBtn");
+      if (ingredientPhotoBtn && ingredientPhotoInput){
+        ingredientPhotoBtn.onclick = () => ingredientPhotoInput.click();
+        ingredientPhotoInput.onchange = async () => {
+          const file = ingredientPhotoInput.files && ingredientPhotoInput.files[0];
+          if (!file) return;
+          try{
+            state.photoForm.ingredient_image_data_url = await readFileAsDataUrl(file);
+            state.photoForm.ingredient_file_name = String(file.name || "");
+            state.recoveryPhotoMessage = t("photo_ready_ingredient");
+            state.recoveryOpen = true;
+            render();
+            await doPhotoAnalysis();
+          }catch(_e){
+            state.recoveryPhotoMessage = t("err_photo_retry");
+            state.recoveryOpen = true;
+            render();
+          }finally{
+            ingredientPhotoInput.value = "";
+          }
+        };
+      }
+      if (nutritionPhotoBtn && nutritionPhotoInput){
+        nutritionPhotoBtn.onclick = () => nutritionPhotoInput.click();
+        nutritionPhotoInput.onchange = async () => {
+          const file = nutritionPhotoInput.files && nutritionPhotoInput.files[0];
+          if (!file) return;
+          try{
+            state.photoForm.nutrition_image_data_url = await readFileAsDataUrl(file);
+            state.photoForm.nutrition_file_name = String(file.name || "");
+            state.recoveryPhotoMessage = t("photo_ready_nutrition");
+            state.recoveryOpen = true;
+            render();
+            await doPhotoAnalysis();
+          }catch(_e){
+            state.recoveryPhotoMessage = t("err_photo_retry");
+            state.recoveryOpen = true;
+            render();
+          }finally{
+            nutritionPhotoInput.value = "";
+          }
+        };
+      }
+      if (manualEntryBtn){
+        manualEntryBtn.onclick = () => {
+          state.recoveryOpen = true;
+          render();
+        };
+      }
+      if (manualSubmitBtn){
+        manualSubmitBtn.onclick = () => {
+          state.manualForm = readManualForm();
+          doManualAnalysis();
+        };
+      }
+      if (manualCancelBtn){
+        manualCancelBtn.onclick = () => {
+          state.recoveryOpen = false;
+          render();
+        };
       }
     }
 
@@ -2914,73 +3018,7 @@
           scanBtn.onclick = () => doScan(keyInput.value);
           keyInput.onkeydown = (e) => { if (e.key === "Enter") doScan(keyInput.value); };
         }
-        const ingredientPhotoBtn = document.getElementById("ingredientPhotoBtn");
-        const nutritionPhotoBtn = document.getElementById("nutritionPhotoBtn");
-        const ingredientPhotoInput = document.getElementById("ingredientPhotoInput");
-        const nutritionPhotoInput = document.getElementById("nutritionPhotoInput");
-        const manualEntryBtn = document.getElementById("manualEntryBtn");
-        const manualSubmitBtn = document.getElementById("manualSubmitBtn");
-        const manualCancelBtn = document.getElementById("manualCancelBtn");
-        if (ingredientPhotoBtn && ingredientPhotoInput){
-          ingredientPhotoBtn.onclick = () => ingredientPhotoInput.click();
-          ingredientPhotoInput.onchange = async () => {
-            const file = ingredientPhotoInput.files && ingredientPhotoInput.files[0];
-            if (!file) return;
-            try{
-              state.photoForm.ingredient_image_data_url = await readFileAsDataUrl(file);
-              state.photoForm.ingredient_file_name = String(file.name || "");
-              state.recoveryPhotoMessage = t("photo_ready_ingredient");
-              state.recoveryOpen = true;
-              render();
-              await doPhotoAnalysis();
-            }catch(_e){
-              state.recoveryPhotoMessage = t("err_photo_retry");
-              state.recoveryOpen = true;
-              render();
-            }finally{
-              ingredientPhotoInput.value = "";
-            }
-          };
-        }
-        if (nutritionPhotoBtn && nutritionPhotoInput){
-          nutritionPhotoBtn.onclick = () => nutritionPhotoInput.click();
-          nutritionPhotoInput.onchange = async () => {
-            const file = nutritionPhotoInput.files && nutritionPhotoInput.files[0];
-            if (!file) return;
-            try{
-              state.photoForm.nutrition_image_data_url = await readFileAsDataUrl(file);
-              state.photoForm.nutrition_file_name = String(file.name || "");
-              state.recoveryPhotoMessage = t("photo_ready_nutrition");
-              state.recoveryOpen = true;
-              render();
-              await doPhotoAnalysis();
-            }catch(_e){
-              state.recoveryPhotoMessage = t("err_photo_retry");
-              state.recoveryOpen = true;
-              render();
-            }finally{
-              nutritionPhotoInput.value = "";
-            }
-          };
-        }
-        if (manualEntryBtn){
-          manualEntryBtn.onclick = () => {
-            state.recoveryOpen = true;
-            render();
-          };
-        }
-        if (manualSubmitBtn){
-          manualSubmitBtn.onclick = () => {
-            state.manualForm = readManualForm();
-            doManualAnalysis();
-          };
-        }
-        if (manualCancelBtn){
-          manualCancelBtn.onclick = () => {
-            state.recoveryOpen = false;
-            render();
-          };
-        }
+        bindEnrichmentActions();
         Array.from(document.querySelectorAll(".historyAnalysisBtn")).forEach(btn => {
           btn.onclick = () => _reopenAnalysisFromHistory(btn.getAttribute("data-key"));
         });
@@ -3054,6 +3092,7 @@
             ${renderAnalysisStateNotice(d)}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
+            ${renderEnrichmentBlock(d)}
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">${t("full_details_title")}</div>
               <div class="mini">${t("full_details_note")}</div>
@@ -3082,6 +3121,7 @@
         ensureScoreExplanationRulesLoaded();
         const compareSelect = document.getElementById("compareSelect");
         const compareBtn = document.getElementById("compareBtn");
+        bindEnrichmentActions();
         if (compareSelect){
           compareSelect.onchange = (e) => {
             state.compareTargetKey = String(e.target.value || "");
