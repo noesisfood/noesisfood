@@ -279,7 +279,7 @@
         who_flag_ideal: "Exceeds ideal 25g",
         who_flag_upper: "Exceeds upper 50g",
         ingredients_title: "Ingredients Intelligence",
-        ingredients_note: "Ingredients are shown exactly as returned by the API.",
+        ingredients_note: "Ingredients are shown as provided by OpenFoodFacts.",
         ingredients_source_language: "Source language",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Source",
@@ -330,10 +330,20 @@
         ingredients_translate_unavailable: "Glossary unavailable. Keeping original ingredient names.",
         ingredients_translate_loading: "Loading glossary...",
         ingredients_translate_count: "Translated __TRANSLATED_COUNT__/__TOTAL_COUNT__",
-        e_generic_meaning: "EU food additive code; showing the primary role.",
+        e_generic_meaning: "EU food additive code; primary role shown.",
+        note_curated: "From curated data",
+        note_openfoodfacts: "From OpenFoodFacts",
+        flag_additives: "Additives / E-numbers detected ({count})",
+        flag_sweeteners: "Sweeteners present ({count})",
+        flag_preservatives: "Preservatives present ({count})",
+        flag_emulsifiers: "Emulsifiers/Stabilizers present ({count})",
+        flag_flavourings: "Flavourings present ({count})",
+        flag_colorants: "Colorants present ({count})",
+        flag_caffeine: "Contains caffeine",
+        flag_allergens: "Allergens: {items}",
         group_acidifier: "Acidifier",
         group_colorant: "Colorant",
-        group_flavoring: "Flavoring",
+        group_flavoring: "Flavouring",
         group_other: "Other",
         risk_low: "low",
         risk_medium: "medium",
@@ -349,7 +359,7 @@
         how_title: "Πώς δουλεύει",
         how_l1: "Ανάκτηση OpenFoodFacts + κανονικοποίηση",
         how_l2: "WHO-first baseline + hybrid nuance",
-        how_l3: "Νοημοσύνη συστατικών + ανάλυση E-numbers",
+        how_l3: "Νοημοσύνη συστατικών + επεξήγηση αριθμών E",
         why_title: "Γιατί αυτό το σκορ;",
         why_none: "Δεν υπάρχει διαθέσιμη εξήγηση.",
         tips: "Συμβουλές",
@@ -364,7 +374,7 @@
         who_flag_ideal: "Ξεπερνά το ιδανικό 25g",
         who_flag_upper: "Ξεπερνά το ανώτατο 50g",
         ingredients_title: "Νοημοσύνη συστατικών",
-        ingredients_note: "Τα συστατικά εμφανίζονται όπως τα επιστρέφει το API.",
+        ingredients_note: "Τα συστατικά εμφανίζονται όπως παρέχονται από το OpenFoodFacts.",
         ingredients_source_language: "Γλώσσα πηγής",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Πηγή",
@@ -372,12 +382,12 @@
         processing: "Επεξεργασία",
         caffeine: "Καφεΐνη",
         sweeteners: "Γλυκαντικά",
-        e_numbers: "E-numbers",
+        e_numbers: "Αριθμοί E",
         none: "κανένα",
-        e_explained: "Επεξήγηση E-numbers",
+        e_explained: "Επεξήγηση αριθμών E",
         additive_fallback: "Πρόσθετο τροφίμων",
         additive_fallback_e: "Πρόσθετο τροφίμων (E-number)",
-        e_none: "Δεν εντοπίστηκαν E-numbers από additives/tags ή ingredients text.",
+        e_none: "Δεν εντοπίστηκαν αριθμοί E από πρόσθετα/tags ή από το κείμενο συστατικών.",
         flags: "Σημάνσεις",
         ingredients_grouped: "Λίστα συστατικών (ομαδοποιημένη)",
         ingredients_none: "Δεν υπάρχουν διαθέσιμα συστατικά.",
@@ -416,6 +426,16 @@
         ingredients_translate_loading: "Φόρτωση γλωσσαρίου...",
         ingredients_translate_count: "Μεταφράστηκαν __TRANSLATED_COUNT__/__TOTAL_COUNT__",
         e_generic_meaning: "Κωδικός πρόσθετου τροφίμων στην ΕΕ· εμφανίζεται ο βασικός ρόλος.",
+        note_curated: "Από επιμελημένα δεδομένα",
+        note_openfoodfacts: "Από το OpenFoodFacts",
+        flag_additives: "Εντοπίστηκαν πρόσθετα / αριθμοί E ({count})",
+        flag_sweeteners: "Παρουσία γλυκαντικών ({count})",
+        flag_preservatives: "Παρουσία συντηρητικών ({count})",
+        flag_emulsifiers: "Παρουσία γαλακτωματοποιητών/σταθεροποιητών ({count})",
+        flag_flavourings: "Παρουσία αρωμάτων ({count})",
+        flag_colorants: "Παρουσία χρωστικών ({count})",
+        flag_caffeine: "Περιέχει καφεΐνη",
+        flag_allergens: "Αλλεργιογόνα: {items}",
         group_acidifier: "Οξινιστής",
         group_colorant: "Χρωστική",
         group_flavoring: "Αρωματική ύλη",
@@ -449,7 +469,7 @@
         who_flag_ideal: "Idealwert 25g überschritten",
         who_flag_upper: "Oberer Wert 50g überschritten",
         ingredients_title: "Zutatenanalyse",
-        ingredients_note: "Zutaten werden genau wie von OpenFoodFacts geliefert angezeigt.",
+        ingredients_note: "Zutaten werden wie von OpenFoodFacts bereitgestellt angezeigt.",
         ingredients_source_language: "Quellsprache",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Quelle",
@@ -500,7 +520,17 @@
         ingredients_translate_unavailable: "Glossar nicht verfügbar. Originale Zutatennamen bleiben erhalten.",
         ingredients_translate_loading: "Glossar wird geladen...",
         ingredients_translate_count: "Übersetzt __TRANSLATED_COUNT__/__TOTAL_COUNT__",
-        e_generic_meaning: "EU-Zusatzstoffcode; die Hauptfunktion wird angezeigt.",
+        e_generic_meaning: "EU-Zusatzstoffcode; Hauptfunktion wird angezeigt.",
+        note_curated: "Aus kuratierten Daten",
+        note_openfoodfacts: "Von OpenFoodFacts",
+        flag_additives: "Zusatzstoffe / E-Nummern erkannt ({count})",
+        flag_sweeteners: "Süßstoffe vorhanden ({count})",
+        flag_preservatives: "Konservierungsstoffe vorhanden ({count})",
+        flag_emulsifiers: "Emulgatoren/Stabilisatoren vorhanden ({count})",
+        flag_flavourings: "Aromen vorhanden ({count})",
+        flag_colorants: "Farbstoffe vorhanden ({count})",
+        flag_caffeine: "Enthält Koffein",
+        flag_allergens: "Allergene: {items}",
         group_acidifier: "Säuerungsmittel",
         group_colorant: "Farbstoff",
         group_flavoring: "Aroma",
@@ -519,7 +549,7 @@
         how_title: "Comment ça marche",
         how_l1: "Récupération OpenFoodFacts + normalisation",
         how_l2: "Base WHO-first + ajustement hybride",
-        how_l3: "Ingredients Intelligence + E-numbers expliqués",
+        how_l3: "Analyse des ingrédients + numéros E expliqués",
         why_title: "Pourquoi ce score ?",
         why_none: "Aucune explication disponible.",
         tips: "Conseils",
@@ -533,8 +563,8 @@
         who_note: "Calcul par portion selon la portion déclarée.",
         who_flag_ideal: "Dépasse l'idéal 25g",
         who_flag_upper: "Dépasse la limite haute 50g",
-        ingredients_title: "Ingredients Intelligence",
-        ingredients_note: "Les ingrédients sont affichés exactement comme renvoyés par l'API.",
+        ingredients_title: "Analyse des ingrédients",
+        ingredients_note: "Les ingrédients sont affichés tels que fournis par OpenFoodFacts.",
         ingredients_source_language: "Langue source",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Source",
@@ -542,12 +572,12 @@
         processing: "Transformation",
         caffeine: "Caféine",
         sweeteners: "Édulcorants",
-        e_numbers: "E-numbers",
+        e_numbers: "Numéros E",
         none: "aucun",
-        e_explained: "E-numbers expliqués",
+        e_explained: "Numéros E expliqués",
         additive_fallback: "Additif alimentaire",
-        additive_fallback_e: "Additif alimentaire (E-number)",
-        e_none: "Aucun E-number détecté depuis additifs/tags ou texte ingrédients.",
+        additive_fallback_e: "Additif alimentaire (numéro E)",
+        e_none: "Aucun numéro E détecté depuis les additifs/tags ou le texte des ingrédients.",
         flags: "Drapeaux",
         ingredients_grouped: "Liste des ingrédients (groupée)",
         ingredients_none: "Aucun ingrédient disponible.",
@@ -586,6 +616,16 @@
         ingredients_translate_loading: "Chargement du glossaire...",
         ingredients_translate_count: "Traduit __TRANSLATED_COUNT__/__TOTAL_COUNT__",
         e_generic_meaning: "Code d’additif alimentaire de l’UE ; rôle principal affiché.",
+        note_curated: "Source : données curées",
+        note_openfoodfacts: "Source : OpenFoodFacts",
+        flag_additives: "Additifs / numéros E détectés ({count})",
+        flag_sweeteners: "Édulcorants présents ({count})",
+        flag_preservatives: "Conservateurs présents ({count})",
+        flag_emulsifiers: "Émulsifiants/Stabilisants présents ({count})",
+        flag_flavourings: "Arômes présents ({count})",
+        flag_colorants: "Colorants présents ({count})",
+        flag_caffeine: "Contient de la caféine",
+        flag_allergens: "Allergènes : {items}",
         group_acidifier: "Acidifiant",
         group_colorant: "Colorant",
         group_flavoring: "Arôme",
@@ -845,6 +885,49 @@
       return raw;
     }
 
+    function localizeIngredientNote(note){
+      const raw = String(note || "").trim();
+      if (!raw) return "";
+      if (raw === "From OpenFoodFacts") return t("note_openfoodfacts");
+      if (raw === "From curated") return t("note_curated");
+      return raw;
+    }
+
+    function localizeIntelFlag(flag){
+      const raw = String(flag || "").trim();
+      if (!raw) return "";
+      const fill = (key, replacements = {}) => {
+        let text = t(key);
+        for (const [name, value] of Object.entries(replacements)){
+          text = text.replace(`{${name}}`, value);
+        }
+        return text;
+      };
+
+      let match = raw.match(/^Sweeteners present \((\d+)\)$/);
+      if (match) return fill("flag_sweeteners", { count: match[1] });
+
+      match = raw.match(/^(?:Additives \/ E-numbers detected|Εντοπίστηκαν πρόσθετα \/ E-numbers|Zusatzstoffe \/ E-Nummern erkannt|Additifs \/ E-numbers détectés) \((\d+)\)$/);
+      if (match) return fill("flag_additives", { count: match[1] });
+
+      match = raw.match(/^Preservatives present \((\d+)\)$/);
+      if (match) return fill("flag_preservatives", { count: match[1] });
+
+      match = raw.match(/^Emulsifiers\/Stabilizers present \((\d+)\)$/);
+      if (match) return fill("flag_emulsifiers", { count: match[1] });
+
+      match = raw.match(/^Flavourings present \((\d+)\)$/);
+      if (match) return fill("flag_flavourings", { count: match[1] });
+
+      match = raw.match(/^Colorants present \((\d+)\)$/);
+      if (match) return fill("flag_colorants", { count: match[1] });
+
+      if (raw === "Contains caffeine") return t("flag_caffeine");
+      if (raw.startsWith("Allergens: ")) return fill("flag_allergens", { items: raw.slice("Allergens: ".length) });
+
+      return raw;
+    }
+
     function ingredientDisplayName(name){
       const original = String(name || "").trim();
       if (!original) return { primary: "-", secondary: "", translated: false };
@@ -885,7 +968,9 @@
       const raw = String(direct || "").trim();
       if (!raw) return "";
       const genericEl = "Κωδικός πρόσθετου τροφίμων στην ΕΕ (δείχνουμε τον βασικό ρόλο).";
-      if (raw === genericEl) return t("e_generic_meaning");
+      const genericEnOld = "EU food additive code; showing the primary role.";
+      const genericEn = "EU food additive code; primary role shown.";
+      if (raw === genericEl || raw === genericEnOld || raw === genericEn) return t("e_generic_meaning");
 
       const segments = raw
         .split("/")
@@ -1062,7 +1147,7 @@
                   <div class="eRole">${localizeEAdditiveRole(ed)}</div>
                 </div>
               `).join("") : `<div class="mini">${t("e_none")}</div>`}
-              ${flags.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("flags")}</b><br/>${flags.map(f => `- ${f}`).join("<br/>")}</div>` : ``}
+              ${flags.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("flags")}</b><br/>${flags.map(f => `- ${localizeIntelFlag(f)}`).join("<br/>")}</div>` : ``}
             </div>
 
             <div class="box">
@@ -1074,7 +1159,7 @@
                   translationStats.total += 1;
                   if (nm.translated) translationStats.translated += 1;
                   else if (state.translateIngredients) unmatchedIngredientNames.push(String(ing?.name || "-").trim());
-                  const note = ing?.note || "";
+                  const note = localizeIngredientNote(ing?.note || "");
                   const risk = (ing?.risk || "low").toLowerCase();
                   const riskLabel = (risk === "high" ? t("risk_high") : (risk === "medium" ? t("risk_medium") : t("risk_low")));
                   const riskCls = (risk === "high" ? "risk high" : (risk === "medium" ? "risk medium" : "risk low"));
