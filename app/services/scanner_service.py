@@ -1367,6 +1367,56 @@ def _manual_ingredients_from_text(text: Any, note: str = "From manual") -> List[
     return [{"name": part, "class": "U", "note": note} for part in parts]
 
 
+def _merge_ingredient_text(existing_ingredients: Any, extracted_text: Any) -> str:
+    parts: List[str] = []
+    seen = set()
+
+    def _push(value: Any) -> None:
+        text = str(value or "").strip()
+        if not text:
+            return
+        key = re.sub(r"\s+", " ", text).strip().lower()
+        if not key or key in seen:
+            return
+        seen.add(key)
+        parts.append(text)
+
+    for item in _as_list(existing_ingredients):
+        if isinstance(item, dict):
+            _push(item.get("name"))
+        else:
+            _push(item)
+    for item in re.split(r"[;,]", str(extracted_text or "")):
+        _push(item)
+    return ", ".join(parts)
+
+
+def _merge_categories(existing_categories: Any, extracted_categories: Any) -> List[str]:
+    merged: List[str] = []
+    seen = set()
+    for source in (_as_list(existing_categories), _as_list(extracted_categories)):
+        for item in source:
+            text = str(item or "").strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(text)
+    return merged
+
+
+def _first_present(*values: Any) -> Any:
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        return value
+    return None
+
+
 def _extract_json_object(text: str) -> Optional[Dict[str, Any]]:
     s = str(text or "").strip()
     if not s:
@@ -2061,24 +2111,35 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     if isinstance(extracted, dict) and extracted.get("error"):
         return extracted
 
+    existing_analysis = payload.get("existing_analysis") if isinstance(payload.get("existing_analysis"), dict) else {}
+    existing_product = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+    existing_nutrition = existing_analysis.get("nutrition_per_100") if isinstance(existing_analysis.get("nutrition_per_100"), dict) else {}
+    existing_meta = existing_analysis.get("meta") if isinstance(existing_analysis.get("meta"), dict) else {}
+    existing_serving = existing_meta.get("serving") if isinstance(existing_meta.get("serving"), dict) else {}
+    existing_key = str(existing_analysis.get("key") or payload.get("existing_key") or "").strip()
+    existing_lookup_state = str(existing_analysis.get("lookup_state") or existing_meta.get("lookup_state") or "").strip()
+    existing_missing = existing_analysis.get("lookup_missing_fields") if isinstance(existing_analysis.get("lookup_missing_fields"), list) else existing_meta.get("lookup_missing_fields")
+    existing_ingredients = existing_analysis.get("ingredients") if isinstance(existing_analysis.get("ingredients"), list) else []
+
     nutrition = extracted.get("nutrition_per_100") if isinstance(extracted.get("nutrition_per_100"), dict) else {}
     merged_payload = {
-        "name": str(extracted.get("product_name") or payload.get("name") or payload.get("product_name") or "").strip(),
-        "brand": str(extracted.get("brand") or payload.get("brand") or "").strip(),
-        "ingredients_text": str(extracted.get("ingredients_text") or payload.get("ingredients_text") or "").strip(),
+        "name": str(_first_present(extracted.get("product_name"), payload.get("name"), payload.get("product_name"), existing_product.get("name")) or "").strip(),
+        "brand": str(_first_present(extracted.get("brand"), payload.get("brand"), existing_product.get("brand")) or "").strip(),
+        "ingredients_text": _merge_ingredient_text(existing_ingredients, _first_present(extracted.get("ingredients_text"), payload.get("ingredients_text"))),
         "ingredients_note": "From photo",
-        "sugar_g": nutrition.get("sugar_g"),
-        "salt_g": nutrition.get("salt_g"),
-        "sat_fat_g": nutrition.get("sat_fat_g"),
-        "protein_g": nutrition.get("protein_g"),
-        "unit": str(nutrition.get("unit") or payload.get("unit") or "g").strip().lower() or "g",
-        "categories": extracted.get("categories") or payload.get("categories") or [],
+        "sugar_g": _first_present(nutrition.get("sugar_g"), existing_nutrition.get("sugar_g")),
+        "salt_g": _first_present(nutrition.get("salt_g"), existing_nutrition.get("salt_g")),
+        "sat_fat_g": _first_present(nutrition.get("sat_fat_g"), existing_nutrition.get("sat_fat_g")),
+        "protein_g": _first_present(nutrition.get("protein_g"), existing_nutrition.get("protein_g")),
+        "unit": str(_first_present(nutrition.get("unit"), payload.get("unit"), existing_nutrition.get("unit"), existing_serving.get("unit"), "g") or "g").strip().lower() or "g",
+        "categories": _merge_categories(existing_product.get("categories") or payload.get("categories") or [], extracted.get("categories") or []),
         "timestamp": payload.get("timestamp"),
-        "quantity": payload.get("quantity"),
+        "quantity": _first_present(payload.get("quantity"), existing_product.get("quantity")),
+        "serving_size": _first_present(nutrition.get("serving_size"), existing_serving.get("amount")),
     }
 
     if not merged_payload["name"]:
-        existing = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+        existing = existing_product
         merged_payload["name"] = str(existing.get("name") or "").strip()
         if not merged_payload["brand"]:
             merged_payload["brand"] = str(existing.get("brand") or "").strip()
@@ -2087,8 +2148,16 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
 
     result = await analyze_manual_product(merged_payload, lang=lang)
     if isinstance(result, dict) and not result.get("error"):
-        result["source"] = "photo"
-        result["matched_by"] = "photo_fallback"
+        result["key"] = existing_key or result.get("key")
+        result["source"] = existing_analysis.get("source") or "photo"
+        result["matched_by"] = "photo_enrichment"
+        if existing_lookup_state:
+            result["lookup_state"] = existing_lookup_state
+        if isinstance(existing_missing, list) and existing_missing:
+            result["lookup_missing_fields"] = list(dict.fromkeys([*existing_missing, *(_as_list(result.get("lookup_missing_fields")))]))
+        if isinstance(result.get("product"), dict):
+            if existing_key and not str(result["product"].get("barcode") or "").strip():
+                result["product"]["barcode"] = existing_key
         result["photo_extraction"] = {
             "confidence": str(extracted.get("confidence") or "low").strip().lower() or "low",
             "extracted_fields": _as_list(extracted.get("extracted_fields")),
@@ -2098,4 +2167,8 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         }
         if isinstance(result.get("meta"), dict):
             result["meta"]["photo_extraction"] = result["photo_extraction"]
+            if existing_lookup_state:
+                result["meta"]["lookup_state"] = existing_lookup_state
+            if isinstance(result.get("lookup_missing_fields"), list):
+                result["meta"]["lookup_missing_fields"] = result["lookup_missing_fields"]
     return result

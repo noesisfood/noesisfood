@@ -255,6 +255,7 @@
       error:"",
       errorCode:"",
       data:null,
+      refreshNotice:null,
       translateIngredients:false,
       compareTargetKey:"",
       recoveryOpen:false,
@@ -434,6 +435,13 @@
         photo_ready_ingredient: "Ingredient photo added.",
         photo_ready_nutrition: "Nutrition table photo added.",
         photo_source_note: "Analysis uses uploaded label data.",
+        refresh_updated: "The assessment was updated with new data.",
+        refresh_after_photo: "The result was refreshed after photo analysis.",
+        refresh_confidence_up: "Confidence increased thanks to the new data.",
+        refresh_score: "Updated score",
+        refresh_state: "Assessment state",
+        refresh_previous: "Previous",
+        refresh_current: "Current",
         manual_title: "Manual product entry",
         manual_name: "Product name",
         manual_brand: "Brand",
@@ -629,6 +637,13 @@
         photo_ready_ingredient: "Προστέθηκε φωτογραφία συστατικών.",
         photo_ready_nutrition: "Προστέθηκε φωτογραφία διατροφικού πίνακα.",
         photo_source_note: "Η ανάλυση βασίζεται σε δεδομένα από ανεβασμένη ετικέτα.",
+        refresh_updated: "Η αξιολόγηση ενημερώθηκε με νέα στοιχεία.",
+        refresh_after_photo: "Το αποτέλεσμα ανανεώθηκε μετά την ανάλυση της φωτογραφίας.",
+        refresh_confidence_up: "Η βεβαιότητα αυξήθηκε χάρη στα νέα δεδομένα.",
+        refresh_score: "Ενημερωμένο σκορ",
+        refresh_state: "Κατάσταση αξιολόγησης",
+        refresh_previous: "Πριν",
+        refresh_current: "Τώρα",
         manual_title: "Χειροκίνητη εισαγωγή προϊόντος",
         manual_name: "Όνομα προϊόντος",
         manual_brand: "Μάρκα",
@@ -824,6 +839,13 @@
         photo_ready_ingredient: "Zutatenfoto hinzugefügt.",
         photo_ready_nutrition: "Nährwertfoto hinzugefügt.",
         photo_source_note: "Die Analyse nutzt hochgeladene Etikettendaten.",
+        refresh_updated: "Die Bewertung wurde mit neuen Daten aktualisiert.",
+        refresh_after_photo: "Das Ergebnis wurde nach der Fotoanalyse aktualisiert.",
+        refresh_confidence_up: "Die Sicherheit ist dank der neuen Daten gestiegen.",
+        refresh_score: "Aktualisierter Score",
+        refresh_state: "Bewertungsstatus",
+        refresh_previous: "Vorher",
+        refresh_current: "Jetzt",
         manual_title: "Manuelle Produkteingabe",
         manual_name: "Produktname",
         manual_brand: "Marke",
@@ -1019,6 +1041,13 @@
         photo_ready_ingredient: "Photo des ingrédients ajoutée.",
         photo_ready_nutrition: "Photo du tableau nutritionnel ajoutée.",
         photo_source_note: "L’analyse utilise des données d’étiquette téléchargées.",
+        refresh_updated: "L’évaluation a été mise à jour avec de nouvelles données.",
+        refresh_after_photo: "Le résultat a été actualisé après l’analyse de la photo.",
+        refresh_confidence_up: "La confiance a augmenté grâce aux nouvelles données.",
+        refresh_score: "Score actualisé",
+        refresh_state: "État de l’évaluation",
+        refresh_previous: "Avant",
+        refresh_current: "Maintenant",
         manual_title: "Saisie manuelle du produit",
         manual_name: "Nom du produit",
         manual_brand: "Marque",
@@ -1214,6 +1243,20 @@
       `;
     }
 
+    function renderRefreshNotice(){
+      const notice = state.refreshNotice;
+      if (!notice || typeof notice !== "object") return "";
+      return `
+        <div class="ok" style="margin-top:12px;">
+          <b>${t("refresh_updated")}</b><br/>${t("refresh_after_photo")}<br/>
+          <span class="mini">${t("refresh_score")}: ${_escapeHtml(String(notice.previousScore ?? "-"))} -> ${_escapeHtml(String(notice.currentScore ?? "-"))}</span><br/>
+          <span class="mini">${t("refresh_state")}: ${_escapeHtml(String(notice.previousState || "-"))} -> ${_escapeHtml(String(notice.currentState || "-"))}</span><br/>
+          <span class="mini">${t("confidence")}: ${_escapeHtml(String(notice.previousConfidence || "-"))} -> ${_escapeHtml(String(notice.currentConfidence || "-"))}</span>
+          ${notice.confidenceImproved ? `<br/><span class="mini">${t("refresh_confidence_up")}</span>` : ``}
+        </div>
+      `;
+    }
+
     function renderManualEntryForm(){
       const form = state.manualForm || {};
       return `
@@ -1282,6 +1325,7 @@
       state.manualForm = readManualForm();
       state.loading = true;
       state.error = "";
+      state.refreshNotice = null;
       render();
       try{
         const res = await fetch(`/scan/manual?lang=${lang}`, {
@@ -1323,6 +1367,7 @@
     }
 
     async function doPhotoAnalysis(){
+      const previousData = state.data && typeof state.data === "object" ? state.data : null;
       state.loading = true;
       state.error = "";
       state.errorCode = "";
@@ -1333,6 +1378,8 @@
         const payload = {
           ingredient_image_data_url: state.photoForm?.ingredient_image_data_url || "",
           nutrition_image_data_url: state.photoForm?.nutrition_image_data_url || "",
+          existing_analysis: previousData || {},
+          existing_key: state.key || previousData?.key || "",
           existing_product: {
             name: existingProduct?.name || "",
             brand: existingProduct?.brand || "",
@@ -1356,6 +1403,24 @@
           return;
         }
         state.data = data;
+        const previousScore = previousData?.vitascore;
+        const currentScore = data?.vitascore;
+        const previousState = localizedAnalysisState(previousData?.analysis_state || previousData?.meta?.analysis_state || "");
+        const currentState = localizedAnalysisState(data?.analysis_state || data?.meta?.analysis_state || "");
+        const previousConfidence = localizedConfidenceTier(previousData?.analysis_confidence || previousData?.meta?.analysis_confidence || "");
+        const currentConfidence = localizedConfidenceTier(data?.analysis_confidence || data?.meta?.analysis_confidence || "");
+        const confidenceRank = { low: 1, medium: 2, high: 3 };
+        const previousConfidenceKey = String(previousData?.analysis_confidence || previousData?.meta?.analysis_confidence || "").toLowerCase();
+        const currentConfidenceKey = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
+        state.refreshNotice = {
+          previousScore: previousScore ?? "-",
+          currentScore: currentScore ?? "-",
+          previousState,
+          currentState,
+          previousConfidence,
+          currentConfidence,
+          confidenceImproved: Number(confidenceRank[currentConfidenceKey] || 0) > Number(confidenceRank[previousConfidenceKey] || 0),
+        };
         state.error = "";
         state.errorCode = "";
         state.loading = false;
@@ -2985,6 +3050,7 @@
             </div>
             ${renderPartialLookupNotice(d)}
             ${renderAnalysisStateNotice(d)}
+            ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">${t("full_details_title")}</div>
@@ -3117,6 +3183,7 @@
           state.error = "";
           state.errorCode = "";
           state.data = null;
+          state.refreshNotice = null;
           state.compareTargetKey = "";
           state.recoveryOpen = false;
           state.recoveryPhotoMessage = "";
@@ -3145,6 +3212,7 @@
       state.loading = true;
       state.error = "";
       state.errorCode = "";
+      state.refreshNotice = null;
       state.recoveryPhotoMessage = "";
       state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
       render();
