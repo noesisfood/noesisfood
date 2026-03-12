@@ -35,10 +35,10 @@
     "impact_direction": "negative",
     "impact_weight": 88,
     "message": {
-      "el": "Η παρουσία πολλών γλυκαντικών επιβαρύνει την αξιολόγηση.",
-      "en": "Multiple sweeteners weigh negatively on the assessment.",
-      "de": "Mehrere Süßstoffe wirken sich negativ auf die Bewertung aus.",
-      "fr": "La présence de plusieurs édulcorants pèse négativement sur l’évaluation."
+      "el": "Η παρουσία πολλών γλυκαντικών μειώνει τη συνολική αξιολόγηση.",
+      "en": "Multiple sweeteners reduce the overall assessment.",
+      "de": "Mehrere Süßstoffe verringern die Gesamtbewertung.",
+      "fr": "La présence de plusieurs édulcorants réduit l’évaluation globale."
     }
   },
   {
@@ -50,8 +50,8 @@
     "impact_weight": 84,
     "message": {
       "el": "Η παρουσία πολλών προσθέτων επιβαρύνει την αξιολόγηση.",
-      "en": "Multiple additives weigh negatively on the assessment.",
-      "de": "Mehrere Zusatzstoffe wirken sich negativ auf die Bewertung aus.",
+      "en": "The presence of multiple additives weighs negatively on the assessment.",
+      "de": "Das Vorhandensein mehrerer Zusatzstoffe wirkt sich negativ auf die Bewertung aus.",
       "fr": "La présence de plusieurs additifs pèse négativement sur l’évaluation."
     }
   },
@@ -63,10 +63,10 @@
     "impact_direction": "negative",
     "impact_weight": 82,
     "message": {
-      "el": "Το μοτίβο συστατικών δείχνει πιο έντονη επεξεργασία.",
-      "en": "The ingredient pattern suggests heavier processing.",
-      "de": "Das Zutatenmuster deutet auf eine stärkere Verarbeitung hin.",
-      "fr": "Le profil d’ingrédients suggère une transformation plus poussée."
+      "el": "Η σύνθεση του προϊόντος είναι αρκετά επεξεργασμένη.",
+      "en": "The product formulation is fairly processed.",
+      "de": "Die Zusammensetzung des Produkts ist relativ stark verarbeitet.",
+      "fr": "La formulation du produit reste assez transformée."
     }
   },
   {
@@ -77,10 +77,10 @@
     "impact_direction": "negative",
     "impact_weight": 70,
     "message": {
-      "el": "Οι χρωστικές προσθέτουν πολυπλοκότητα στη σύνθεση.",
-      "en": "Colorants add complexity to the ingredient profile.",
-      "de": "Farbstoffe erhöhen die Komplexität der Zutatenliste.",
-      "fr": "Les colorants ajoutent de la complexité à la composition."
+      "el": "Η παρουσία χρωστικών αυξάνει την πολυπλοκότητα της σύνθεσης.",
+      "en": "The presence of colourants increases formulation complexity.",
+      "de": "Das Vorhandensein von Farbstoffen erhöht die Komplexität der Zusammensetzung.",
+      "fr": "La présence de colorants augmente la complexité de la composition."
     }
   },
   {
@@ -91,10 +91,10 @@
     "impact_direction": "negative",
     "impact_weight": 68,
     "message": {
-      "el": "Η παρουσία συντηρητικών επιβαρύνει το προφίλ του προϊόντος.",
-      "en": "Preservatives weigh negatively on the product profile.",
-      "de": "Konservierungsstoffe belasten das Produktprofil.",
-      "fr": "Les conservateurs pèsent négativement sur le profil du produit."
+      "el": "Η παρουσία συντηρητικών επιβαρύνει τη συνολική εικόνα.",
+      "en": "The presence of preservatives weighs negatively on the overall picture.",
+      "de": "Das Vorhandensein von Konservierungsstoffen wirkt sich negativ auf das Gesamtbild aus.",
+      "fr": "La présence de conservateurs pèse négativement sur l’ensemble."
     }
   },
   {
@@ -105,10 +105,10 @@
     "impact_direction": "negative",
     "impact_weight": 60,
     "message": {
-      "el": "Τα αρώματα δείχνουν πιο σύνθετη διαμόρφωση γεύσης.",
-      "en": "Flavourings point to a more engineered flavour profile.",
-      "de": "Aromen sprechen für ein stärker gestaltetes Geschmacksprofil.",
-      "fr": "Les arômes indiquent un profil de goût plus élaboré."
+      "el": "Η παρουσία αρωμάτων δείχνει πιο σύνθετη σύνθεση.",
+      "en": "The presence of flavourings suggests a more complex formulation.",
+      "de": "Das Vorhandensein von Aromen weist auf eine komplexere Zusammensetzung hin.",
+      "fr": "La présence d’arômes indique une composition plus complexe."
     }
   },
   {
@@ -155,10 +155,10 @@
     "impact_direction": "positive",
     "impact_weight": 90,
     "message": {
-      "el": "Η σχετικά απλή σύνθεση λειτουργεί θετικά.",
-      "en": "The relatively simple ingredient profile helps the assessment.",
-      "de": "Ein relativ einfaches Zutatenprofil wirkt sich positiv aus.",
-      "fr": "Un profil d’ingrédients relativement simple aide l’évaluation."
+      "el": "Η απλή σύνθεση του προϊόντος λειτουργεί θετικά.",
+      "en": "The simple ingredient profile helps the assessment.",
+      "de": "Die einfache Zusammensetzung des Produkts wirkt sich positiv aus.",
+      "fr": "La composition simple du produit aide l’évaluation."
     }
   },
   {
@@ -169,10 +169,10 @@
     "impact_direction": "positive",
     "impact_weight": 86,
     "message": {
-      "el": "Η χαμηλότερη επεξεργασία βοηθά την αξιολόγηση.",
-      "en": "Lower processing helps the assessment.",
-      "de": "Eine geringere Verarbeitung hilft der Bewertung.",
-      "fr": "Une transformation limitée aide l’évaluation."
+      "el": "Η σχετικά χαμηλή επεξεργασία υποστηρίζει καλύτερη αξιολόγηση.",
+      "en": "The relatively low processing level supports a better assessment.",
+      "de": "Der relativ niedrige Verarbeitungsgrad unterstützt eine bessere Bewertung.",
+      "fr": "Le niveau de transformation relativement faible soutient une meilleure évaluation."
     }
   },
   {
@@ -183,10 +183,10 @@
     "impact_direction": "neutral",
     "impact_weight": 55,
     "message": {
-      "el": "Εντοπίστηκαν πρόσθετες βιταμίνες ή μέταλλα.",
-      "en": "Added vitamins or minerals were detected.",
-      "de": "Es wurden zugesetzte Vitamine oder Mineralstoffe erkannt.",
-      "fr": "Des vitamines ou minéraux ajoutés ont été détectés."
+      "el": "Περιέχει εμπλουτισμένες βιταμίνες ή μέταλλα.",
+      "en": "Contains added vitamins or minerals.",
+      "de": "Enthält zugesetzte Vitamine oder Mineralstoffe.",
+      "fr": "Contient des vitamines ou minéraux ajoutés."
     }
   },
   {
@@ -197,10 +197,10 @@
     "impact_direction": "neutral",
     "impact_weight": 58,
     "message": {
-      "el": "Περιέχει καφεΐνη ως αξιοσημείωτο σήμα.",
-      "en": "Caffeine is present as a notable signal.",
-      "de": "Koffein ist als auffälliges Signal vorhanden.",
-      "fr": "La caféine est présente comme signal notable."
+      "el": "Η παρουσία καφεΐνης καταγράφεται ως αξιοσημείωτο στοιχείο.",
+      "en": "Caffeine is recorded as a notable signal.",
+      "de": "Das Vorhandensein von Koffein wird als auffälliges Signal erfasst.",
+      "fr": "La présence de caféine est enregistrée comme un signal notable."
     }
   },
   {
@@ -211,10 +211,10 @@
     "impact_direction": "neutral",
     "impact_weight": 50,
     "message": {
-      "el": "Το προϊόν μοιάζει με ανθρακούχο ποτό.",
-      "en": "The product looks like a carbonated drink.",
-      "de": "Das Produkt wirkt wie ein kohlensäurehaltiges Getränk.",
-      "fr": "Le produit ressemble à une boisson gazeuse."
+      "el": "Το προϊόν είναι ανθρακούχο.",
+      "en": "The product is carbonated.",
+      "de": "Das Produkt ist kohlensäurehaltig.",
+      "fr": "Le produit est gazeux."
     }
   },
   {
@@ -251,10 +251,10 @@
     "impact_direction": "negative",
     "impact_weight": 98,
     "message": {
-      "el": "Η απουσία ζάχαρης δεν αρκεί από μόνη της για υψηλή τελική αξιολόγηση όταν υπάρχουν πολλαπλά γλυκαντικά και πολλά πρόσθετα.",
-      "en": "The absence of sugar alone is not enough for a very high final assessment when multiple sweeteners and additives are present.",
-      "de": "Das Fehlen von Zucker allein reicht nicht für eine sehr hohe Endbewertung, wenn mehrere Süßstoffe und Zusatzstoffe vorhanden sind.",
-      "fr": "L’absence de sucre ne suffit pas à elle seule pour une très bonne évaluation finale lorsque plusieurs édulcorants et additifs sont présents."
+      "el": "Η απουσία ζάχαρης δεν αρκεί από μόνη της για πολύ υψηλή τελική αξιολόγηση όταν η σύνθεση παραμένει σύνθετη.",
+      "en": "The absence of sugar alone is not enough for a very high final assessment when the formulation remains complex.",
+      "de": "Das Fehlen von Zucker allein reicht nicht für eine sehr hohe Endbewertung, wenn die Zusammensetzung komplex bleibt.",
+      "fr": "L’absence de sucre ne suffit pas à elle seule pour une très bonne évaluation finale lorsque la formulation reste complexe."
     }
   },
   {
@@ -270,10 +270,10 @@
     "impact_direction": "negative",
     "impact_weight": 78,
     "message": {
-      "el": "Η χαμηλή ζάχαρη εδώ βασίζεται και σε γλυκαντικά, όχι μόνο σε απλή σύνθεση.",
-      "en": "Low sugar here depends on sweeteners, not only on a simple ingredient profile.",
-      "de": "Der niedrige Zuckergehalt beruht hier auch auf Süßstoffen und nicht nur auf einer einfachen Zusammensetzung.",
-      "fr": "La faible teneur en sucre repose ici aussi sur des édulcorants, pas seulement sur une composition simple."
+      "el": "Παρότι είναι χωρίς ζάχαρη, η σύνθεση παραμένει αρκετά σύνθετη.",
+      "en": "Although it is sugar-free, the formulation remains fairly complex.",
+      "de": "Obwohl das Produkt zuckerfrei ist, bleibt die Zusammensetzung relativ komplex.",
+      "fr": "Même sans sucre, la formulation reste assez complexe."
     }
   },
   {
@@ -321,9 +321,9 @@
     "impact_weight": 74,
     "message": {
       "el": "Το προϊόν είναι μειωμένων λιπαρών, αλλά η σύνθεσή του παραμένει αρκετά επεξεργασμένη.",
-      "en": "The product is reduced-fat, but its formulation remains relatively processed.",
+      "en": "The product is reduced-fat, but its formulation remains fairly processed.",
       "de": "Das Produkt ist fettreduziert, bleibt aber in seiner Zusammensetzung relativ stark verarbeitet.",
-      "fr": "Le produit est allégé, mais sa formulation reste relativement transformée."
+      "fr": "Le produit est allégé, mais sa formulation reste assez transformée."
     }
   }
 ]
