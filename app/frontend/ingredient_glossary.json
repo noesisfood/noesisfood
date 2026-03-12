@@ -6,7 +6,7 @@
       "fr": "Eau",
       "de": "Wasser"
     },
-    "aliases": ["water", "eau", "wasser", "woda", "Water", "Woda"]
+    "aliases": ["water", "waters", "eau", "wasser", "woda", "agua"]
   },
   "carbonated water": {
     "translations": {
@@ -15,7 +15,7 @@
       "fr": "Eau gazeuse",
       "de": "Sprudelwasser"
     },
-    "aliases": ["carbonated water", "sparkling water", "eau gazeuse", "sprudelwasser", "wasser mit kohlensäure", "wasser mit kohlensaeure"]
+    "aliases": ["carbonated water", "sparkling water", "eau gazeuse", "sprudelwasser", "wasser mit kohlensäure", "wasser mit kohlensaeure", "woda gazowana"]
   },
   "carbon dioxide": {
     "translations": {
@@ -24,7 +24,7 @@
       "fr": "Dioxyde de carbone",
       "de": "Kohlensäure"
     },
-    "aliases": ["carbon dioxide", "carbonation", "co2", "dioxyde de carbone", "kohlensäure", "kohlensaeure", "kohlendioxid", "dwutlenek węgla", "dwutlenek wegla", "Dwutlenek węgla"]
+    "aliases": ["carbon dioxide", "carbonation", "co2", "dioxyde de carbone", "kohlensäure", "kohlensaeure", "kohlendioxid", "dwutlenek węgla", "dwutlenek wegla"]
   },
   "sugar": {
     "translations": {
@@ -33,7 +33,7 @@
       "fr": "Sucre",
       "de": "Zucker"
     },
-    "aliases": ["sugar", "sucres", "sucre", "zucker"]
+    "aliases": ["sugar", "sugars", "sucre", "sucres", "zucker", "cukier"]
   },
   "sucrose": {
     "translations": {
@@ -42,7 +42,7 @@
       "fr": "Saccharose",
       "de": "Saccharose"
     },
-    "aliases": ["sucrose", "saccharose", "sacharoza", "Sacharoza"]
+    "aliases": ["sucrose", "saccharose", "sacharoza"]
   },
   "glucose": {
     "translations": {
@@ -51,7 +51,7 @@
       "fr": "Glucose",
       "de": "Glukose"
     },
-    "aliases": ["glucose", "glukose", "glukoza", "Glukoza"]
+    "aliases": ["glucose", "glukose", "glukoza"]
   },
   "fructose": {
     "translations": {
@@ -60,7 +60,16 @@
       "fr": "Fructose",
       "de": "Fruktose"
     },
-    "aliases": ["fructose", "fruktose"]
+    "aliases": ["fructose", "fruktose", "fruktoza"]
+  },
+  "dextrose": {
+    "translations": {
+      "el": "Δεξτρόζη",
+      "en": "Dextrose",
+      "fr": "Dextrose",
+      "de": "Dextrose"
+    },
+    "aliases": ["dextrose"]
   },
   "glucose syrup": {
     "translations": {
@@ -69,7 +78,25 @@
       "fr": "Sirop de glucose",
       "de": "Glukosesirup"
     },
-    "aliases": ["glucose syrup", "glucose-fructose syrup", "sirop de glucose", "sirop de glucose-fructose", "glukosesirup", "glukose-fruktose-sirup"]
+    "aliases": ["glucose syrup", "glucose syrups", "sirop de glucose", "glukosesirup", "syrop glukozowy"]
+  },
+  "glucose-fructose syrup": {
+    "translations": {
+      "el": "Σιρόπι γλυκόζης-φρουκτόζης",
+      "en": "Glucose-fructose syrup",
+      "fr": "Sirop de glucose-fructose",
+      "de": "Glukose-Fruktose-Sirup"
+    },
+    "aliases": ["glucose-fructose syrup", "glucose fructose syrup", "sirop de glucose-fructose", "glukose-fruktose-sirup", "syrop glukozowo-fruktozowy"]
+  },
+  "fructose-glucose syrup": {
+    "translations": {
+      "el": "Σιρόπι φρουκτόζης-γλυκόζης",
+      "en": "Fructose-glucose syrup",
+      "fr": "Sirop de fructose-glucose",
+      "de": "Fruktose-Glukose-Sirup"
+    },
+    "aliases": ["fructose-glucose syrup", "fructose glucose syrup", "sirop de fructose-glucose", "fruktose-glukose-sirup"]
   },
   "fructose syrup": {
     "translations": {
@@ -80,6 +107,15 @@
     },
     "aliases": ["fructose syrup", "sirop de fructose", "fruktosesirup"]
   },
+  "invert sugar syrup": {
+    "translations": {
+      "el": "Σιρόπι ιμβερτοζάχαρης",
+      "en": "Invert sugar syrup",
+      "fr": "Sirop de sucre inverti",
+      "de": "Invertzuckersirup"
+    },
+    "aliases": ["invert sugar syrup", "invert sugar", "sirop de sucre inverti", "invertzuckersirup", "syrop cukru inwertowanego"]
+  },
   "corn syrup": {
     "translations": {
       "el": "Σιρόπι καλαμποκιού",
@@ -87,7 +123,16 @@
       "fr": "Sirop de maïs",
       "de": "Maissirup"
     },
-    "aliases": ["corn syrup", "sirop de maïs", "sirop de mais", "maissirup"]
+    "aliases": ["corn syrup", "maize syrup", "sirop de maïs", "sirop de mais", "maissirup", "syrop kukurydziany"]
+  },
+  "maltodextrin": {
+    "translations": {
+      "el": "Μαλτοδεξτρίνη",
+      "en": "Maltodextrin",
+      "fr": "Maltodextrine",
+      "de": "Maltodextrin"
+    },
+    "aliases": ["maltodextrin", "maltodextrine"]
   },
   "salt": {
     "translations": {
@@ -96,7 +141,16 @@
       "fr": "Sel",
       "de": "Salz"
     },
-    "aliases": ["salt", "sel", "salz"]
+    "aliases": ["salt", "sel", "salz", "sól", "sol"]
+  },
+  "sea salt": {
+    "translations": {
+      "el": "Θαλασσινό αλάτι",
+      "en": "Sea salt",
+      "fr": "Sel marin",
+      "de": "Meersalz"
+    },
+    "aliases": ["sea salt", "sel marin", "meersalz", "sól morska", "sol morska"]
   },
   "starch": {
     "translations": {
@@ -105,7 +159,7 @@
       "fr": "Amidon",
       "de": "Stärke"
     },
-    "aliases": ["starch", "amidon", "stärke", "staerke"]
+    "aliases": ["starch", "starches", "amidon", "amidons", "stärke", "staerke", "skrobia"]
   },
   "modified starch": {
     "translations": {
@@ -114,7 +168,79 @@
       "fr": "Amidon modifié",
       "de": "Modifizierte Stärke"
     },
-    "aliases": ["modified starch", "modified starches", "amidon modifié", "amidons modifiés", "modifizierte stärke", "modifizierte staerke"]
+    "aliases": ["modified starch", "modified starches", "amidon modifié", "amidons modifiés", "modifizierte stärke", "modifizierte staerke", "skrobia modyfikowana"]
+  },
+  "wheat starch": {
+    "translations": {
+      "el": "Άμυλο σίτου",
+      "en": "Wheat starch",
+      "fr": "Amidon de blé",
+      "de": "Weizenstärke"
+    },
+    "aliases": ["wheat starch", "amidon de blé", "amidon de ble", "weizenstärke", "weizenstaerke", "skrobia pszenna"]
+  },
+  "potato starch": {
+    "translations": {
+      "el": "Άμυλο πατάτας",
+      "en": "Potato starch",
+      "fr": "Amidon de pomme de terre",
+      "de": "Kartoffelstärke"
+    },
+    "aliases": ["potato starch", "amidon de pomme de terre", "kartoffelstärke", "kartoffelstaerke", "skrobia ziemniaczana"]
+  },
+  "fibre": {
+    "translations": {
+      "el": "Φυτικές ίνες",
+      "en": "Fibre",
+      "fr": "Fibres",
+      "de": "Ballaststoffe"
+    },
+    "aliases": ["fibre", "fibres", "fiber", "dietary fiber", "dietary fibre", "fibres alimentaires", "ballaststoffe", "błonnik", "blonnik"]
+  },
+  "protein": {
+    "translations": {
+      "el": "Πρωτεΐνη",
+      "en": "Protein",
+      "fr": "Protéine",
+      "de": "Protein"
+    },
+    "aliases": ["protein", "proteins", "protéine", "proteines", "eiweiß", "eiweiss", "białko", "bialko"]
+  },
+  "milk protein": {
+    "translations": {
+      "el": "Πρωτεΐνη γάλακτος",
+      "en": "Milk protein",
+      "fr": "Protéine de lait",
+      "de": "Milchprotein"
+    },
+    "aliases": ["milk protein", "milk proteins", "protéine de lait", "proteine de lait", "milchprotein", "białko mleka", "bialko mleka"]
+  },
+  "whey protein": {
+    "translations": {
+      "el": "Πρωτεΐνη ορού γάλακτος",
+      "en": "Whey protein",
+      "fr": "Protéine de lactosérum",
+      "de": "Molkenprotein"
+    },
+    "aliases": ["whey protein", "whey proteins", "protéine de lactosérum", "proteine de lactoserum", "molkenprotein", "białko serwatkowe", "bialko serwatkowe"]
+  },
+  "pea protein": {
+    "translations": {
+      "el": "Πρωτεΐνη αρακά",
+      "en": "Pea protein",
+      "fr": "Protéine de pois",
+      "de": "Erbsenprotein"
+    },
+    "aliases": ["pea protein", "protéine de pois", "proteine de pois", "erbsenprotein", "białko grochu", "bialko grochu"]
+  },
+  "soy protein": {
+    "translations": {
+      "el": "Πρωτεΐνη σόγιας",
+      "en": "Soy protein",
+      "fr": "Protéine de soja",
+      "de": "Sojaprotein"
+    },
+    "aliases": ["soy protein", "soya protein", "protéine de soja", "proteine de soja", "sojaprotein", "białko sojowe", "bialko sojowe"]
   },
   "acidifier": {
     "translations": {
@@ -132,7 +258,7 @@
       "fr": "Acide",
       "de": "Säure"
     },
-    "aliases": ["acid", "acids", "acide", "säure", "saeure", "οξύ", "οξεα", "kwas"]
+    "aliases": ["acid", "acids", "acide", "acides", "säure", "saeure", "οξύ", "οξέα", "kwas"]
   },
   "citric acid": {
     "translations": {
@@ -150,7 +276,7 @@
       "fr": "Acide phosphorique",
       "de": "Phosphorsäure"
     },
-    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure", "φωσφορικό οξύ"]
+    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure", "φωσφορικό οξύ", "kwas fosforowy"]
   },
   "malic acid": {
     "translations": {
@@ -159,7 +285,7 @@
       "fr": "Acide malique",
       "de": "Apfelsäure"
     },
-    "aliases": ["malic acid", "acide malique", "apfelsäure", "apfelsaeure", "μηλικό οξύ"]
+    "aliases": ["malic acid", "acide malique", "apfelsäure", "apfelsaeure", "μηλικό οξύ", "kwas jabłkowy", "kwas jablkowy"]
   },
   "lactic acid": {
     "translations": {
@@ -168,7 +294,7 @@
       "fr": "Acide lactique",
       "de": "Milchsäure"
     },
-    "aliases": ["lactic acid", "acide lactique", "milchsäure", "milchsaeure", "γαλακτικό οξύ"]
+    "aliases": ["lactic acid", "acide lactique", "milchsäure", "milchsaeure", "γαλακτικό οξύ", "kwas mlekowy"]
   },
   "ascorbic acid": {
     "translations": {
@@ -177,7 +303,7 @@
       "fr": "Acide ascorbique",
       "de": "Ascorbinsäure"
     },
-    "aliases": ["ascorbic acid", "acide ascorbique", "ascorbinsäure", "ascorbinsaeure", "ασκορβικό οξύ"]
+    "aliases": ["ascorbic acid", "acide ascorbique", "ascorbinsäure", "ascorbinsaeure", "ασκορβικό οξύ", "kwas askorbinowy"]
   },
   "pantothenic acid": {
     "translations": {
@@ -188,6 +314,69 @@
     },
     "aliases": ["pantothenic acid", "acide pantothénique", "acide pantothenique", "pantothensäure", "pantothensaeure", "παντοθενικό οξύ", "kwas pantotenowy"]
   },
+  "folic acid": {
+    "translations": {
+      "el": "Φολικό οξύ",
+      "en": "Folic acid",
+      "fr": "Acide folique",
+      "de": "Folsäure"
+    },
+    "aliases": ["folic acid", "acide folique", "folsäure", "folsaeure", "φολικό οξύ", "kwas foliowy"]
+  },
+  "sodium citrate": {
+    "translations": {
+      "el": "Κιτρικό νάτριο",
+      "en": "Sodium citrate",
+      "fr": "Citrate de sodium",
+      "de": "Natriumcitrat"
+    },
+    "aliases": ["sodium citrate", "citrate de sodium", "natriumcitrat", "cytrynian sodu"]
+  },
+  "sodium benzoate": {
+    "translations": {
+      "el": "Βενζοϊκό νάτριο",
+      "en": "Sodium benzoate",
+      "fr": "Benzoate de sodium",
+      "de": "Natriumbenzoat"
+    },
+    "aliases": ["sodium benzoate", "benzoate de sodium", "natriumbenzoat", "benzoesan sodu"]
+  },
+  "potassium sorbate": {
+    "translations": {
+      "el": "Σορβικό κάλιο",
+      "en": "Potassium sorbate",
+      "fr": "Sorbate de potassium",
+      "de": "Kaliumsorbat"
+    },
+    "aliases": ["potassium sorbate", "sorbate de potassium", "kaliumsorbat", "sorbinian potasu"]
+  },
+  "sodium bicarbonate": {
+    "translations": {
+      "el": "Διττανθρακικό νάτριο",
+      "en": "Sodium bicarbonate",
+      "fr": "Bicarbonate de sodium",
+      "de": "Natriumhydrogencarbonat"
+    },
+    "aliases": ["sodium bicarbonate", "bicarbonate de sodium", "natriumhydrogencarbonat", "baking soda", "soda oczyszczona"]
+  },
+  "calcium carbonate": {
+    "translations": {
+      "el": "Ανθρακικό ασβέστιο",
+      "en": "Calcium carbonate",
+      "fr": "Carbonate de calcium",
+      "de": "Calciumcarbonat"
+    },
+    "aliases": ["calcium carbonate", "carbonate de calcium", "calciumcarbonat", "węglan wapnia", "weglan wapnia"]
+  },
+  "magnesium carbonate": {
+    "translations": {
+      "el": "Ανθρακικό μαγνήσιο",
+      "en": "Magnesium carbonate",
+      "fr": "Carbonate de magnésium",
+      "de": "Magnesiumcarbonat"
+    },
+    "aliases": ["magnesium carbonate", "carbonate de magnésium", "carbonate de magnesium", "magnesiumcarbonat", "węglan magnezu", "weglan magnezu"]
+  },
   "colorant": {
     "translations": {
       "el": "Χρωστική",
@@ -195,7 +384,7 @@
       "fr": "Colorant",
       "de": "Farbstoff"
     },
-    "aliases": ["colorant", "colorants", "colouring", "coloring", "colorant alimentaire", "farbstoff", "farbstoffe", "χρωστική", "χρωστικη", "χρωστικές", "barwnik", "barwniki", "Barwniki"]
+    "aliases": ["colorant", "colouring", "coloring", "colorant alimentaire", "farbstoff", "χρωστική", "χρωστικη", "barwnik"]
   },
   "colorants": {
     "translations": {
@@ -204,7 +393,7 @@
       "fr": "Colorants",
       "de": "Farbstoffe"
     },
-    "aliases": ["colorants", "χρωστικές", "barwniki", "Barwniki", "farbstoffe"]
+    "aliases": ["colorants", "colourings", "colorings", "farbstoffe", "χρωστικές", "barwniki"]
   },
   "caramel colour": {
     "translations": {
@@ -213,7 +402,7 @@
       "fr": "Colorant caramel",
       "de": "Karamellfarbstoff"
     },
-    "aliases": ["caramel colour", "caramel color", "colour caramel", "colorant caramel", "karamellfarbstoff", "χρωστική καραμέλας", "χρωστικη καραμελας"]
+    "aliases": ["caramel colour", "caramel color", "colorant caramel", "karamellfarbstoff", "χρωστική καραμέλας", "barwnik karmelowy"]
   },
   "preservative": {
     "translations": {
@@ -222,7 +411,7 @@
       "fr": "Conservateur",
       "de": "Konservierungsstoff"
     },
-    "aliases": ["preservative", "preservatives", "conservateur", "conservateurs", "konservierungsstoff", "konservierungsstoffe", "συντηρητικό", "συντηρητικο"]
+    "aliases": ["preservative", "preservatives", "conservateur", "conservateurs", "konservierungsstoff", "konservierungsstoffe", "συντηρητικό", "συντηρητικο", "konserwant", "konserwanty"]
   },
   "sweetener": {
     "translations": {
@@ -231,7 +420,7 @@
       "fr": "Édulcorant",
       "de": "Süßungsmittel"
     },
-    "aliases": ["sweetener", "sweeteners", "édulcorant", "édulcorants", "edulcorant", "edulcorants", "süßungsmittel", "suessungsmittel", "γλυκαντικό", "γλυκαντικο"]
+    "aliases": ["sweetener", "sweeteners", "édulcorant", "édulcorants", "edulcorant", "edulcorants", "süßungsmittel", "suessungsmittel", "γλυκαντικό", "γλυκαντικο", "substancja słodząca", "substancja slodzaca"]
   },
   "emulsifier": {
     "translations": {
@@ -240,7 +429,7 @@
       "fr": "Émulsifiant",
       "de": "Emulgator"
     },
-    "aliases": ["emulsifier", "emulsifiers", "émulsifiant", "émulsifiants", "emulsifiant", "emulsifiants", "emulgator", "emulgatoren", "γαλακτωματοποιητής", "γαλακτωματοποιητης"]
+    "aliases": ["emulsifier", "emulsifiers", "émulsifiant", "émulsifiants", "emulsifiant", "emulsifiants", "emulgator", "emulgatoren", "γαλακτωματοποιητής", "γαλακτωματοποιητης", "emulgatory"]
   },
   "stabilizer": {
     "translations": {
@@ -249,7 +438,7 @@
       "fr": "Stabilisant",
       "de": "Stabilisator"
     },
-    "aliases": ["stabilizer", "stabilizers", "stabiliser", "stabilisers", "stabilisant", "stabilisants", "stabilisator", "stabilisatoren", "σταθεροποιητής", "σταθεροποιητης"]
+    "aliases": ["stabilizer", "stabilizers", "stabiliser", "stabilisers", "stabilisant", "stabilisants", "stabilisator", "stabilisatoren", "σταθεροποιητής", "σταθεροποιητης", "stabilizator", "stabilizatory"]
   },
   "thickener": {
     "translations": {
@@ -258,7 +447,25 @@
       "fr": "Épaississant",
       "de": "Verdickungsmittel"
     },
-    "aliases": ["thickener", "thickeners", "épaississant", "épaississants", "epaississant", "epaississants", "verdickungsmittel", "πηκτικό", "πηκτικο", "πηκτικό μέσο", "πηκτικο μεσο"]
+    "aliases": ["thickener", "thickeners", "épaississant", "épaississants", "epaississant", "epaississants", "verdickungsmittel", "πηκτικό", "πηκτικο", "zagęstnik", "zagesnik", "zagęszczacz", "zageszczacz"]
+  },
+  "gelling agent": {
+    "translations": {
+      "el": "Πηκτωματοποιητής",
+      "en": "Gelling agent",
+      "fr": "Gélifiant",
+      "de": "Geliermittel"
+    },
+    "aliases": ["gelling agent", "gelling agents", "gélifiant", "gélifiants", "gelifiant", "gelifiants", "geliermittel", "środek żelujący", "srodek zelujacy"]
+  },
+  "antioxidant": {
+    "translations": {
+      "el": "Αντιοξειδωτικό",
+      "en": "Antioxidant",
+      "fr": "Antioxydant",
+      "de": "Antioxidationsmittel"
+    },
+    "aliases": ["antioxidant", "antioxidants", "antioxydant", "antioxydants", "antioxidationsmittel", "αντιοξειδωτικό", "antyoksydant", "przeciwutleniacz"]
   },
   "flavouring": {
     "translations": {
@@ -267,7 +474,7 @@
       "fr": "Arôme",
       "de": "Aroma"
     },
-    "aliases": ["flavouring", "flavourings", "flavoring", "flavorings", "arôme", "aromes", "arome", "aroma", "aromen", "άρωμα", "αρωμα", "αρώματα", "aromaty", "Aromaty"]
+    "aliases": ["flavouring", "flavoring", "arôme", "arome", "aroma", "άρωμα", "αρωμα", "aromat"]
   },
   "flavourings": {
     "translations": {
@@ -276,7 +483,7 @@
       "fr": "Arômes",
       "de": "Aromen"
     },
-    "aliases": ["flavourings", "flavorings", "αρώματα", "aromaty", "Aromaty", "arômes", "aromen"]
+    "aliases": ["flavourings", "flavorings", "arômes", "aromen", "αρώματα", "aromaty"]
   },
   "natural flavouring": {
     "translations": {
@@ -285,7 +492,7 @@
       "fr": "Arôme naturel",
       "de": "Natürliches Aroma"
     },
-    "aliases": ["natural flavouring", "natural flavourings", "natural flavoring", "natural flavorings", "arôme naturel", "arômes naturels", "arome naturel", "natürliches aroma", "natuerliches aroma"]
+    "aliases": ["natural flavouring", "natural flavourings", "natural flavoring", "natural flavorings", "arôme naturel", "arômes naturels", "arome naturel", "natürliches aroma", "natuerliches aroma", "aromat naturalny"]
   },
   "caffeine flavouring": {
     "translations": {
@@ -294,7 +501,7 @@
       "fr": "Arôme caféiné",
       "de": "Aroma Koffein"
     },
-    "aliases": ["caffeine flavouring", "caffeine flavoring", "arôme caféine", "arôme caféiné", "arome cafeine", "aroma koffein"]
+    "aliases": ["caffeine flavouring", "caffeine flavoring", "arôme caféiné", "arôme caféine", "arome cafeine", "aroma koffein", "aromat kofeinowy"]
   },
   "caffeine": {
     "translations": {
@@ -312,52 +519,7 @@
       "fr": "Additif",
       "de": "Zusatzstoff"
     },
-    "aliases": ["additive", "additives", "πρόσθετο", "προσθετο", "additif", "additifs", "zusatzstoff", "zusatzstoffe"]
-  },
-  "taurine": {
-    "translations": {
-      "el": "Ταυρίνη",
-      "en": "Taurine",
-      "fr": "Taurine",
-      "de": "Taurin"
-    },
-    "aliases": ["taurine", "taurin", "ταυρίνη", "ταυρινη", "tauryna", "Tauryna"]
-  },
-  "vitamins": {
-    "translations": {
-      "el": "Βιταμίνες",
-      "en": "Vitamins",
-      "fr": "Vitamines",
-      "de": "Vitamine"
-    },
-    "aliases": ["vitamins", "vitamines", "vitamine", "βιταμίνες", "βιταμινες", "witaminy", "Witaminy"]
-  },
-  "niacin": {
-    "translations": {
-      "el": "Νιασίνη",
-      "en": "Niacin",
-      "fr": "Niacine",
-      "de": "Niacin"
-    },
-    "aliases": ["niacin", "niacine", "νιασίνη", "νιασινη", "niacyna", "Niacyna"]
-  },
-  "vitamin b6": {
-    "translations": {
-      "el": "Βιταμίνη B6",
-      "en": "Vitamin B6",
-      "fr": "Vitamine B6",
-      "de": "Vitamin B6"
-    },
-    "aliases": ["vitamin b6", "vitamine b6", "βιταμίνη b6", "βιταμινη b6", "witamina b6", "Witamina B6"]
-  },
-  "vitamin b12": {
-    "translations": {
-      "el": "Βιταμίνη B12",
-      "en": "Vitamin B12",
-      "fr": "Vitamine B12",
-      "de": "Vitamin B12"
-    },
-    "aliases": ["vitamin b12", "vitamine b12", "βιταμίνη b12", "βιταμινη b12", "witamina b12", "Witamina B12"]
+    "aliases": ["additive", "additives", "πρόσθετο", "προσθετο", "additif", "additifs", "zusatzstoff", "zusatzstoffe", "dodatek", "dodatki"]
   },
   "flavor enhancer": {
     "translations": {
@@ -366,7 +528,7 @@
       "fr": "Exhausteur de goût",
       "de": "Geschmacksverstärker"
     },
-    "aliases": ["flavor enhancer", "flavour enhancer", "exhausteur de goût", "exhausteur de gout", "geschmacksverstärker", "geschmacksverstaerker", "ενισχυτικό γεύσης", "ενισχυτικο γευσης"]
+    "aliases": ["flavor enhancer", "flavour enhancer", "flavor enhancers", "flavour enhancers", "exhausteur de goût", "exhausteur de gout", "geschmacksverstärker", "geschmacksverstaerker", "ενισχυτικό γεύσης", "ενισχυτικο γευσης", "wzmacniacz smaku"]
   },
   "vegetable oil": {
     "translations": {
@@ -375,7 +537,16 @@
       "fr": "Huile végétale",
       "de": "Pflanzenöl"
     },
-    "aliases": ["vegetable oil", "vegetable oils", "huile végétale", "huiles végétales", "huile vegetale", "pflanzenöl", "pflanzenoel"]
+    "aliases": ["vegetable oil", "vegetable oils", "huile végétale", "huiles végétales", "huile vegetale", "pflanzenöl", "pflanzenoel", "olej roślinny", "olej roslinny"]
+  },
+  "vegetable fat": {
+    "translations": {
+      "el": "Φυτικό λίπος",
+      "en": "Vegetable fat",
+      "fr": "Graisse végétale",
+      "de": "Pflanzenfett"
+    },
+    "aliases": ["vegetable fat", "vegetable fats", "graisse végétale", "graisses végétales", "pflanzenfett", "tłuszcz roślinny", "tluszcz roslinny"]
   },
   "sunflower oil": {
     "translations": {
@@ -384,7 +555,25 @@
       "fr": "Huile de tournesol",
       "de": "Sonnenblumenöl"
     },
-    "aliases": ["sunflower oil", "huile de tournesol", "sonnenblumenöl", "sonnenblumenoel"]
+    "aliases": ["sunflower oil", "huile de tournesol", "sonnenblumenöl", "sonnenblumenoel", "olej słonecznikowy", "olej slonecznikowy"]
+  },
+  "rapeseed oil": {
+    "translations": {
+      "el": "Κραμβέλαιο",
+      "en": "Rapeseed oil",
+      "fr": "Huile de colza",
+      "de": "Rapsöl"
+    },
+    "aliases": ["rapeseed oil", "canola oil", "huile de colza", "rapsöl", "rapsoel", "olej rzepakowy"]
+  },
+  "coconut oil": {
+    "translations": {
+      "el": "Λάδι καρύδας",
+      "en": "Coconut oil",
+      "fr": "Huile de coco",
+      "de": "Kokosöl"
+    },
+    "aliases": ["coconut oil", "huile de coco", "kokosöl", "kokosoel", "olej kokosowy"]
   },
   "palm oil": {
     "translations": {
@@ -393,7 +582,7 @@
       "fr": "Huile de palme",
       "de": "Palmöl"
     },
-    "aliases": ["palm oil", "huile de palme", "palmöl", "palmoel"]
+    "aliases": ["palm oil", "huile de palme", "palmöl", "palmoel", "olej palmowy"]
   },
   "olive oil": {
     "translations": {
@@ -402,7 +591,16 @@
       "fr": "Huile d'olive",
       "de": "Olivenöl"
     },
-    "aliases": ["olive oil", "huile d'olive", "olivenöl", "olivenoel"]
+    "aliases": ["olive oil", "huile d'olive", "olivenöl", "olivenoel", "oliwa z oliwek"]
+  },
+  "cocoa butter": {
+    "translations": {
+      "el": "Βούτυρο κακάο",
+      "en": "Cocoa butter",
+      "fr": "Beurre de cacao",
+      "de": "Kakaobutter"
+    },
+    "aliases": ["cocoa butter", "beurre de cacao", "kakaobutter", "masło kakaowe", "maslo kakaowe"]
   },
   "milk": {
     "translations": {
@@ -411,7 +609,16 @@
       "fr": "Lait",
       "de": "Milch"
     },
-    "aliases": ["milk", "lait", "milch"]
+    "aliases": ["milk", "lait", "milch", "mleko"]
+  },
+  "milk powder": {
+    "translations": {
+      "el": "Γάλα σε σκόνη",
+      "en": "Milk powder",
+      "fr": "Lait en poudre",
+      "de": "Milchpulver"
+    },
+    "aliases": ["milk powder", "powdered milk", "lait en poudre", "milchpulver", "mleko w proszku"]
   },
   "skimmed milk powder": {
     "translations": {
@@ -420,7 +627,16 @@
       "fr": "Lait écrémé en poudre",
       "de": "Magermilchpulver"
     },
-    "aliases": ["skimmed milk powder", "milk powder", "lait écrémé en poudre", "lait ecreme en poudre", "magermilchpulver"]
+    "aliases": ["skimmed milk powder", "lait écrémé en poudre", "lait ecreme en poudre", "magermilchpulver", "odtłuszczone mleko w proszku", "odtluszczone mleko w proszku"]
+  },
+  "whole milk powder": {
+    "translations": {
+      "el": "Πλήρες γάλα σε σκόνη",
+      "en": "Whole milk powder",
+      "fr": "Lait entier en poudre",
+      "de": "Vollmilchpulver"
+    },
+    "aliases": ["whole milk powder", "lait entier en poudre", "vollmilchpulver", "pełne mleko w proszku", "pelne mleko w proszku"]
   },
   "whey powder": {
     "translations": {
@@ -429,7 +645,16 @@
       "fr": "Poudre de lactosérum",
       "de": "Molkenpulver"
     },
-    "aliases": ["whey powder", "whey", "poudre de lactosérum", "poudre de lactoserum", "molkenpulver"]
+    "aliases": ["whey powder", "whey", "poudre de lactosérum", "poudre de lactoserum", "molkenpulver", "serwatka w proszku"]
+  },
+  "lactose": {
+    "translations": {
+      "el": "Λακτόζη",
+      "en": "Lactose",
+      "fr": "Lactose",
+      "de": "Laktose"
+    },
+    "aliases": ["lactose", "laktose", "laktoza"]
   },
   "cream": {
     "translations": {
@@ -438,7 +663,7 @@
       "fr": "Crème",
       "de": "Sahne"
     },
-    "aliases": ["cream", "crème", "creme", "sahne"]
+    "aliases": ["cream", "crème", "creme", "sahne", "śmietanka", "smietanka"]
   },
   "butter": {
     "translations": {
@@ -447,7 +672,7 @@
       "fr": "Beurre",
       "de": "Butter"
     },
-    "aliases": ["butter", "beurre"]
+    "aliases": ["butter", "beurre", "masło", "maslo"]
   },
   "cocoa": {
     "translations": {
@@ -465,7 +690,16 @@
       "fr": "Poudre de cacao",
       "de": "Kakaopulver"
     },
-    "aliases": ["cocoa powder", "cacao powder", "poudre de cacao", "kakaopulver"]
+    "aliases": ["cocoa powder", "cacao powder", "poudre de cacao", "kakaopulver", "proszek kakaowy"]
+  },
+  "cocoa mass": {
+    "translations": {
+      "el": "Μάζα κακάο",
+      "en": "Cocoa mass",
+      "fr": "Pâte de cacao",
+      "de": "Kakaomasse"
+    },
+    "aliases": ["cocoa mass", "cocoa liquor", "pâte de cacao", "pate de cacao", "kakaomasse", "miazga kakaowa"]
   },
   "chocolate": {
     "translations": {
@@ -474,7 +708,16 @@
       "fr": "Chocolat",
       "de": "Schokolade"
     },
-    "aliases": ["chocolate", "chocolat", "schokolade"]
+    "aliases": ["chocolate", "chocolat", "schokolade", "czekolada"]
+  },
+  "dark chocolate": {
+    "translations": {
+      "el": "Μαύρη σοκολάτα",
+      "en": "Dark chocolate",
+      "fr": "Chocolat noir",
+      "de": "Zartbitterschokolade"
+    },
+    "aliases": ["dark chocolate", "chocolat noir", "zartbitterschokolade", "gorzka czekolada"]
   },
   "wheat flour": {
     "translations": {
@@ -483,7 +726,16 @@
       "fr": "Farine de blé",
       "de": "Weizenmehl"
     },
-    "aliases": ["wheat flour", "flour", "farine de blé", "farine de ble", "weizenmehl"]
+    "aliases": ["wheat flour", "farine de blé", "farine de ble", "weizenmehl", "mąka pszenna", "maka pszenna"]
+  },
+  "whole wheat flour": {
+    "translations": {
+      "el": "Αλεύρι ολικής άλεσης σίτου",
+      "en": "Whole wheat flour",
+      "fr": "Farine complète de blé",
+      "de": "Vollkornweizenmehl"
+    },
+    "aliases": ["whole wheat flour", "wholemeal wheat flour", "farine complète de blé", "farine complete de ble", "vollkornweizenmehl", "mąka pełnoziarnista pszenna", "maka pelnoziarnista pszenna"]
   },
   "oats": {
     "translations": {
@@ -492,7 +744,16 @@
       "fr": "Avoine",
       "de": "Hafer"
     },
-    "aliases": ["oats", "oat", "avoine", "hafer"]
+    "aliases": ["oats", "oat", "avoine", "hafer", "owies"]
+  },
+  "oat flour": {
+    "translations": {
+      "el": "Αλεύρι βρώμης",
+      "en": "Oat flour",
+      "fr": "Farine d'avoine",
+      "de": "Hafermehl"
+    },
+    "aliases": ["oat flour", "farine d'avoine", "hafermehl", "mąka owsiana", "maka owsiana"]
   },
   "barley malt": {
     "translations": {
@@ -501,7 +762,7 @@
       "fr": "Malt d'orge",
       "de": "Gerstenmalz"
     },
-    "aliases": ["barley malt", "malt d'orge", "malt dorge", "gerstenmalz"]
+    "aliases": ["barley malt", "malt d'orge", "malt dorge", "gerstenmalz", "słód jęczmienny", "slod jeczmienny"]
   },
   "rice flour": {
     "translations": {
@@ -510,7 +771,25 @@
       "fr": "Farine de riz",
       "de": "Reismehl"
     },
-    "aliases": ["rice flour", "farine de riz", "reismehl"]
+    "aliases": ["rice flour", "farine de riz", "reismehl", "mąka ryżowa", "maka ryzowa"]
+  },
+  "corn flour": {
+    "translations": {
+      "el": "Αλεύρι καλαμποκιού",
+      "en": "Corn flour",
+      "fr": "Farine de maïs",
+      "de": "Maismehl"
+    },
+    "aliases": ["corn flour", "maize flour", "farine de maïs", "farine de mais", "maismehl", "mąka kukurydziana", "maka kukurydziana"]
+  },
+  "rye flour": {
+    "translations": {
+      "el": "Αλεύρι σίκαλης",
+      "en": "Rye flour",
+      "fr": "Farine de seigle",
+      "de": "Roggenmehl"
+    },
+    "aliases": ["rye flour", "farine de seigle", "roggenmehl", "mąka żytnia", "maka zytnia"]
   },
   "fruit juice concentrate": {
     "translations": {
@@ -519,7 +798,7 @@
       "fr": "Concentré de jus de fruits",
       "de": "Fruchtsaftkonzentrat"
     },
-    "aliases": ["fruit juice concentrate", "fruit concentrate", "concentré de jus de fruits", "concentre de jus de fruits", "fruchtsaftkonzentrat"]
+    "aliases": ["fruit juice concentrate", "fruit concentrate", "concentré de jus de fruits", "concentre de jus de fruits", "fruchtsaftkonzentrat", "koncentrat soku owocowego"]
   },
   "orange juice concentrate": {
     "translations": {
@@ -528,7 +807,7 @@
       "fr": "Concentré de jus d'orange",
       "de": "Orangensaftkonzentrat"
     },
-    "aliases": ["orange juice concentrate", "concentré de jus d'orange", "concentre de jus d'orange", "orangensaftkonzentrat"]
+    "aliases": ["orange juice concentrate", "concentré de jus d'orange", "concentre de jus d'orange", "orangensaftkonzentrat", "koncentrat soku pomarańczowego", "koncentrat soku pomaranczowego"]
   },
   "apple juice concentrate": {
     "translations": {
@@ -537,7 +816,25 @@
       "fr": "Concentré de jus de pomme",
       "de": "Apfelsaftkonzentrat"
     },
-    "aliases": ["apple juice concentrate", "concentré de jus de pomme", "concentre de jus de pomme", "apfelsaftkonzentrat"]
+    "aliases": ["apple juice concentrate", "concentré de jus de pomme", "concentre de jus de pomme", "apfelsaftkonzentrat", "koncentrat soku jabłkowego", "koncentrat soku jablkowego"]
+  },
+  "lemon juice concentrate": {
+    "translations": {
+      "el": "Συμπυκνωμένος χυμός λεμονιού",
+      "en": "Lemon juice concentrate",
+      "fr": "Concentré de jus de citron",
+      "de": "Zitronensaftkonzentrat"
+    },
+    "aliases": ["lemon juice concentrate", "concentré de jus de citron", "concentre de jus de citron", "zitronensaftkonzentrat", "koncentrat soku z cytryny"]
+  },
+  "grape juice concentrate": {
+    "translations": {
+      "el": "Συμπυκνωμένος χυμός σταφυλιού",
+      "en": "Grape juice concentrate",
+      "fr": "Concentré de jus de raisin",
+      "de": "Traubensaftkonzentrat"
+    },
+    "aliases": ["grape juice concentrate", "concentré de jus de raisin", "concentre de jus de raisin", "traubensaftkonzentrat", "koncentrat soku winogronowego"]
   },
   "fruit juice": {
     "translations": {
@@ -546,7 +843,7 @@
       "fr": "Jus de fruits",
       "de": "Fruchtsaft"
     },
-    "aliases": ["fruit juice", "jus de fruits", "fruchtsaft"]
+    "aliases": ["fruit juice", "jus de fruits", "fruchtsaft", "sok owocowy"]
   },
   "orange juice": {
     "translations": {
@@ -555,7 +852,7 @@
       "fr": "Jus d'orange",
       "de": "Orangensaft"
     },
-    "aliases": ["orange juice", "jus d'orange", "orangensaft"]
+    "aliases": ["orange juice", "jus d'orange", "orangensaft", "sok pomarańczowy", "sok pomaranczowy"]
   },
   "apple juice": {
     "translations": {
@@ -564,7 +861,7 @@
       "fr": "Jus de pomme",
       "de": "Apfelsaft"
     },
-    "aliases": ["apple juice", "jus de pomme", "apfelsaft"]
+    "aliases": ["apple juice", "jus de pomme", "apfelsaft", "sok jabłkowy", "sok jablkowy"]
   },
   "natural orange flavouring": {
     "translations": {
@@ -573,24 +870,114 @@
       "fr": "Arôme naturel d'orange",
       "de": "Natürliches Orangenaroma"
     },
-    "aliases": ["natural orange flavouring", "natural orange flavoring", "arôme naturel d'orange", "arome naturel d'orange", "natürliches orangenaroma", "natuerliches orangenaroma"]
+    "aliases": ["natural orange flavouring", "natural orange flavoring", "arôme naturel d'orange", "arome naturel d'orange", "natürliches orangenaroma", "natuerliches orangenaroma", "naturalny aromat pomarańczowy", "naturalny aromat pomaranczowy"]
   },
-  "dextrose": {
+  "taurine": {
     "translations": {
-      "el": "Δεξτρόζη",
-      "en": "Dextrose",
-      "fr": "Dextrose",
-      "de": "Dextrose"
+      "el": "Ταυρίνη",
+      "en": "Taurine",
+      "fr": "Taurine",
+      "de": "Taurin"
     },
-    "aliases": ["dextrose"]
+    "aliases": ["taurine", "taurin", "ταυρίνη", "ταυρινη", "tauryna"]
   },
-  "maltodextrin": {
+  "vitamins": {
     "translations": {
-      "el": "Μαλτοδεξτρίνη",
-      "en": "Maltodextrin",
-      "fr": "Maltodextrine",
-      "de": "Maltodextrin"
+      "el": "Βιταμίνες",
+      "en": "Vitamins",
+      "fr": "Vitamines",
+      "de": "Vitamine"
     },
-    "aliases": ["maltodextrin", "maltodextrine"]
+    "aliases": ["vitamins", "vitamines", "vitamine", "βιταμίνες", "βιταμινες", "witaminy"]
+  },
+  "vitamin c": {
+    "translations": {
+      "el": "Βιταμίνη C",
+      "en": "Vitamin C",
+      "fr": "Vitamine C",
+      "de": "Vitamin C"
+    },
+    "aliases": ["vitamin c", "vitamine c", "witamina c"]
+  },
+  "niacin": {
+    "translations": {
+      "el": "Νιασίνη",
+      "en": "Niacin",
+      "fr": "Niacine",
+      "de": "Niacin"
+    },
+    "aliases": ["niacin", "niacine", "νιασίνη", "νιασινη", "niacyna"]
+  },
+  "vitamin b6": {
+    "translations": {
+      "el": "Βιταμίνη B6",
+      "en": "Vitamin B6",
+      "fr": "Vitamine B6",
+      "de": "Vitamin B6"
+    },
+    "aliases": ["vitamin b6", "vitamine b6", "βιταμίνη b6", "βιταμινη b6", "witamina b6"]
+  },
+  "vitamin b12": {
+    "translations": {
+      "el": "Βιταμίνη B12",
+      "en": "Vitamin B12",
+      "fr": "Vitamine B12",
+      "de": "Vitamin B12"
+    },
+    "aliases": ["vitamin b12", "vitamine b12", "βιταμίνη b12", "βιταμινη b12", "witamina b12"]
+  },
+  "riboflavin": {
+    "translations": {
+      "el": "Ριβοφλαβίνη",
+      "en": "Riboflavin",
+      "fr": "Riboflavine",
+      "de": "Riboflavin"
+    },
+    "aliases": ["riboflavin", "riboflavine", "ryboflawina"]
+  },
+  "thiamine": {
+    "translations": {
+      "el": "Θειαμίνη",
+      "en": "Thiamine",
+      "fr": "Thiamine",
+      "de": "Thiamin"
+    },
+    "aliases": ["thiamine", "thiamin", "tiamina"]
+  },
+  "biotin": {
+    "translations": {
+      "el": "Βιοτίνη",
+      "en": "Biotin",
+      "fr": "Biotine",
+      "de": "Biotin"
+    },
+    "aliases": ["biotin", "biotine", "biotyna"]
+  },
+  "calcium": {
+    "translations": {
+      "el": "Ασβέστιο",
+      "en": "Calcium",
+      "fr": "Calcium",
+      "de": "Calcium"
+    },
+    "aliases": ["calcium", "wapń", "wapn"]
+  },
+  "magnesium": {
+    "translations": {
+      "el": "Μαγνήσιο",
+      "en": "Magnesium",
+      "fr": "Magnésium",
+      "de": "Magnesium"
+    },
+    "aliases": ["magnesium", "magnésium", "magnez"]
+  },
+  "potassium": {
+    "translations": {
+      "el": "Κάλιο",
+      "en": "Potassium",
+      "fr": "Potassium",
+      "de": "Kalium"
+    },
+    "aliases": ["potassium", "kalium", "potas"]
   }
 }
