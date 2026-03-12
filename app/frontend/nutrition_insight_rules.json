@@ -1,0 +1,249 @@
+[
+  {
+    "rule_id": "high_sugar_per_100",
+    "category": "sugar",
+    "trigger_type": "data_threshold",
+    "trigger_conditions": { "path": "nutrition_per_100.sugar_g", "gte": 10 },
+    "severity": "high",
+    "label": {
+      "el": "Υψηλή ζάχαρη",
+      "en": "High sugar",
+      "de": "Viel Zucker",
+      "fr": "Teneur élevée en sucre"
+    },
+    "message": {
+      "el": "Έχει υψηλή περιεκτικότητα σε ζάχαρη ανά 100 g/ml.",
+      "en": "High sugar per 100 g/ml.",
+      "de": "Hoher Zuckergehalt pro 100 g/ml.",
+      "fr": "Teneur élevée en sucre pour 100 g/ml."
+    }
+  },
+  {
+    "rule_id": "multiple_sweeteners",
+    "category": "sweetener",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "sweeteners", "min": 2 },
+    "severity": "high",
+    "label": {
+      "el": "Πολλαπλά γλυκαντικά",
+      "en": "Multiple sweeteners",
+      "de": "Mehrere Süßstoffe",
+      "fr": "Plusieurs édulcorants"
+    },
+    "message": {
+      "el": "Περιέχει περισσότερα από ένα γλυκαντικά.",
+      "en": "Contains more than one sweetener.",
+      "de": "Enthält mehr als ein Süßungsmittel.",
+      "fr": "Contient plus d’un édulcorant."
+    }
+  },
+  {
+    "rule_id": "caffeine_present",
+    "category": "caffeine",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "caffeine", "min": 1 },
+    "severity": "medium",
+    "label": {
+      "el": "Καφεΐνη",
+      "en": "Caffeine",
+      "de": "Koffein",
+      "fr": "Caféine"
+    },
+    "message": {
+      "el": "Περιέχει καφεΐνη.",
+      "en": "Contains caffeine.",
+      "de": "Enthält Koffein.",
+      "fr": "Contient de la caféine."
+    }
+  },
+  {
+    "rule_id": "preservatives_present",
+    "category": "preservative",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "preservatives", "min": 1 },
+    "severity": "medium",
+    "label": {
+      "el": "Συντηρητικά",
+      "en": "Preservatives",
+      "de": "Konservierungsstoffe",
+      "fr": "Conservateurs"
+    },
+    "message": {
+      "el": "Περιέχει συντηρητικά.",
+      "en": "Contains preservatives.",
+      "de": "Enthält Konservierungsstoffe.",
+      "fr": "Contient des conservateurs."
+    }
+  },
+  {
+    "rule_id": "multiple_additives",
+    "category": "additives",
+    "trigger_type": "e_number_count_min",
+    "trigger_conditions": { "min": 3 },
+    "severity": "medium",
+    "label": {
+      "el": "Πολλά πρόσθετα",
+      "en": "Multiple additives",
+      "de": "Mehrere Zusatzstoffe",
+      "fr": "Plusieurs additifs"
+    },
+    "message": {
+      "el": "Περιέχει αρκετά πρόσθετα ή αριθμούς E.",
+      "en": "Contains several additives or E-numbers.",
+      "de": "Enthält mehrere Zusatzstoffe oder E-Nummern.",
+      "fr": "Contient plusieurs additifs ou numéros E."
+    }
+  },
+  {
+    "rule_id": "colorants_present",
+    "category": "colorant",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "colorants", "min": 1 },
+    "severity": "medium",
+    "label": {
+      "el": "Χρωστικές",
+      "en": "Colorants",
+      "de": "Farbstoffe",
+      "fr": "Colorants"
+    },
+    "message": {
+      "el": "Περιέχει χρωστικές.",
+      "en": "Contains colorants.",
+      "de": "Enthält Farbstoffe.",
+      "fr": "Contient des colorants."
+    }
+  },
+  {
+    "rule_id": "flavourings_present",
+    "category": "flavouring",
+    "trigger_type": "marker_min",
+    "trigger_conditions": { "marker": "flavourings", "min": 1 },
+    "severity": "low",
+    "label": {
+      "el": "Αρώματα",
+      "en": "Flavourings",
+      "de": "Aromen",
+      "fr": "Arômes"
+    },
+    "message": {
+      "el": "Περιέχει αρώματα.",
+      "en": "Contains flavourings.",
+      "de": "Enthält Aromen.",
+      "fr": "Contient des arômes."
+    }
+  },
+  {
+    "rule_id": "acidifiers_present",
+    "category": "acidifier",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["acidifier", "citric acid", "phosphoric acid", "malic acid", "lactic acid", "sodium citrate"],
+    "severity": "low",
+    "label": {
+      "el": "Ρύθμιση οξύτητας",
+      "en": "Acidity control",
+      "de": "Säureregulierung",
+      "fr": "Réglage de l’acidité"
+    },
+    "message": {
+      "el": "Περιέχει συστατικά για ρύθμιση οξύτητας.",
+      "en": "Contains ingredients used to control acidity.",
+      "de": "Enthält Zutaten zur Regulierung der Säure.",
+      "fr": "Contient des ingrédients utilisés pour ajuster l’acidité."
+    }
+  },
+  {
+    "rule_id": "highly_processed_pattern",
+    "category": "processing",
+    "trigger_type": "processing_label_any",
+    "trigger_terms": ["Highly processed"],
+    "severity": "high",
+    "label": {
+      "el": "Πολύ επεξεργασμένο",
+      "en": "Highly processed",
+      "de": "Stark verarbeitet",
+      "fr": "Très transformé"
+    },
+    "message": {
+      "el": "Το μοτίβο συστατικών παραπέμπει σε πολύ επεξεργασμένο προϊόν.",
+      "en": "Ingredient pattern suggests a highly processed product.",
+      "de": "Das Zutatenmuster deutet auf ein stark verarbeitetes Produkt hin.",
+      "fr": "Le profil d’ingrédients suggère un produit très transformé."
+    }
+  },
+  {
+    "rule_id": "vitamin_mineral_fortification",
+    "category": "fortification",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["vitamins", "vitamin c", "vitamin b6", "vitamin b12", "niacin", "riboflavin", "thiamine", "biotin", "calcium", "magnesium", "potassium"],
+    "severity": "low",
+    "label": {
+      "el": "Εμπλουτισμός",
+      "en": "Fortification",
+      "de": "Anreicherung",
+      "fr": "Enrichissement"
+    },
+    "message": {
+      "el": "Περιέχει πρόσθετες βιταμίνες ή μέταλλα.",
+      "en": "Contains added vitamins or minerals.",
+      "de": "Enthält zugesetzte Vitamine oder Mineralstoffe.",
+      "fr": "Contient des vitamines ou minéraux ajoutés."
+    }
+  },
+  {
+    "rule_id": "carbonated_beverage_pattern",
+    "category": "carbonation",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["carbonated water", "carbon dioxide"],
+    "severity": "low",
+    "label": {
+      "el": "Ανθρακούχο",
+      "en": "Carbonated",
+      "de": "Kohlensäurehaltig",
+      "fr": "Gazeux"
+    },
+    "message": {
+      "el": "Μοιάζει με ανθρακούχο ποτό.",
+      "en": "Looks like a carbonated drink.",
+      "de": "Wirkt wie ein kohlensäurehaltiges Getränk.",
+      "fr": "Semble être une boisson gazeuse."
+    }
+  },
+  {
+    "rule_id": "syrup_sugar_indicators",
+    "category": "syrup",
+    "trigger_type": "canonical_any",
+    "trigger_terms": ["glucose syrup", "glucose-fructose syrup", "fructose-glucose syrup", "fructose syrup", "invert sugar syrup", "corn syrup", "sucrose", "glucose", "fructose"],
+    "severity": "medium",
+    "label": {
+      "el": "Σιρόπια ή απλά σάκχαρα",
+      "en": "Syrups or simple sugars",
+      "de": "Sirupe oder einfache Zucker",
+      "fr": "Sirops ou sucres simples"
+    },
+    "message": {
+      "el": "Περιέχει σιρόπια ή απλά σάκχαρα.",
+      "en": "Contains syrups or simple sugars.",
+      "de": "Enthält Sirupe oder einfache Zucker.",
+      "fr": "Contient des sirops ou des sucres simples."
+    }
+  },
+  {
+    "rule_id": "salt_indicator",
+    "category": "salt",
+    "trigger_type": "data_threshold",
+    "trigger_conditions": { "path": "nutrition_per_100.salt_g", "gte": 1 },
+    "severity": "medium",
+    "label": {
+      "el": "Αλάτι",
+      "en": "Salt",
+      "de": "Salz",
+      "fr": "Sel"
+    },
+    "message": {
+      "el": "Έχει σχετικά υψηλή περιεκτικότητα σε αλάτι ανά 100 g.",
+      "en": "Relatively high salt per 100 g.",
+      "de": "Relativ hoher Salzgehalt pro 100 g.",
+      "fr": "Teneur en sel relativement élevée pour 100 g."
+    }
+  }
+]

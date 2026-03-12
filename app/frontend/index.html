@@ -287,6 +287,7 @@
         processing: "Processing",
         caffeine: "Caffeine",
         sweeteners: "Sweeteners",
+        insights_title: "Nutrition insights",
         e_numbers: "E-numbers",
         none: "none",
         e_explained: "E-numbers explained",
@@ -382,6 +383,7 @@
         processing: "Επεξεργασία",
         caffeine: "Καφεΐνη",
         sweeteners: "Γλυκαντικά",
+        insights_title: "Διατροφικά σημεία",
         e_numbers: "Αριθμοί E",
         none: "κανένα",
         e_explained: "Επεξήγηση αριθμών E",
@@ -477,6 +479,7 @@
         processing: "Verarbeitung",
         caffeine: "Koffein",
         sweeteners: "Süßstoffe",
+        insights_title: "Ernährungshinweise",
         e_numbers: "E-Nummern",
         none: "keine",
         e_explained: "E-Nummern erklärt",
@@ -572,6 +575,7 @@
         processing: "Transformation",
         caffeine: "Caféine",
         sweeteners: "Édulcorants",
+        insights_title: "Repères nutritionnels",
         e_numbers: "Numéros E",
         none: "aucun",
         e_explained: "Numéros E expliqués",
@@ -668,6 +672,7 @@
 
     const INGREDIENT_GLOSSARY_URLS = ["/static/ingredient_glossary.json"];
     const E_NUMBER_KB_URLS = ["/static/e_number_knowledge_base.json"];
+    const NUTRITION_INSIGHT_RULES_URLS = ["/static/nutrition_insight_rules.json"];
     let ingredientGlossary = null;
     let ingredientGlossaryEntries = null;
     let ingredientGlossaryAliasRaw = null;
@@ -684,6 +689,12 @@
     let eNumberKnowledgeBaseWarned = false;
     let eNumberKnowledgeBaseResolvedUrl = null;
     let eNumberKnowledgeBaseLoadedLogged = false;
+    let nutritionInsightRules = null;
+    let nutritionInsightRulesPromise = null;
+    let nutritionInsightRulesLoadFailed = false;
+    let nutritionInsightRulesWarned = false;
+    let nutritionInsightRulesResolvedUrl = null;
+    let nutritionInsightRulesLoadedLogged = false;
     const INGREDIENT_GLOSSARY_UNMATCHED_KEY = "nf_glossary_unmatched_v2";
     let ingredientTranslationStats = { translated: 0, total: 0 };
 
@@ -1014,6 +1025,56 @@
       return eNumberKnowledgeBase[normalized] || null;
     }
 
+    async function ensureNutritionInsightRulesLoaded(){
+      if (Array.isArray(nutritionInsightRules) && nutritionInsightRules.length) return true;
+      if (nutritionInsightRulesPromise) return nutritionInsightRulesPromise;
+      nutritionInsightRulesLoadFailed = false;
+      nutritionInsightRulesPromise = (async () => {
+        const triedUrls = [];
+        let lastError = null;
+
+        for (const candidateUrl of NUTRITION_INSIGHT_RULES_URLS){
+          const requestUrl = `${candidateUrl}${candidateUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+          triedUrls.push(candidateUrl);
+          try {
+            const response = await fetch(requestUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const obj = await response.json();
+            if (!Array.isArray(obj) || !obj.length) throw new Error("Nutrition insight rules JSON empty");
+
+            nutritionInsightRules = obj;
+            nutritionInsightRulesResolvedUrl = candidateUrl;
+            nutritionInsightRulesLoadFailed = false;
+            if (!nutritionInsightRulesLoadedLogged){
+              console.debug(`[nutrition-insight-rules] loaded from ${candidateUrl} with ${obj.length} rules`);
+              nutritionInsightRulesLoadedLogged = true;
+            }
+            render();
+            return true;
+          } catch (err) {
+            lastError = `${candidateUrl}: ${err && err.message ? err.message : err}`;
+          }
+        }
+
+        throw new Error(`Tried ${triedUrls.join(", ")}; final error: ${lastError || "unknown"}`);
+      })()
+        .catch((err) => {
+          nutritionInsightRules = [];
+          nutritionInsightRulesResolvedUrl = null;
+          nutritionInsightRulesLoadFailed = true;
+          if (!nutritionInsightRulesWarned){
+            console.warn(`[nutrition-insight-rules] Failed to load rules from ${NUTRITION_INSIGHT_RULES_URLS.join(", ")}. ${err && err.message ? err.message : err}`);
+            nutritionInsightRulesWarned = true;
+          }
+          render();
+          return false;
+        })
+        .finally(() => {
+          nutritionInsightRulesPromise = null;
+        });
+      return nutritionInsightRulesPromise;
+    }
+
     function resolveIngredientGlossaryEntry(value, captureContext = null){
       for (const candidate of _ingredientLookupVariants(value)){
         const rawKey = _ingredientLookupKey(candidate);
@@ -1029,7 +1090,9 @@
           || "";
         if (canonical) return (ingredientGlossaryEntries || {})[canonical] || null;
       }
-      _recordUnmatchedIngredient(value, captureContext || {});
+      if (!(captureContext === false || captureContext?.suppress_capture)) {
+        _recordUnmatchedIngredient(value, captureContext || {});
+      }
       return null;
     }
 
@@ -1210,6 +1273,97 @@
       return `${t("ingredients_source_language")}: ${sourceLang}`;
     }
 
+    function _getValueByPath(obj, path){
+      return String(path || "").split(".").reduce((acc, key) => (
+        acc && typeof acc === "object" ? acc[key] : undefined
+      ), obj);
+    }
+
+    function buildNutritionInsightEvidence(data){
+      const ings = Array.isArray(data?.ingredients) ? data.ingredients : [];
+      const canonicalCounts = {};
+      const normalizedTerms = [];
+
+      for (const ing of ings){
+        const raw = String(ing?.name || "").trim();
+        if (!raw) continue;
+        normalizedTerms.push(_ingredientLookupKey(raw));
+        const entry = resolveIngredientGlossaryEntry(raw, false);
+        if (entry?.canonical){
+          canonicalCounts[entry.canonical] = (canonicalCounts[entry.canonical] || 0) + 1;
+        }
+      }
+
+      const eNumbers = new Set(
+        (Array.isArray(data?.ingredients_intelligence?.e_number_details) ? data.ingredients_intelligence.e_number_details : [])
+          .map(ed => _normalizeECode(ed?.code || ""))
+          .filter(Boolean)
+      );
+
+      return {
+        canonicalCounts,
+        normalizedTerms,
+        eNumbers,
+        markers: data?.ingredients_intelligence?.markers || {},
+        processingLabel: String(data?.ingredients_intelligence?.processing_label || "").trim(),
+        data
+      };
+    }
+
+    function evaluateNutritionInsights(data){
+      if (!Array.isArray(nutritionInsightRules) || !nutritionInsightRules.length) return [];
+
+      const evidence = buildNutritionInsightEvidence(data);
+      const severityRank = { high: 3, medium: 2, low: 1, info: 0 };
+
+      const matchesRule = (rule) => {
+        const conditions = rule?.trigger_conditions || {};
+        const triggerTerms = Array.isArray(rule?.trigger_terms) ? rule.trigger_terms : [];
+        switch (rule?.trigger_type){
+          case "marker_min":
+            return Number(evidence.markers?.[conditions.marker] || 0) >= Number(conditions.min || 1);
+          case "e_number_any":
+            return triggerTerms.some(code => evidence.eNumbers.has(_normalizeECode(code)));
+          case "e_number_count_min":
+            return evidence.eNumbers.size >= Number(conditions.min || 1);
+          case "canonical_any":
+            return triggerTerms.some(term => Number(evidence.canonicalCounts[_ingredientLookupKey(term)] || 0) > 0);
+          case "canonical_count_min":
+            return triggerTerms.reduce((sum, term) => sum + Number(evidence.canonicalCounts[_ingredientLookupKey(term)] || 0), 0) >= Number(conditions.min || 1);
+          case "data_threshold": {
+            const value = _getValueByPath(evidence.data, conditions.path);
+            const numeric = Number(value);
+            if (Number.isNaN(numeric)) return false;
+            if (conditions.gte !== undefined && numeric < Number(conditions.gte)) return false;
+            if (conditions.lte !== undefined && numeric > Number(conditions.lte)) return false;
+            return true;
+          }
+          case "processing_label_any": {
+            const current = _ingredientLookupKey(evidence.processingLabel);
+            return triggerTerms.some(term => _ingredientLookupKey(term) === current);
+          }
+          default:
+            return false;
+        }
+      };
+
+      return nutritionInsightRules
+        .filter(rule => rule && matchesRule(rule))
+        .map(rule => ({
+          rule_id: rule.rule_id,
+          category: rule.category || "general",
+          severity: rule.severity || "info",
+          label: String(rule?.label?.[lang] || rule?.label?.en || rule?.label?.el || "").trim(),
+          message: String(rule?.message?.[lang] || rule?.message?.en || rule?.message?.el || "").trim()
+        }))
+        .filter(item => item.message)
+        .sort((a, b) => {
+          const bySeverity = Number(severityRank[b.severity] || 0) - Number(severityRank[a.severity] || 0);
+          if (bySeverity !== 0) return bySeverity;
+          return String(a.rule_id || "").localeCompare(String(b.rule_id || ""));
+        });
+    }
+
     function whoServingBlock(data){
       const who = data?.who_impact;
       if (!who) return ``;
@@ -1261,6 +1415,7 @@
       const label = intel?.processing_label;
       const langBadge = ingredientLanguageBadge(data);
       const unmatchedCaptureContext = _buildUnmatchedIngredientContext(data);
+      const nutritionInsights = evaluateNutritionInsights(data);
 
       const groups = {};
       for (const ing of ings){
@@ -1304,6 +1459,20 @@
             ${sweetPill}
             ${caffeinePill}
           </div>
+
+          ${nutritionInsights.length ? `
+            <div class="box" style="margin-top:12px;">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("insights_title")}</div>
+              ${nutritionInsights.map(insight => `
+                <div class="eRow">
+                  <div class="eLeft">
+                    ${insight.label ? `<b>${_escapeHtml(insight.label)}</b>` : ``}
+                    <small>${_escapeHtml(insight.message)}</small>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          ` : ``}
 
           <div class="split" style="margin-top:12px;">
             <div class="box">
@@ -1465,6 +1634,7 @@
         if (eDetails.length){
           ensureENumberKnowledgeBaseLoaded();
         }
+        ensureNutritionInsightRulesLoaded();
         const translateToggle = document.getElementById("translateIngredientsToggle");
         if (translateToggle){
           translateToggle.onchange = (e) => {
