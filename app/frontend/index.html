@@ -807,6 +807,14 @@
       return null;
     }
 
+    function localizeGlossaryValue(value, fallback = ""){
+      const raw = String(value || "").trim();
+      if (!raw) return fallback;
+      const entry = resolveIngredientGlossaryEntry(raw);
+      if (!entry) return fallback;
+      return entry.translations?.[lang] || entry.translations?.en || entry.translations?.el || fallback || raw;
+    }
+
     function ingredientDisplayName(name){
       const original = String(name || "").trim();
       if (!original) return { primary: "-", secondary: "", translated: false };
@@ -818,14 +826,10 @@
         return { primary: _escapeHtml(original), secondary: "", translated: false };
       }
 
-      const glossaryEntry = resolveIngredientGlossaryEntry(original);
-      if (!glossaryEntry) {
+      const translated = localizeGlossaryValue(original, "");
+      if (!translated) {
         return { primary: _escapeHtml(original), secondary: "", translated: false };
       }
-      const translated = glossaryEntry.translations?.[lang]
-        || glossaryEntry.translations?.en
-        || glossaryEntry.translations?.el
-        || original;
       const showSecondary = lang === "el" && _ingredientLookupKey(translated) !== _ingredientLookupKey(original);
       return {
         primary: _escapeHtml(translated),
@@ -836,10 +840,8 @@
 
     function localizedIngredientGroup(cls){
       const key = String(cls || "").trim().toLowerCase();
-      const glossaryEntry = resolveIngredientGlossaryEntry(key);
-      if (glossaryEntry){
-        return glossaryEntry.translations?.[lang] || glossaryEntry.translations?.en || cls || t("group_other");
-      }
+      const localized = localizeGlossaryValue(key, "");
+      if (localized) return localized;
       if (key === "acidifier") return t("group_acidifier");
       if (key === "colorant") return t("group_colorant");
       if (key === "flavoring" || key === "flavouring") return t("group_flavoring");
@@ -859,12 +861,22 @@
         .filter(Boolean);
 
       const localized = segments.map(part => {
-        const entry = resolveIngredientGlossaryEntry(part);
-        if (!entry) return part;
-        return entry.translations?.[lang] || entry.translations?.en || entry.translations?.el || part;
+        return localizeGlossaryValue(part, part);
       });
 
       return localized.join(" / ");
+    }
+
+    function localizeEAdditiveName(ed){
+      const name = String(ed?.name || "").trim();
+      if (!name) return t("additive_fallback");
+      return localizeGlossaryValue(name, name);
+    }
+
+    function localizeEAdditiveRole(ed){
+      const role = String(ed?.role || "").trim();
+      if (!role) return "";
+      return localizeGlossaryValue(role, localizedIngredientGroup(role));
     }
 
     const fmtNum = (x) => {
@@ -1009,10 +1021,10 @@
               ${eDetails.length ? eDetails.map(ed => `
                 <div class="eRow">
                   <div class="eLeft">
-                    <b>${ed.code || "E-"} - ${ed.name || t("additive_fallback")}</b>
+                    <b>${ed.code || "E-"} - ${localizeEAdditiveName(ed)}</b>
                     <small>${localizeEAdditiveMeaning(ed)}</small>
                   </div>
-                  <div class="eRole">${ed.role || ""}</div>
+                  <div class="eRole">${localizeEAdditiveRole(ed)}</div>
                 </div>
               `).join("") : `<div class="mini">${t("e_none")}</div>`}
               ${flags.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("flags")}</b><br/>${flags.map(f => `- ${f}`).join("<br/>")}</div>` : ``}
