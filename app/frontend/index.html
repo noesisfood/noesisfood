@@ -259,6 +259,12 @@
       compareTargetKey:"",
       recoveryOpen:false,
       recoveryPhotoMessage:"",
+      photoForm:{
+        ingredient_image_data_url:"",
+        nutrition_image_data_url:"",
+        ingredient_file_name:"",
+        nutrition_file_name:"",
+      },
       manualForm:{
         name:"",
         brand:"",
@@ -395,6 +401,8 @@
         err_unanalyzable: "This product could not be analyzed.",
         err_missing_data: "Key data required for product assessment is missing.",
         err_found_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
+        err_photo_extract: "Could not extract enough data from the photo.",
+        err_photo_retry: "Try a clearer photo with better lighting.",
         err_network: "Network error. Is the server running?",
         fallback_title: "Alternative analysis path",
         fallback_not_found: "This product was not found in the available database.",
@@ -406,7 +414,13 @@
         fallback_ingredient_photo: "Ingredient photo",
         fallback_nutrition_photo: "Nutrition photo",
         fallback_manual_entry: "Manual entry",
-        fallback_photo_note: "Photo fallback is not ready yet. You can continue now with manual entry.",
+        fallback_photo_note: "Photo analysis is available as an alternative path.",
+        photo_ingredient_title: "Analysis from ingredient photo",
+        photo_nutrition_title: "Analysis from nutrition table photo",
+        photo_processing: "Extracting data from photo...",
+        photo_ready_ingredient: "Ingredient photo added.",
+        photo_ready_nutrition: "Nutrition table photo added.",
+        photo_source_note: "Analysis uses uploaded label data.",
         manual_title: "Manual product entry",
         manual_name: "Product name",
         manual_brand: "Brand",
@@ -434,6 +448,7 @@
         note_curated: "From curated data",
         note_openfoodfacts: "From OpenFoodFacts",
         note_manual: "From manual entry",
+        note_photo: "From photo analysis",
         flag_additives: "Additives / E-numbers detected ({count})",
         flag_sweeteners: "Sweeteners present ({count})",
         flag_preservatives: "Preservatives present ({count})",
@@ -568,6 +583,8 @@
         err_unanalyzable: "Δεν ήταν δυνατή η ανάλυση αυτού του προϊόντος.",
         err_missing_data: "Λείπουν βασικά στοιχεία για την αξιολόγηση του προϊόντος.",
         err_found_incomplete: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν ακόμη για αξιολόγηση.",
+        err_photo_extract: "Δεν ήταν δυνατή η εξαγωγή αρκετών στοιχείων από τη φωτογραφία.",
+        err_photo_retry: "Δοκίμασε μια πιο καθαρή φωτογραφία με καλό φωτισμό.",
         err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
         fallback_title: "Εναλλακτική πορεία ανάλυσης",
         fallback_not_found: "Το προϊόν δεν βρέθηκε στη διαθέσιμη βάση δεδομένων.",
@@ -579,7 +596,13 @@
         fallback_ingredient_photo: "Φωτογραφία συστατικών",
         fallback_nutrition_photo: "Φωτογραφία διατροφικού πίνακα",
         fallback_manual_entry: "Χειροκίνητη εισαγωγή",
-        fallback_photo_note: "Η ανάλυση από φωτογραφία δεν είναι ακόμη έτοιμη. Μπορείς να συνεχίσεις τώρα με χειροκίνητη εισαγωγή.",
+        fallback_photo_note: "Η ανάλυση από φωτογραφία είναι διαθέσιμη ως εναλλακτική διαδρομή.",
+        photo_ingredient_title: "Ανάλυση από φωτογραφία συστατικών",
+        photo_nutrition_title: "Ανάλυση από φωτογραφία διατροφικού πίνακα",
+        photo_processing: "Γίνεται εξαγωγή στοιχείων από τη φωτογραφία...",
+        photo_ready_ingredient: "Προστέθηκε φωτογραφία συστατικών.",
+        photo_ready_nutrition: "Προστέθηκε φωτογραφία διατροφικού πίνακα.",
+        photo_source_note: "Η ανάλυση βασίζεται σε δεδομένα από ανεβασμένη ετικέτα.",
         manual_title: "Χειροκίνητη εισαγωγή προϊόντος",
         manual_name: "Όνομα προϊόντος",
         manual_brand: "Μάρκα",
@@ -607,6 +630,7 @@
         note_curated: "Από επιμελημένα δεδομένα",
         note_openfoodfacts: "Από το OpenFoodFacts",
         note_manual: "Από χειροκίνητη εισαγωγή",
+        note_photo: "Από ανάλυση φωτογραφίας",
         flag_additives: "Εντοπίστηκαν πρόσθετα / αριθμοί E ({count})",
         flag_sweeteners: "Παρουσία γλυκαντικών ({count})",
         flag_preservatives: "Παρουσία συντηρητικών ({count})",
@@ -741,6 +765,8 @@
         err_unanalyzable: "Dieses Produkt konnte nicht analysiert werden.",
         err_missing_data: "Für die Bewertung fehlen wichtige Produktdaten.",
         err_found_incomplete: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen noch nicht für eine Bewertung aus.",
+        err_photo_extract: "Aus dem Foto konnten nicht genügend Daten extrahiert werden.",
+        err_photo_retry: "Versuche es mit einem klareren Foto bei besserem Licht.",
         err_network: "Netzwerkfehler. Läuft der Server?",
         fallback_title: "Alternativer Analyseweg",
         fallback_not_found: "Dieses Produkt wurde in der verfügbaren Datenbank nicht gefunden.",
@@ -752,7 +778,13 @@
         fallback_ingredient_photo: "Zutatenfoto",
         fallback_nutrition_photo: "Nährwertfoto",
         fallback_manual_entry: "Manuelle Eingabe",
-        fallback_photo_note: "Die Foto-Auswertung ist noch nicht bereit. Du kannst jetzt mit manueller Eingabe fortfahren.",
+        fallback_photo_note: "Die Foto-Analyse ist als alternativer Weg verfügbar.",
+        photo_ingredient_title: "Analyse aus Zutatenfoto",
+        photo_nutrition_title: "Analyse aus Nährwerttabellenfoto",
+        photo_processing: "Daten werden aus dem Foto extrahiert...",
+        photo_ready_ingredient: "Zutatenfoto hinzugefügt.",
+        photo_ready_nutrition: "Nährwertfoto hinzugefügt.",
+        photo_source_note: "Die Analyse nutzt hochgeladene Etikettendaten.",
         manual_title: "Manuelle Produkteingabe",
         manual_name: "Produktname",
         manual_brand: "Marke",
@@ -780,6 +812,7 @@
         note_curated: "Aus kuratierten Daten",
         note_openfoodfacts: "Von OpenFoodFacts",
         note_manual: "Aus manueller Eingabe",
+        note_photo: "Aus Fotoanalyse",
         flag_additives: "Zusatzstoffe / E-Nummern erkannt ({count})",
         flag_sweeteners: "Süßstoffe vorhanden ({count})",
         flag_preservatives: "Konservierungsstoffe vorhanden ({count})",
@@ -914,6 +947,8 @@
         err_unanalyzable: "Ce produit n’a pas pu être analysé.",
         err_missing_data: "Des données essentielles manquent pour évaluer ce produit.",
         err_found_incomplete: "Le produit a été trouvé, mais les données disponibles ne suffisent pas encore pour une évaluation.",
+        err_photo_extract: "Impossible d’extraire suffisamment de données à partir de la photo.",
+        err_photo_retry: "Essayez avec une photo plus nette et mieux éclairée.",
         err_network: "Erreur réseau. Le serveur est-il démarré ?",
         fallback_title: "Parcours d’analyse alternatif",
         fallback_not_found: "Ce produit n’a pas été trouvé dans la base de données disponible.",
@@ -925,7 +960,13 @@
         fallback_ingredient_photo: "Photo des ingrédients",
         fallback_nutrition_photo: "Photo du tableau nutritionnel",
         fallback_manual_entry: "Saisie manuelle",
-        fallback_photo_note: "L’analyse par photo n’est pas encore prête. Vous pouvez continuer maintenant avec la saisie manuelle.",
+        fallback_photo_note: "L’analyse par photo est disponible comme voie alternative.",
+        photo_ingredient_title: "Analyse à partir d’une photo des ingrédients",
+        photo_nutrition_title: "Analyse à partir d’une photo du tableau nutritionnel",
+        photo_processing: "Extraction des données de la photo...",
+        photo_ready_ingredient: "Photo des ingrédients ajoutée.",
+        photo_ready_nutrition: "Photo du tableau nutritionnel ajoutée.",
+        photo_source_note: "L’analyse utilise des données d’étiquette téléchargées.",
         manual_title: "Saisie manuelle du produit",
         manual_name: "Nom du produit",
         manual_brand: "Marque",
@@ -953,6 +994,7 @@
         note_curated: "Source : données curées",
         note_openfoodfacts: "Source : OpenFoodFacts",
         note_manual: "Source : saisie manuelle",
+        note_photo: "Source : analyse photo",
         flag_additives: "Additifs / numéros E détectés ({count})",
         flag_sweeteners: "Édulcorants présents ({count})",
         flag_preservatives: "Conservateurs présents ({count})",
@@ -1012,6 +1054,7 @@
       const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (code === "INVALID_BARCODE" || status === 400) return t("err_invalid_barcode");
       if (code === "PRODUCT_NOT_FOUND" || status === 404) return t("err_not_found");
+      if (code === "PHOTO_EXTRACTION_UNAVAILABLE" || code === "PHOTO_EXTRACTION_FAILED") return `${t("err_photo_extract")} ${t("err_photo_retry")}`;
       if (code === "MISSING_KEY_DATA" && lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
       if (code === "MISSING_KEY_DATA") return t("err_missing_data");
       if (lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
@@ -1100,6 +1143,18 @@
           <b>${t("partial_assessment")}</b><br/>${t("partial_assessment_note")}<br/>
           ${t("confidence")}: <b>${_escapeHtml(confidenceTier)}</b><br/>
           <span class="mini">${t("partial_missing_data")}${missing.length ? ` (${_escapeHtml(missing.join(", "))})` : ``}</span>
+        </div>
+      `;
+    }
+
+    function renderPhotoExtractionNotice(data){
+      const photoMeta = data?.photo_extraction || data?.meta?.photo_extraction || null;
+      if (!photoMeta || typeof photoMeta !== "object") return "";
+      const confidenceTier = localizedConfidenceTier(photoMeta?.confidence || "");
+      return `
+        <div class="ok" style="margin-top:12px;">
+          <b>${t("photo_source_note")}</b><br/>
+          ${t("confidence")}: <b>${_escapeHtml(confidenceTier)}</b>
         </div>
       `;
     }
@@ -1199,6 +1254,67 @@
       }catch(_e){
         state.error = t("err_network");
         state.loading = false;
+        render();
+      }
+    }
+
+    function readFileAsDataUrl(file){
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("file_read_failed"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function doPhotoAnalysis(){
+      state.loading = true;
+      state.error = "";
+      state.errorCode = "";
+      state.recoveryPhotoMessage = t("photo_processing");
+      render();
+      try{
+        const existingProduct = state.data?.product || {};
+        const payload = {
+          ingredient_image_data_url: state.photoForm?.ingredient_image_data_url || "",
+          nutrition_image_data_url: state.photoForm?.nutrition_image_data_url || "",
+          existing_product: {
+            name: existingProduct?.name || "",
+            brand: existingProduct?.brand || "",
+            categories: existingProduct?.categories || [],
+          },
+          timestamp: Date.now(),
+        };
+        const res = await fetch(`/scan/photo?lang=${lang}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok || data?.error){
+          state.error = localizeScanError(data, res.status);
+          state.errorCode = scanErrorCode(data, res.status);
+          state.loading = false;
+          state.recoveryOpen = true;
+          state.recoveryPhotoMessage = t("err_photo_retry");
+          render();
+          return;
+        }
+        state.data = data;
+        state.error = "";
+        state.errorCode = "";
+        state.loading = false;
+        state.recoveryOpen = false;
+        state.recoveryPhotoMessage = "";
+        _storeRecentProduct(data, data?.key || "photo:entry");
+        _storeAnalysisHistory(data, data?.key || "photo:entry");
+        step = 2;
+        render();
+      }catch(_e){
+        state.error = t("err_network");
+        state.loading = false;
+        state.recoveryOpen = true;
+        state.recoveryPhotoMessage = t("err_photo_retry");
         render();
       }
     }
@@ -1906,6 +2022,7 @@
       if (raw === "From OpenFoodFacts") return t("note_openfoodfacts");
       if (raw === "From curated") return t("note_curated");
       if (raw === "From manual") return t("note_manual");
+      if (raw === "From photo") return t("note_photo");
       return raw;
     }
 
@@ -2655,18 +2772,44 @@
         const manualCancelBtn = document.getElementById("manualCancelBtn");
         if (ingredientPhotoBtn && ingredientPhotoInput){
           ingredientPhotoBtn.onclick = () => ingredientPhotoInput.click();
-          ingredientPhotoInput.onchange = () => {
-            state.recoveryPhotoMessage = t("fallback_photo_note");
-            state.recoveryOpen = true;
-            render();
+          ingredientPhotoInput.onchange = async () => {
+            const file = ingredientPhotoInput.files && ingredientPhotoInput.files[0];
+            if (!file) return;
+            try{
+              state.photoForm.ingredient_image_data_url = await readFileAsDataUrl(file);
+              state.photoForm.ingredient_file_name = String(file.name || "");
+              state.recoveryPhotoMessage = t("photo_ready_ingredient");
+              state.recoveryOpen = true;
+              render();
+              await doPhotoAnalysis();
+            }catch(_e){
+              state.recoveryPhotoMessage = t("err_photo_retry");
+              state.recoveryOpen = true;
+              render();
+            }finally{
+              ingredientPhotoInput.value = "";
+            }
           };
         }
         if (nutritionPhotoBtn && nutritionPhotoInput){
           nutritionPhotoBtn.onclick = () => nutritionPhotoInput.click();
-          nutritionPhotoInput.onchange = () => {
-            state.recoveryPhotoMessage = t("fallback_photo_note");
-            state.recoveryOpen = true;
-            render();
+          nutritionPhotoInput.onchange = async () => {
+            const file = nutritionPhotoInput.files && nutritionPhotoInput.files[0];
+            if (!file) return;
+            try{
+              state.photoForm.nutrition_image_data_url = await readFileAsDataUrl(file);
+              state.photoForm.nutrition_file_name = String(file.name || "");
+              state.recoveryPhotoMessage = t("photo_ready_nutrition");
+              state.recoveryOpen = true;
+              render();
+              await doPhotoAnalysis();
+            }catch(_e){
+              state.recoveryPhotoMessage = t("err_photo_retry");
+              state.recoveryOpen = true;
+              render();
+            }finally{
+              nutritionPhotoInput.value = "";
+            }
           };
         }
         if (manualEntryBtn){
@@ -2748,6 +2891,7 @@
             </div>
             ${renderPartialLookupNotice(d)}
             ${renderAnalysisStateNotice(d)}
+            ${renderPhotoExtractionNotice(d)}
             ${buildWhyScoreHTML(d)}
             ${whoServingBlock(d)}
             <div class="section" style="margin-top:12px;">
@@ -2870,6 +3014,7 @@
           state.compareTargetKey = "";
           state.recoveryOpen = false;
           state.recoveryPhotoMessage = "";
+          state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
           render();
         };
       }
@@ -2895,6 +3040,7 @@
       state.error = "";
       state.errorCode = "";
       state.recoveryPhotoMessage = "";
+      state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
       render();
       try{
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);

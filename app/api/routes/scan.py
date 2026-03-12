@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
-from app.services.scanner_service import analyze_manual_product, scan_product
+from app.services.scanner_service import analyze_manual_product, analyze_photo_product, scan_product
 
 logger = logging.getLogger("noesisfood.scan")
 
@@ -22,6 +22,10 @@ def _error_status(data: dict) -> int:
     if code == "MISSING_KEY_DATA":
         return 422
     if code == "ANALYSIS_UNAVAILABLE":
+        return 422
+    if code == "PHOTO_EXTRACTION_UNAVAILABLE":
+        return 422
+    if code == "PHOTO_EXTRACTION_FAILED":
         return 422
     return 400
 
@@ -62,5 +66,24 @@ async def scan_manual_endpoint(payload: dict = Body(default={}), lang: str = Que
             content={
                 "error": "This product could not be analyzed.",
                 "error_code": "ANALYSIS_UNAVAILABLE",
+            },
+        )
+
+
+@router.post("/scan/photo")
+async def scan_photo_endpoint(payload: dict = Body(default={}), lang: str = Query("en")):
+    try:
+        lang = lang if lang in {"el", "en", "de", "fr"} else "en"
+        data = await analyze_photo_product(payload or {}, lang=lang)
+        if isinstance(data, dict) and data.get("error"):
+            return JSONResponse(status_code=_error_status(data), content=data)
+        return data
+    except Exception:
+        logger.exception("Photo scan failed")
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "This product could not be analyzed.",
+                "error_code": "PHOTO_EXTRACTION_FAILED",
             },
         )

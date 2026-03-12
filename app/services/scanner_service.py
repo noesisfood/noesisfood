@@ -10,10 +10,13 @@ NoesisFood - Scanner Service (WHO-first + v3_hybrid_pro)
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+import httpx
 
 from app.services.openfoodfacts_service import fetch_off_product
 from app.services.product_normalizer import normalize_product
@@ -38,6 +41,9 @@ WHO_SALT_G_PER_DAY = 5.0
 WHO_SATFAT_G_PER_DAY_PROXY = 20.0
 
 SUPPORTED_LANGS = {"el", "en", "de", "fr"}
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses").strip()
+OPENAI_VISION_MODEL = os.getenv("OPENAI_VISION_MODEL", "gpt-4.1-mini").strip()
 
 I18N_EXPLAIN: Dict[str, Dict[str, str]] = {
     "en": {
@@ -1352,13 +1358,125 @@ def _lookup_missing_fields(normalized: Dict[str, Any], raw: Optional[Dict[str, A
     return missing
 
 
-def _manual_ingredients_from_text(text: Any) -> List[Dict[str, Any]]:
+def _manual_ingredients_from_text(text: Any, note: str = "From manual") -> List[Dict[str, Any]]:
     parts = [
         part.strip()
         for part in re.split(r"[,\n;]", str(text or ""))
         if part and str(part).strip()
     ]
-    return [{"name": part, "class": "U", "note": "From manual"} for part in parts]
+    return [{"name": part, "class": "U", "note": note} for part in parts]
+
+
+def _extract_json_object(text: str) -> Optional[Dict[str, Any]]:
+    s = str(text or "").strip()
+    if not s:
+        return None
+    try:
+        parsed = json.loads(s)
+        return parsed if isinstance(parsed, dict) else None
+    except Exception:
+        pass
+    m = re.search(r"\{[\s\S]*\}", s)
+    if not m:
+        return None
+    try:
+        parsed = json.loads(m.group(0))
+        return parsed if isinstance(parsed, dict) else None
+    except Exception:
+        return None
+
+
+def _responses_output_text(payload: Dict[str, Any]) -> str:
+    if isinstance(payload.get("output_text"), str) and payload.get("output_text").strip():
+        return str(payload["output_text"])
+    chunks: List[str] = []
+    for item in _as_list(payload.get("output")):
+        if not isinstance(item, dict):
+            continue
+        for content in _as_list(item.get("content")):
+            if not isinstance(content, dict):
+                continue
+            text = content.get("text") or content.get("output_text")
+            if isinstance(text, str) and text.strip():
+                chunks.append(text.strip())
+    return "\n".join(chunks).strip()
+
+
+def _photo_extraction_unavailable() -> Dict[str, Any]:
+    err = _scan_error("PHOTO_EXTRACTION_UNAVAILABLE", "Photo extraction is not available.", 422)
+    err.update(_lookup_state_payload("found_but_incomplete"))
+    err["analysis_state"] = "insufficient_data"
+    err["analysis_confidence"] = "low"
+    return err
+
+
+async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, Any]:
+    if not OPENAI_API_KEY:
+        return _photo_extraction_unavailable()
+
+    ingredient_image = str(payload.get("ingredient_image_data_url") or "").strip()
+    nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
+    if not ingredient_image and not nutrition_image:
+        err = _scan_error("PHOTO_EXTRACTION_FAILED", "Could not extract enough data from the photo.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
+        return err
+
+    content: List[Dict[str, Any]] = [
+        {
+            "type": "input_text",
+            "text": (
+                "Extract product data from the provided label photos. "
+                "Return only a JSON object with keys: "
+                "product_name, brand, ingredients_text, categories, "
+                "nutrition_per_100 {unit, energy_kcal, sugar_g, salt_g, sat_fat_g, protein_g}, "
+                "confidence, extracted_fields, notes. "
+                "Use null for unknown values. categories must be an array of short strings. "
+                "ingredients_text must be a single cleaned string. confidence must be high, medium, or low. "
+                "If the image is unclear, still extract what is visible and note uncertainty."
+            ),
+        }
+    ]
+    if ingredient_image:
+        content.append({"type": "input_text", "text": "Ingredient label photo:"})
+        content.append({"type": "input_image", "image_url": ingredient_image})
+    if nutrition_image:
+        content.append({"type": "input_text", "text": "Nutrition table photo:"})
+        content.append({"type": "input_image", "image_url": nutrition_image})
+
+    body = {
+        "model": OPENAI_VISION_MODEL,
+        "input": [{"role": "user", "content": content}],
+        "max_output_tokens": 900,
+    }
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=35.0) as client:
+            res = await client.post(OPENAI_RESPONSES_URL, headers=headers, json=body)
+    except Exception:
+        return _photo_extraction_unavailable()
+
+    if res.status_code >= 400:
+        return _photo_extraction_unavailable()
+
+    try:
+        data = res.json()
+    except Exception:
+        return _photo_extraction_unavailable()
+
+    parsed = _extract_json_object(_responses_output_text(data))
+    if not parsed:
+        err = _scan_error("PHOTO_EXTRACTION_FAILED", "Could not extract enough data from the photo.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete"))
+        err["analysis_state"] = "insufficient_data"
+        err["analysis_confidence"] = "low"
+        return err
+    return parsed
 
 
 def _analysis_mode(
@@ -1741,7 +1859,7 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
     unit = str(payload.get("unit") or "g").strip().lower()
     unit = "ml" if unit == "ml" else "g"
     ingredients_text = str(payload.get("ingredients_text") or "").strip()
-    ingredients = _manual_ingredients_from_text(ingredients_text)
+    ingredients = _manual_ingredients_from_text(ingredients_text, note=str(payload.get("ingredients_note") or "From manual"))
     nutrition = {
         "unit": unit,
         "sugar_g": _to_float(payload.get("sugar_g")),
@@ -1789,3 +1907,50 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
         lang=lang,
         rasff=[],
     )
+
+
+async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Dict[str, Any]:
+    lang = lang if lang in SUPPORTED_LANGS else "en"
+    payload = payload if isinstance(payload, dict) else {}
+    extracted = await _extract_photo_payload_with_ai(payload)
+    if isinstance(extracted, dict) and extracted.get("error"):
+        return extracted
+
+    nutrition = extracted.get("nutrition_per_100") if isinstance(extracted.get("nutrition_per_100"), dict) else {}
+    merged_payload = {
+        "name": str(extracted.get("product_name") or payload.get("name") or payload.get("product_name") or "").strip(),
+        "brand": str(extracted.get("brand") or payload.get("brand") or "").strip(),
+        "ingredients_text": str(extracted.get("ingredients_text") or payload.get("ingredients_text") or "").strip(),
+        "ingredients_note": "From photo",
+        "sugar_g": nutrition.get("sugar_g"),
+        "salt_g": nutrition.get("salt_g"),
+        "sat_fat_g": nutrition.get("sat_fat_g"),
+        "protein_g": nutrition.get("protein_g"),
+        "unit": str(nutrition.get("unit") or payload.get("unit") or "g").strip().lower() or "g",
+        "categories": extracted.get("categories") or payload.get("categories") or [],
+        "timestamp": payload.get("timestamp"),
+        "quantity": payload.get("quantity"),
+    }
+
+    if not merged_payload["name"]:
+        existing = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+        merged_payload["name"] = str(existing.get("name") or "").strip()
+        if not merged_payload["brand"]:
+            merged_payload["brand"] = str(existing.get("brand") or "").strip()
+        if not merged_payload["categories"]:
+            merged_payload["categories"] = existing.get("categories") or []
+
+    result = await analyze_manual_product(merged_payload, lang=lang)
+    if isinstance(result, dict) and not result.get("error"):
+        result["source"] = "photo"
+        result["matched_by"] = "photo_fallback"
+        result["photo_extraction"] = {
+            "confidence": str(extracted.get("confidence") or "low").strip().lower() or "low",
+            "extracted_fields": _as_list(extracted.get("extracted_fields")),
+            "notes": str(extracted.get("notes") or "").strip(),
+            "used_ingredient_photo": bool(str(payload.get("ingredient_image_data_url") or "").strip()),
+            "used_nutrition_photo": bool(str(payload.get("nutrition_image_data_url") or "").strip()),
+        }
+        if isinstance(result.get("meta"), dict):
+            result["meta"]["photo_extraction"] = result["photo_extraction"]
+    return result
