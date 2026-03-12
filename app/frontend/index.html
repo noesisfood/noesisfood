@@ -249,7 +249,27 @@
 
   <script>
     let step = 1;
-    let state = { key:"", loading:false, error:"", data:null, translateIngredients:false, compareTargetKey:"" };
+    let state = {
+      key:"",
+      loading:false,
+      error:"",
+      errorCode:"",
+      data:null,
+      translateIngredients:false,
+      compareTargetKey:"",
+      recoveryOpen:false,
+      recoveryPhotoMessage:"",
+      manualForm:{
+        name:"",
+        brand:"",
+        ingredients_text:"",
+        sugar_g:"",
+        salt_g:"",
+        sat_fat_g:"",
+        protein_g:"",
+        unit:"g",
+      }
+    };
     const supportedLangs = ["el", "en", "de", "fr"];
     const languageOptionLabels = { el: "EL", en: "EN", de: "DE", fr: "FR" };
     const RECENT_PRODUCTS_KEY = "nf_recent_products_v1";
@@ -366,6 +386,25 @@
         err_unanalyzable: "This product could not be analyzed.",
         err_missing_data: "Key data required for product assessment is missing.",
         err_network: "Network error. Is the server running?",
+        fallback_title: "Alternative analysis path",
+        fallback_not_found: "This product was not found in the available database.",
+        fallback_continue: "You can continue with an ingredient photo or manual data entry.",
+        fallback_alt: "Barcode-based analysis was not possible, but you can continue with an alternative method.",
+        fallback_ingredient_photo: "Ingredient photo",
+        fallback_nutrition_photo: "Nutrition photo",
+        fallback_manual_entry: "Manual entry",
+        fallback_photo_note: "Photo fallback is not ready yet. You can continue now with manual entry.",
+        manual_title: "Manual product entry",
+        manual_name: "Product name",
+        manual_brand: "Brand",
+        manual_ingredients: "Ingredients",
+        manual_sugar: "Sugar per 100",
+        manual_salt: "Salt per 100",
+        manual_sat_fat: "Sat. fat per 100",
+        manual_protein: "Protein per 100",
+        manual_unit: "Unit",
+        manual_submit: "Analyze manually",
+        manual_cancel: "Cancel",
         tier_na: "N/A",
         tier_excellent: "Excellent",
         tier_good: "Good",
@@ -381,6 +420,7 @@
         e_generic_meaning: "EU food additive code; primary role shown.",
         note_curated: "From curated data",
         note_openfoodfacts: "From OpenFoodFacts",
+        note_manual: "From manual entry",
         flag_additives: "Additives / E-numbers detected ({count})",
         flag_sweeteners: "Sweeteners present ({count})",
         flag_preservatives: "Preservatives present ({count})",
@@ -506,6 +546,25 @@
         err_unanalyzable: "Δεν ήταν δυνατή η ανάλυση αυτού του προϊόντος.",
         err_missing_data: "Λείπουν βασικά στοιχεία για την αξιολόγηση του προϊόντος.",
         err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
+        fallback_title: "Εναλλακτική πορεία ανάλυσης",
+        fallback_not_found: "Το προϊόν δεν βρέθηκε στη διαθέσιμη βάση δεδομένων.",
+        fallback_continue: "Μπορείς να συνεχίσεις με φωτογραφία συστατικών ή χειροκίνητη εισαγωγή στοιχείων.",
+        fallback_alt: "Η ανάλυση με barcode δεν ήταν δυνατή, αλλά μπορείς να συνεχίσεις εναλλακτικά.",
+        fallback_ingredient_photo: "Φωτογραφία συστατικών",
+        fallback_nutrition_photo: "Φωτογραφία διατροφικού πίνακα",
+        fallback_manual_entry: "Χειροκίνητη εισαγωγή",
+        fallback_photo_note: "Η ανάλυση από φωτογραφία δεν είναι ακόμη έτοιμη. Μπορείς να συνεχίσεις τώρα με χειροκίνητη εισαγωγή.",
+        manual_title: "Χειροκίνητη εισαγωγή προϊόντος",
+        manual_name: "Όνομα προϊόντος",
+        manual_brand: "Μάρκα",
+        manual_ingredients: "Συστατικά",
+        manual_sugar: "Ζάχαρη ανά 100",
+        manual_salt: "Αλάτι ανά 100",
+        manual_sat_fat: "Κορεσμένα ανά 100",
+        manual_protein: "Πρωτεΐνη ανά 100",
+        manual_unit: "Μονάδα",
+        manual_submit: "Χειροκίνητη ανάλυση",
+        manual_cancel: "Ακύρωση",
         tier_na: "N/A",
         tier_excellent: "Εξαιρετικό",
         tier_good: "Καλό",
@@ -521,6 +580,7 @@
         e_generic_meaning: "Κωδικός πρόσθετου τροφίμων στην ΕΕ· εμφανίζεται ο βασικός ρόλος.",
         note_curated: "Από επιμελημένα δεδομένα",
         note_openfoodfacts: "Από το OpenFoodFacts",
+        note_manual: "Από χειροκίνητη εισαγωγή",
         flag_additives: "Εντοπίστηκαν πρόσθετα / αριθμοί E ({count})",
         flag_sweeteners: "Παρουσία γλυκαντικών ({count})",
         flag_preservatives: "Παρουσία συντηρητικών ({count})",
@@ -646,6 +706,25 @@
         err_unanalyzable: "Dieses Produkt konnte nicht analysiert werden.",
         err_missing_data: "Für die Bewertung fehlen wichtige Produktdaten.",
         err_network: "Netzwerkfehler. Läuft der Server?",
+        fallback_title: "Alternativer Analyseweg",
+        fallback_not_found: "Dieses Produkt wurde in der verfügbaren Datenbank nicht gefunden.",
+        fallback_continue: "Du kannst mit einem Zutatenfoto oder manueller Eingabe fortfahren.",
+        fallback_alt: "Die Analyse per Barcode war nicht möglich, aber du kannst alternativ fortfahren.",
+        fallback_ingredient_photo: "Zutatenfoto",
+        fallback_nutrition_photo: "Nährwertfoto",
+        fallback_manual_entry: "Manuelle Eingabe",
+        fallback_photo_note: "Die Foto-Auswertung ist noch nicht bereit. Du kannst jetzt mit manueller Eingabe fortfahren.",
+        manual_title: "Manuelle Produkteingabe",
+        manual_name: "Produktname",
+        manual_brand: "Marke",
+        manual_ingredients: "Zutaten",
+        manual_sugar: "Zucker pro 100",
+        manual_salt: "Salz pro 100",
+        manual_sat_fat: "Ges. Fett pro 100",
+        manual_protein: "Protein pro 100",
+        manual_unit: "Einheit",
+        manual_submit: "Manuell analysieren",
+        manual_cancel: "Abbrechen",
         tier_na: "N/A",
         tier_excellent: "Exzellent",
         tier_good: "Gut",
@@ -661,6 +740,7 @@
         e_generic_meaning: "EU-Zusatzstoffcode; Hauptfunktion wird angezeigt.",
         note_curated: "Aus kuratierten Daten",
         note_openfoodfacts: "Von OpenFoodFacts",
+        note_manual: "Aus manueller Eingabe",
         flag_additives: "Zusatzstoffe / E-Nummern erkannt ({count})",
         flag_sweeteners: "Süßstoffe vorhanden ({count})",
         flag_preservatives: "Konservierungsstoffe vorhanden ({count})",
@@ -786,6 +866,25 @@
         err_unanalyzable: "Ce produit n’a pas pu être analysé.",
         err_missing_data: "Des données essentielles manquent pour évaluer ce produit.",
         err_network: "Erreur réseau. Le serveur est-il démarré ?",
+        fallback_title: "Parcours d’analyse alternatif",
+        fallback_not_found: "Ce produit n’a pas été trouvé dans la base de données disponible.",
+        fallback_continue: "Vous pouvez continuer avec une photo des ingrédients ou une saisie manuelle.",
+        fallback_alt: "L’analyse par code-barres n’a pas été possible, mais vous pouvez continuer autrement.",
+        fallback_ingredient_photo: "Photo des ingrédients",
+        fallback_nutrition_photo: "Photo du tableau nutritionnel",
+        fallback_manual_entry: "Saisie manuelle",
+        fallback_photo_note: "L’analyse par photo n’est pas encore prête. Vous pouvez continuer maintenant avec la saisie manuelle.",
+        manual_title: "Saisie manuelle du produit",
+        manual_name: "Nom du produit",
+        manual_brand: "Marque",
+        manual_ingredients: "Ingrédients",
+        manual_sugar: "Sucre pour 100",
+        manual_salt: "Sel pour 100",
+        manual_sat_fat: "Graisses sat. pour 100",
+        manual_protein: "Protéines pour 100",
+        manual_unit: "Unité",
+        manual_submit: "Analyser manuellement",
+        manual_cancel: "Annuler",
         tier_na: "N/A",
         tier_excellent: "Excellent",
         tier_good: "Bon",
@@ -801,6 +900,7 @@
         e_generic_meaning: "Code d’additif alimentaire de l’UE ; rôle principal affiché.",
         note_curated: "Source : données curées",
         note_openfoodfacts: "Source : OpenFoodFacts",
+        note_manual: "Source : saisie manuelle",
         flag_additives: "Additifs / numéros E détectés ({count})",
         flag_sweeteners: "Édulcorants présents ({count})",
         flag_preservatives: "Conservateurs présents ({count})",
@@ -864,6 +964,139 @@
       if (/product not found/i.test(rawError)) return t("err_not_found");
       if (/missing product id|invalid barcode|empty barcode/i.test(rawError)) return t("err_invalid_barcode");
       return rawError || t("err_unanalyzable");
+    }
+
+    function scanErrorCode(data, status){
+      const code = String(data?.error_code || "").toUpperCase();
+      if (code) return code;
+      if (status === 400) return "INVALID_BARCODE";
+      if (status === 404) return "PRODUCT_NOT_FOUND";
+      if (status === 422) return "ANALYSIS_UNAVAILABLE";
+      if (status === 502) return "ANALYSIS_UNAVAILABLE";
+      return "";
+    }
+
+    function isRecoverableScanFailure(code){
+      return ["PRODUCT_NOT_FOUND", "MISSING_KEY_DATA", "ANALYSIS_UNAVAILABLE"].includes(String(code || "").toUpperCase());
+    }
+
+    function renderRecoveryBlock(){
+      if (!isRecoverableScanFailure(state.errorCode)) return "";
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("fallback_title")}</div>
+          <div class="mini">${state.errorCode === "PRODUCT_NOT_FOUND" ? t("fallback_not_found") : t("fallback_alt")}</div>
+          <div class="mini" style="margin-top:6px;">${t("fallback_continue")}</div>
+          ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
+          <div class="btns">
+            <button class="ghost" id="ingredientPhotoBtn">${t("fallback_ingredient_photo")}</button>
+            <button class="ghost" id="nutritionPhotoBtn">${t("fallback_nutrition_photo")}</button>
+            <button class="primary" id="manualEntryBtn">${t("fallback_manual_entry")}</button>
+          </div>
+          ${state.recoveryOpen ? renderManualEntryForm() : ``}
+          <input id="ingredientPhotoInput" type="file" accept="image/*" style="display:none;" />
+          <input id="nutritionPhotoInput" type="file" accept="image/*" style="display:none;" />
+        </div>
+      `;
+    }
+
+    function renderManualEntryForm(){
+      const form = state.manualForm || {};
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("manual_title")}</div>
+          <div class="grid2">
+            <div>
+              <div class="mini">${t("manual_name")}</div>
+              <input id="manualName" value="${_escapeHtml(form.name || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_brand")}</div>
+              <input id="manualBrand" value="${_escapeHtml(form.brand || "")}" />
+            </div>
+            <div style="grid-column:1 / -1;">
+              <div class="mini">${t("manual_ingredients")}</div>
+              <textarea id="manualIngredients" style="width:100%;min-height:92px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);padding:12px;color:var(--text);outline:none;font-size:14px;">${_escapeHtml(form.ingredients_text || "")}</textarea>
+            </div>
+            <div>
+              <div class="mini">${t("manual_sugar")}</div>
+              <input id="manualSugar" value="${_escapeHtml(form.sugar_g || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_salt")}</div>
+              <input id="manualSalt" value="${_escapeHtml(form.salt_g || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_sat_fat")}</div>
+              <input id="manualSatFat" value="${_escapeHtml(form.sat_fat_g || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_protein")}</div>
+              <input id="manualProtein" value="${_escapeHtml(form.protein_g || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_unit")}</div>
+              <select id="manualUnit" class="langSel" style="width:100%;padding:12px;">
+                <option value="g" ${form.unit !== "ml" ? "selected" : ""}>g</option>
+                <option value="ml" ${form.unit === "ml" ? "selected" : ""}>ml</option>
+              </select>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="primary" id="manualSubmitBtn">${t("manual_submit")}</button>
+            <button class="ghost" id="manualCancelBtn">${t("manual_cancel")}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function readManualForm(){
+      return {
+        name: document.getElementById("manualName")?.value || "",
+        brand: document.getElementById("manualBrand")?.value || "",
+        ingredients_text: document.getElementById("manualIngredients")?.value || "",
+        sugar_g: document.getElementById("manualSugar")?.value || "",
+        salt_g: document.getElementById("manualSalt")?.value || "",
+        sat_fat_g: document.getElementById("manualSatFat")?.value || "",
+        protein_g: document.getElementById("manualProtein")?.value || "",
+        unit: document.getElementById("manualUnit")?.value || "g",
+        timestamp: Date.now(),
+      };
+    }
+
+    async function doManualAnalysis(){
+      state.manualForm = readManualForm();
+      state.loading = true;
+      state.error = "";
+      render();
+      try{
+        const res = await fetch(`/scan/manual?lang=${lang}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state.manualForm),
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok || data?.error){
+          state.error = localizeScanError(data, res.status);
+          state.errorCode = scanErrorCode(data, res.status);
+          state.loading = false;
+          state.recoveryOpen = true;
+          render();
+          return;
+        }
+        state.data = data;
+        state.error = "";
+        state.errorCode = "";
+        state.loading = false;
+        _storeRecentProduct(data, data?.key || "manual:entry");
+        _storeAnalysisHistory(data, data?.key || "manual:entry");
+        step = 2;
+        render();
+      }catch(_e){
+        state.error = t("err_network");
+        state.loading = false;
+        render();
+      }
     }
 
     function syncLanguageSelector(){
@@ -1568,6 +1801,7 @@
       if (!raw) return "";
       if (raw === "From OpenFoodFacts") return t("note_openfoodfacts");
       if (raw === "From curated") return t("note_curated");
+      if (raw === "From manual") return t("note_manual");
       return raw;
     }
 
@@ -2290,6 +2524,7 @@
                 <div class="btns">
                   <button class="primary" id="scanBtn">${state.loading ? t("scanning_btn") : t("scan_btn")}</button>
                 </div>
+                ${renderRecoveryBlock()}
               </div>
             </div>
             <div class="col">
@@ -2306,6 +2541,47 @@
         if (scanBtn && keyInput){
           scanBtn.onclick = () => doScan(keyInput.value);
           keyInput.onkeydown = (e) => { if (e.key === "Enter") doScan(keyInput.value); };
+        }
+        const ingredientPhotoBtn = document.getElementById("ingredientPhotoBtn");
+        const nutritionPhotoBtn = document.getElementById("nutritionPhotoBtn");
+        const ingredientPhotoInput = document.getElementById("ingredientPhotoInput");
+        const nutritionPhotoInput = document.getElementById("nutritionPhotoInput");
+        const manualEntryBtn = document.getElementById("manualEntryBtn");
+        const manualSubmitBtn = document.getElementById("manualSubmitBtn");
+        const manualCancelBtn = document.getElementById("manualCancelBtn");
+        if (ingredientPhotoBtn && ingredientPhotoInput){
+          ingredientPhotoBtn.onclick = () => ingredientPhotoInput.click();
+          ingredientPhotoInput.onchange = () => {
+            state.recoveryPhotoMessage = t("fallback_photo_note");
+            state.recoveryOpen = true;
+            render();
+          };
+        }
+        if (nutritionPhotoBtn && nutritionPhotoInput){
+          nutritionPhotoBtn.onclick = () => nutritionPhotoInput.click();
+          nutritionPhotoInput.onchange = () => {
+            state.recoveryPhotoMessage = t("fallback_photo_note");
+            state.recoveryOpen = true;
+            render();
+          };
+        }
+        if (manualEntryBtn){
+          manualEntryBtn.onclick = () => {
+            state.recoveryOpen = true;
+            render();
+          };
+        }
+        if (manualSubmitBtn){
+          manualSubmitBtn.onclick = () => {
+            state.manualForm = readManualForm();
+            doManualAnalysis();
+          };
+        }
+        if (manualCancelBtn){
+          manualCancelBtn.onclick = () => {
+            state.recoveryOpen = false;
+            render();
+          };
         }
         Array.from(document.querySelectorAll(".historyAnalysisBtn")).forEach(btn => {
           btn.onclick = () => _reopenAnalysisFromHistory(btn.getAttribute("data-key"));
@@ -2473,7 +2749,16 @@
           </div>
         `;
         document.getElementById("backBtn").onclick = () => { step = 3; render(); };
-        document.getElementById("againBtn").onclick = () => { step = 1; state.error = ""; state.data = null; state.compareTargetKey = ""; render(); };
+        document.getElementById("againBtn").onclick = () => {
+          step = 1;
+          state.error = "";
+          state.errorCode = "";
+          state.data = null;
+          state.compareTargetKey = "";
+          state.recoveryOpen = false;
+          state.recoveryPhotoMessage = "";
+          render();
+        };
       }
     }
 
@@ -2481,28 +2766,39 @@
       state.key = normalizeLookupKey(key);
       if (!state.key){
         state.error = t("err_enter_key");
+        state.errorCode = "INVALID_BARCODE";
+        state.recoveryOpen = false;
         render();
         return;
       }
       if (!isSupportedLookupKey(state.key)){
         state.error = t("err_invalid_barcode");
+        state.errorCode = "INVALID_BARCODE";
+        state.recoveryOpen = false;
         render();
         return;
       }
       state.loading = true;
       state.error = "";
+      state.errorCode = "";
+      state.recoveryPhotoMessage = "";
       render();
       try{
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
         const data = await res.json().catch(()=> ({}));
         if (!res.ok || data?.error){
           state.error = localizeScanError(data, res.status);
+          state.errorCode = scanErrorCode(data, res.status);
           state.data = null;
           state.loading = false;
+          state.recoveryOpen = isRecoverableScanFailure(state.errorCode);
           render();
           return;
         }
         state.data = data;
+        state.errorCode = "";
+        state.recoveryOpen = false;
+        state.recoveryPhotoMessage = "";
         _storeRecentProduct(data, state.key);
         _storeAnalysisHistory(data, state.key);
         if (!state.compareTargetKey){
@@ -2514,6 +2810,7 @@
         render();
       }catch(e){
         state.error = t("err_network");
+        state.errorCode = "";
         state.loading = false;
         render();
       }

@@ -1308,6 +1308,135 @@ def _has_minimum_product_data(normalized: Dict[str, Any]) -> bool:
     return bool(name or ingredients or has_nutrition)
 
 
+def _manual_ingredients_from_text(text: Any) -> List[Dict[str, Any]]:
+    parts = [
+        part.strip()
+        for part in re.split(r"[,\n;]", str(text or ""))
+        if part and str(part).strip()
+    ]
+    return [{"name": part, "class": "U", "note": "From manual"} for part in parts]
+
+
+def _analyze_normalized_product(
+    *,
+    key: str,
+    norm: Dict[str, Any],
+    raw: Optional[Dict[str, Any]],
+    source: Optional[str],
+    matched_by: Optional[str],
+    lang: str,
+    rasff: List[Dict[str, Any]],
+    curated_is_beverage: bool = False,
+    curated_beverage_signal: Optional[str] = None,
+) -> Dict[str, Any]:
+    alerts = _collect_alerts(_as_list(rasff), norm)
+    ingredients_raw = norm.get("ingredients") or []
+
+    try:
+        is_bev, bev_meta = _guess_is_beverage(norm)
+        if curated_is_beverage:
+            is_bev = True
+            bev_meta = {
+                "signal": curated_beverage_signal or "curated",
+                "value": True,
+                "confidence": 0.99,
+            }
+        serving_amount, serving_unit, serving_note = _serving_size_in_g_or_ml(norm, is_bev)
+
+        additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
+        if source == "local":
+            merged_e_numbers = list(additives_e_numbers)
+            for additive in (_as_list(norm.get("additives")) or _as_list(raw.get("additives") if isinstance(raw, dict) else [])):
+                token = str(additive).strip().upper()
+                if token and token not in merged_e_numbers:
+                    merged_e_numbers.append(token)
+            additives_e_numbers = merged_e_numbers
+
+        ingredients, ingredients_intelligence = _ingredients_intelligence(
+            _as_list(ingredients_raw),
+            is_beverage=is_bev,
+            additives_e_numbers=additives_e_numbers,
+        )
+
+        per100 = _nutrients_per_100(norm)
+
+        net100, part100 = _score_per100(per100, is_bev, _cfg)
+        netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
+        net = (_cfg.w_per100 * net100) + (_cfg.w_serving * netS)
+        hybrid_score = _map_net_to_vitascore(net, _cfg)
+
+        breakdown = {
+            "model": "v3_hybrid_pro",
+            "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
+            "per_100": part100,
+            "per_serving": partS,
+            "net_hybrid": round(net, 2),
+            "hybrid_score": hybrid_score,
+        }
+
+        who = _who_sugar_impact(norm, per100, is_bev)
+        who_score, who_breakdown = _who_baseline_score(who, per100, is_beverage=is_bev)
+
+        w_who = 0.85 if is_bev else 0.75
+        w_hyb = 1.0 - w_who
+        base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
+        pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
+        score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0)
+        score_cap = pattern_adjustments.get("score_cap")
+        if isinstance(score_cap, int):
+            score = min(score, score_cap)
+        score = int(round(_clamp(score, 1.0, 100.0)))
+
+        breakdown["who_baseline"] = who_breakdown
+        breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
+        breakdown["pre_pattern_score"] = base_score
+        breakdown["pattern_adjustments"] = pattern_adjustments
+
+        why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
+        dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
+        ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
+    except Exception:
+        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+
+    product_categories = norm.get("categories") or norm.get("categories_tags") or []
+    if isinstance(product_categories, str):
+        product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
+
+    qty = norm.get("quantity")
+    if isinstance(qty, str) and qty.strip().startswith("0"):
+        qty = None
+
+    product_block = {
+        "name": norm.get("name"),
+        "brand": norm.get("brand"),
+        "image_url": norm.get("image_url"),
+        "quantity": qty,
+        "categories": product_categories,
+        "barcode": key if key and not key.startswith("manual:") else None,
+    }
+
+    return {
+        "key": key,
+        "source": source,
+        "matched_by": matched_by,
+        "product": product_block,
+        "alerts": alerts,
+        "ingredients": ingredients,
+        "ingredients_intelligence": ingredients_intelligence,
+        "vitascore": score,
+        "vitascore_version": "v3_hybrid_pro",
+        "vitascore_breakdown": breakdown,
+        "why_this_score": why,
+        "tips": tips,
+        "who_impact": who,
+        "data_quality": dq,
+        "meta": {
+            "is_beverage": is_bev,
+            "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
+        },
+    }
+
+
 async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     lang = lang if lang in SUPPORTED_LANGS else "en"
     key = (key or "").strip()
@@ -1434,115 +1563,68 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
                     )
             norm["ingredients"] = parsed_ingredients
 
-    alerts = _collect_alerts(_as_list(rasff), norm)
-    ingredients_raw = norm.get("ingredients") or []
+    return _analyze_normalized_product(
+        key=key,
+        norm=norm,
+        raw=raw if isinstance(raw, dict) else None,
+        source=source,
+        matched_by=matched_by,
+        lang=lang,
+        rasff=_as_list(rasff),
+        curated_is_beverage=curated_is_beverage,
+        curated_beverage_signal=curated_beverage_signal,
+    )
 
-    try:
-        is_bev, bev_meta = _guess_is_beverage(norm)
-        if curated_is_beverage:
-            is_bev = True
-            bev_meta = {
-                "signal": curated_beverage_signal or "curated",
-                "value": True,
-                "confidence": 0.99,
-            }
-        serving_amount, serving_unit, serving_note = _serving_size_in_g_or_ml(norm, is_bev)
 
-        # NEW: collect E-numbers from additives_tags (raw + norm)
-        additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
-        if source == "local":
-            merged_e_numbers = list(additives_e_numbers)
-            for additive in (_as_list(norm.get("additives")) or _as_list(raw.get("additives") if isinstance(raw, dict) else [])):
-                token = str(additive).strip().upper()
-                if token and token not in merged_e_numbers:
-                    merged_e_numbers.append(token)
-            additives_e_numbers = merged_e_numbers
-
-        ingredients, ingredients_intelligence = _ingredients_intelligence(
-            _as_list(ingredients_raw),
-            is_beverage=is_bev,
-            additives_e_numbers=additives_e_numbers,
-        )
-
-        per100 = _nutrients_per_100(norm)
-
-        net100, part100 = _score_per100(per100, is_bev, _cfg)
-        netS, partS = _score_serving(per100, serving_amount or 100.0, is_bev, _cfg)
-        net = (_cfg.w_per100 * net100) + (_cfg.w_serving * netS)
-        hybrid_score = _map_net_to_vitascore(net, _cfg)
-
-        breakdown = {
-            "model": "v3_hybrid_pro",
-            "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
-            "per_100": part100,
-            "per_serving": partS,
-            "net_hybrid": round(net, 2),
-            "hybrid_score": hybrid_score,
-        }
-
-        who = _who_sugar_impact(norm, per100, is_bev)
-        who_score, who_breakdown = _who_baseline_score(who, per100, is_beverage=is_bev)
-
-        w_who = 0.85 if is_bev else 0.75
-        w_hyb = 1.0 - w_who
-        base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
-        pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
-        score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0)
-        score_cap = pattern_adjustments.get("score_cap")
-        if isinstance(score_cap, int):
-            score = min(score, score_cap)
-        score = int(round(_clamp(score, 1.0, 100.0)))
-
-        breakdown["who_baseline"] = who_breakdown
-        breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
-        breakdown["pre_pattern_score"] = base_score
-        breakdown["pattern_adjustments"] = pattern_adjustments
-
-        why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
-        dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
-        ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
-    except Exception:
-        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
-
-    product_categories = norm.get("categories") or norm.get("categories_tags") or []
-    if isinstance(product_categories, str):
-        product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
-
-    qty = norm.get("quantity")
-    if isinstance(qty, str) and qty.strip().startswith("0"):
-        qty = None
-
-    product_block = {
-        "name": norm.get("name"),
-        "brand": norm.get("brand"),
-        "image_url": norm.get("image_url"),
-        "quantity": qty,
-        "categories": product_categories,
+async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> Dict[str, Any]:
+    lang = lang if lang in SUPPORTED_LANGS else "en"
+    payload = payload if isinstance(payload, dict) else {}
+    name = str(payload.get("name") or "").strip() or "Manual product"
+    brand = str(payload.get("brand") or "").strip() or None
+    unit = str(payload.get("unit") or "g").strip().lower()
+    unit = "ml" if unit == "ml" else "g"
+    ingredients_text = str(payload.get("ingredients_text") or "").strip()
+    ingredients = _manual_ingredients_from_text(ingredients_text)
+    nutrition = {
+        "unit": unit,
+        "sugar_g": _to_float(payload.get("sugar_g")),
+        "salt_g": _to_float(payload.get("salt_g")),
+        "sat_fat_g": _to_float(payload.get("sat_fat_g")),
+        "protein_g": _to_float(payload.get("protein_g")),
+        "serving_size": _to_float(payload.get("serving_size")),
     }
+    categories = payload.get("categories") or []
+    if isinstance(categories, str):
+        categories = [c.strip() for c in categories.split(",") if c.strip()]
+    elif not isinstance(categories, list):
+        categories = []
 
-    return {
-        "key": key,
-        "source": source,
-        "matched_by": matched_by,
-
-        "product": product_block,
-        "alerts": alerts,
-
+    norm = {
+        "name": name,
+        "brand": brand,
+        "image_url": None,
+        "quantity": str(payload.get("quantity") or "").strip() or None,
+        "categories": categories,
+        "categories_tags": [],
         "ingredients": ingredients,
-        "ingredients_intelligence": ingredients_intelligence,
-
-        "vitascore": score,
-        "vitascore_version": "v3_hybrid_pro",
-        "vitascore_breakdown": breakdown,
-
-        "why_this_score": why,
-        "tips": tips,
-
-        "who_impact": who,
-        "data_quality": dq,
-
+        "nutrition_per_100": nutrition,
+        "serving": {
+            "value": _to_float(payload.get("serving_size")),
+            "unit": unit,
+        },
         "meta": {
-            "is_beverage": is_bev,
-            "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
+            "is_beverage": unit == "ml",
         },
     }
+    if not _has_minimum_product_data(norm):
+        return _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
+
+    return _analyze_normalized_product(
+        key=f"manual:{re.sub(r'[^0-9]', '', str(payload.get('timestamp') or '')) or 'entry'}",
+        norm=norm,
+        raw=payload,
+        source="manual",
+        matched_by="manual_entry",
+        lang=lang,
+        rasff=[],
+    )

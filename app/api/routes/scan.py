@@ -1,10 +1,10 @@
 # app/api/routes/scan.py
 
 import logging
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
-from app.services.scanner_service import scan_product
+from app.services.scanner_service import analyze_manual_product, scan_product
 
 logger = logging.getLogger("noesisfood.scan")
 
@@ -38,6 +38,25 @@ async def scan_endpoint(key: str, lang: str = Query("en")):
         # This prints full traceback in Render logs
         logger.exception("Scan failed for key=%s", key)
         # Return a safe JSON error so frontend doesn't just show blank 500
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "This product could not be analyzed.",
+                "error_code": "ANALYSIS_UNAVAILABLE",
+            },
+        )
+
+
+@router.post("/scan/manual")
+async def scan_manual_endpoint(payload: dict = Body(default={}), lang: str = Query("en")):
+    try:
+        lang = lang if lang in {"el", "en", "de", "fr"} else "en"
+        data = await analyze_manual_product(payload or {}, lang=lang)
+        if isinstance(data, dict) and data.get("error"):
+            return JSONResponse(status_code=_error_status(data), content=data)
+        return data
+    except Exception:
+        logger.exception("Manual scan failed")
         return JSONResponse(
             status_code=422,
             content={
