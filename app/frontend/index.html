@@ -637,6 +637,14 @@
         .replace(/>/g, "&gt;");
     }
 
+    function _ingredientLookupKey(value){
+      return String(value || "")
+        .normalize("NFC")
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
     async function ensureIngredientDictElLoaded(){
       if (ingredientDictElRaw && ingredientDictElNormalized && ingredientDictElStripped) return true;
       if (ingredientDictElPromise) return ingredientDictElPromise;
@@ -721,7 +729,7 @@
       const rawDict = ingredientDictElRaw || {};
       const normalizedDict = ingredientDictElNormalized || {};
       const strippedDict = ingredientDictElStripped || {};
-      const rawKey = String(original).toLowerCase().trim();
+      const rawKey = _ingredientLookupKey(original);
       const normalizedKey = _normalizeIngredientToken(original);
       const strippedKey = _normalizeIngredientTokenLoose(original);
       const strippedAsciiKey = _normalizeIngredientTokenLoose(
