@@ -323,5 +323,68 @@
     "expected_e_numbers": [],
     "priority": "P3",
     "smoke_test": false
+  },
+  {
+    "product_name": "Coca-Cola Zero Sugar",
+    "brand": "Coca-Cola",
+    "barcode": "",
+    "expected_source_language": "DE",
+    "category": "zero soft drink",
+    "notes": "Check that zero-sugar cola with multiple sweeteners does not land near-perfect and gets cautionary score reasons.",
+    "key_expected_matches": [
+      { "source": "Süßstoffe", "canonical": "sweetener", "expected_en": "Sweetener" },
+      { "source": "Aroma", "canonical": "flavouring", "expected_en": "Flavouring" }
+    ],
+    "expected_flags": ["sweeteners_present", "additives_detected"],
+    "expected_e_numbers": ["E950", "E951"],
+    "priority": "P1",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Red Bull Sugarfree",
+    "brand": "Red Bull",
+    "barcode": "",
+    "expected_source_language": "PL",
+    "category": "sugar-free energy drink",
+    "notes": "Should surface caffeine plus multiple sweeteners and avoid unrealistically high scoring.",
+    "key_expected_matches": [
+      { "source": "kofeina", "canonical": "caffeine", "expected_en": "Caffeine" },
+      { "source": "aromaty", "canonical": "flavourings", "expected_en": "Flavourings" }
+    ],
+    "expected_flags": ["contains_caffeine", "sweeteners_present"],
+    "expected_e_numbers": [],
+    "priority": "P1",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Simple Low-Fat Milk",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "reduced-fat dairy",
+    "notes": "Reduced-fat dairy with a very short ingredient list should not be penalized just for being low-fat.",
+    "key_expected_matches": [
+      { "source": "milk", "canonical": "milk", "expected_en": "Milk" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "0% Flavoured Yogurt with Sweeteners",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "FR",
+    "category": "light dairy",
+    "notes": "Reduced-fat flavored dairy with sweeteners/additives should be treated more cautiously than plain reduced-fat dairy.",
+    "key_expected_matches": [
+      { "source": "yaourt", "canonical": "milk", "expected_en": "Milk" },
+      { "source": "édulcorant", "canonical": "sweetener", "expected_en": "Sweetener" }
+    ],
+    "expected_flags": ["sweeteners_present", "flavourings_present"],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
   }
 ]

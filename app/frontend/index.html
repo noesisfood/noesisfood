@@ -1690,8 +1690,15 @@
 
     function buildNutritionInsightEvidence(data){
       const ings = Array.isArray(data?.ingredients) ? data.ingredients : [];
+      const product = data?.product || {};
       const canonicalCounts = {};
       const normalizedTerms = [];
+      const productCategories = Array.isArray(product?.categories) ? product.categories.map(item => _ingredientLookupKey(item)) : [];
+      const productText = _ingredientLookupKey([
+        product?.name || "",
+        product?.brand || "",
+        ...(Array.isArray(product?.categories) ? product.categories : [])
+      ].join(" | "));
 
       for (const ing of ings){
         const raw = String(ing?.name || "").trim();
@@ -1716,6 +1723,8 @@
         markers: data?.ingredients_intelligence?.markers || {},
         processingLabel: String(data?.ingredients_intelligence?.processing_label || "").trim(),
         ingredientCount: ings.length,
+        productText,
+        productCategories,
         data
       };
     }
@@ -1732,12 +1741,18 @@
         switch (rule?.trigger_type){
           case "marker_min":
             return Number(evidence.markers?.[conditions.marker] || 0) >= Number(conditions.min || 1);
+          case "marker_max":
+            return Number(evidence.markers?.[conditions.marker] || 0) <= Number(conditions.max || 0);
           case "e_number_any":
             return triggerTerms.some(code => evidence.eNumbers.has(_normalizeECode(code)));
           case "e_number_count_min":
             return evidence.eNumbers.size >= Number(conditions.min || 1);
+          case "e_number_count_max":
+            return evidence.eNumbers.size <= Number(conditions.max || 0);
           case "canonical_any":
             return triggerTerms.some(term => Number(evidence.canonicalCounts[_ingredientLookupKey(term)] || 0) > 0);
+          case "canonical_none":
+            return triggerTerms.every(term => Number(evidence.canonicalCounts[_ingredientLookupKey(term)] || 0) === 0);
           case "canonical_count_min":
             return triggerTerms.reduce((sum, term) => sum + Number(evidence.canonicalCounts[_ingredientLookupKey(term)] || 0), 0) >= Number(conditions.min || 1);
           case "data_threshold": {
@@ -1752,6 +1767,20 @@
             const current = _ingredientLookupKey(evidence.processingLabel);
             return triggerTerms.some(term => _ingredientLookupKey(term) === current);
           }
+          case "ingredient_count_lte":
+            return Number(evidence.ingredientCount || 0) <= Number(conditions.max || 0);
+          case "ingredient_count_gte":
+            return Number(evidence.ingredientCount || 0) >= Number(conditions.min || 0);
+          case "product_text_any":
+            return triggerTerms.some(term => evidence.productText.includes(_ingredientLookupKey(term)));
+          case "product_text_none":
+            return triggerTerms.every(term => !evidence.productText.includes(_ingredientLookupKey(term)));
+          case "category_any":
+            return triggerTerms.some(term => evidence.productCategories.includes(_ingredientLookupKey(term)));
+          case "all":
+            return (Array.isArray(conditions.conditions) ? conditions.conditions : []).every(condition => matchesRule(condition));
+          case "any":
+            return (Array.isArray(conditions.conditions) ? conditions.conditions : []).some(condition => matchesRule(condition));
           default:
             return false;
         }
@@ -1813,6 +1842,12 @@
           return Number(evidence.ingredientCount || 0) <= Number(conditions.max || 0);
         case "ingredient_count_gte":
           return Number(evidence.ingredientCount || 0) >= Number(conditions.min || 0);
+        case "product_text_any":
+          return triggerTerms.some(term => evidence.productText.includes(_ingredientLookupKey(term)));
+        case "product_text_none":
+          return triggerTerms.every(term => !evidence.productText.includes(_ingredientLookupKey(term)));
+        case "category_any":
+          return triggerTerms.some(term => evidence.productCategories.includes(_ingredientLookupKey(term)));
         case "all":
           return (Array.isArray(conditions.conditions) ? conditions.conditions : []).every(condition => _matchesScoreExplanationTrigger(evidence, condition));
         case "any":

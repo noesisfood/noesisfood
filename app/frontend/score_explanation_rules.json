@@ -230,5 +230,100 @@
       "de": "Zutaten zur Regulierung der Säure wurden erkannt.",
       "fr": "Des ingrédients utilisés pour ajuster l’acidité ont été détectés."
     }
+  },
+  {
+    "rule_id": "sweetener_heavy_zero_beverage",
+    "score_dimension": "sweetener_complexity",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "marker_min", "trigger_conditions": { "marker": "sweeteners", "min": 2 } },
+        { "trigger_type": "data_threshold", "trigger_conditions": { "path": "nutrition_per_100.sugar_g", "lte": 1.5 } },
+        { "trigger_type": "canonical_any", "trigger_terms": ["carbonated water", "carbon dioxide"] },
+        { "trigger_type": "any", "trigger_conditions": { "conditions": [
+          { "trigger_type": "e_number_count_min", "trigger_conditions": { "min": 3 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "flavourings", "min": 1 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "colorants", "min": 1 } },
+          { "trigger_type": "processing_label_any", "trigger_terms": ["Highly processed"] }
+        ]}}
+      ]
+    },
+    "impact_direction": "negative",
+    "impact_weight": 98,
+    "message": {
+      "el": "Η απουσία ζάχαρης δεν αρκεί από μόνη της για υψηλή τελική αξιολόγηση όταν υπάρχουν πολλαπλά γλυκαντικά και πολλά πρόσθετα.",
+      "en": "The absence of sugar alone is not enough for a very high final assessment when multiple sweeteners and additives are present.",
+      "de": "Das Fehlen von Zucker allein reicht nicht für eine sehr hohe Endbewertung, wenn mehrere Süßstoffe und Zusatzstoffe vorhanden sind.",
+      "fr": "L’absence de sucre ne suffit pas à elle seule pour une très bonne évaluation finale lorsque plusieurs édulcorants et additifs sont présents."
+    }
+  },
+  {
+    "rule_id": "non_sugar_sweetener_presence",
+    "score_dimension": "sweeteners",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "marker_min", "trigger_conditions": { "marker": "sweeteners", "min": 1 } },
+        { "trigger_type": "data_threshold", "trigger_conditions": { "path": "nutrition_per_100.sugar_g", "lte": 1.5 } }
+      ]
+    },
+    "impact_direction": "negative",
+    "impact_weight": 78,
+    "message": {
+      "el": "Η χαμηλή ζάχαρη εδώ βασίζεται και σε γλυκαντικά, όχι μόνο σε απλή σύνθεση.",
+      "en": "Low sugar here depends on sweeteners, not only on a simple ingredient profile.",
+      "de": "Der niedrige Zuckergehalt beruht hier auch auf Süßstoffen und nicht nur auf einer einfachen Zusammensetzung.",
+      "fr": "La faible teneur en sucre repose ici aussi sur des édulcorants, pas seulement sur une composition simple."
+    }
+  },
+  {
+    "rule_id": "simple_reduced_fat_dairy",
+    "score_dimension": "reduced_fat_dairy_simple",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "product_text_any", "trigger_terms": ["light", "lite", "low fat", "low-fat", "reduced fat", "reduced-fat", "0%", "fettreduziert", "allégé", "χαμηλά λιπαρά", "μειωμένων λιπαρών"] },
+        { "trigger_type": "product_text_any", "trigger_terms": ["milk", "milch", "lait", "yogurt", "yoghurt", "yaourt", "cheese", "käse", "fromage", "γάλα", "γιαούρ", "τυρί"] },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "sweeteners", "max": 0 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "flavourings", "max": 0 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "emulsifiers_stabilizers", "max": 0 } },
+        { "trigger_type": "e_number_count_max", "trigger_conditions": { "max": 1 } },
+        { "trigger_type": "ingredient_count_lte", "trigger_conditions": { "max": 6 } }
+      ]
+    },
+    "impact_direction": "positive",
+    "impact_weight": 76,
+    "message": {
+      "el": "Η απλή σύνθεση του light γαλακτοκομικού λειτουργεί θετικά.",
+      "en": "The simple composition of this reduced-fat dairy product helps the assessment.",
+      "de": "Die einfache Zusammensetzung dieses fettreduzierten Milchprodukts wirkt sich positiv aus.",
+      "fr": "La composition simple de ce produit laitier allégé aide l’évaluation."
+    }
+  },
+  {
+    "rule_id": "reduced_fat_dairy_additive_heavy",
+    "score_dimension": "flavored_light_dairy",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "product_text_any", "trigger_terms": ["light", "lite", "low fat", "low-fat", "reduced fat", "reduced-fat", "0%", "fettreduziert", "allégé", "χαμηλά λιπαρά", "μειωμένων λιπαρών"] },
+        { "trigger_type": "product_text_any", "trigger_terms": ["milk", "milch", "lait", "yogurt", "yoghurt", "yaourt", "cheese", "käse", "fromage", "γάλα", "γιαούρ", "τυρί"] },
+        { "trigger_type": "any", "trigger_conditions": { "conditions": [
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "sweeteners", "min": 1 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "flavourings", "min": 1 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "emulsifiers_stabilizers", "min": 1 } },
+          { "trigger_type": "e_number_count_min", "trigger_conditions": { "min": 2 } },
+          { "trigger_type": "processing_label_any", "trigger_terms": ["Highly processed"] }
+        ]}}
+      ]
+    },
+    "impact_direction": "negative",
+    "impact_weight": 74,
+    "message": {
+      "el": "Το προϊόν είναι μειωμένων λιπαρών, αλλά η σύνθεσή του παραμένει αρκετά επεξεργασμένη.",
+      "en": "The product is reduced-fat, but its formulation remains relatively processed.",
+      "de": "Das Produkt ist fettreduziert, bleibt aber in seiner Zusammensetzung relativ stark verarbeitet.",
+      "fr": "Le produit est allégé, mais sa formulation reste relativement transformée."
+    }
   }
 ]

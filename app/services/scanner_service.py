@@ -407,6 +407,17 @@ _ALLERGENS = {
     "celery": ["celery", "sellerie", "σέλινο", "σελινο"],
 }
 
+_DAIRY_MARKERS = [
+    "milk", "milch", "lait", "yogurt", "yoghurt", "jogurt", "yaourt", "cheese", "käse", "fromage",
+    "dairy", "γαλα", "γάλα", "γιαούρ", "τυρί",
+]
+
+_REDUCED_FAT_MARKERS = [
+    "light", "lite", "low fat", "low-fat", "reduced fat", "reduced-fat", "fat free", "fat-free", "0%", "0 %",
+    "reduced-fat", "reduced fat", "fettreduziert", "leicht", "lightprodukt", "allégé", "allege", "0% fat",
+    "χαμηλα λιπαρα", "χαμηλά λιπαρά", "μειωμενα λιπαρα", "μειωμένα λιπαρά",
+]
+
 _ING_MAP = {
     "Sweetener": ["aspartame", "acesulfame", "acesulfame-k", "sucralose", "stevia", "steviol", "saccharin",
                   "cyclamate", "neotame", "advantame", "süßstoff", "sweetener", "sweeteners"],
@@ -441,6 +452,110 @@ def _norm_ing_text(s: str) -> str:
     s = (s or "").strip()
     s = re.sub(r"\s+", " ", s)
     return s
+
+def _normalized_product_text(normalized: Dict[str, Any]) -> str:
+    parts: List[str] = []
+    for value in [
+        normalized.get("name"),
+        normalized.get("brand"),
+    ]:
+        if isinstance(value, str) and value.strip():
+            parts.append(value.strip().lower())
+
+    for key in ["categories", "categories_tags"]:
+        raw = normalized.get(key)
+        if isinstance(raw, str) and raw.strip():
+            parts.append(raw.strip().lower())
+        elif isinstance(raw, list):
+            parts.extend([str(item).strip().lower() for item in raw if str(item).strip()])
+
+    return " | ".join(parts)
+
+def _contains_any(text: str, needles: List[str]) -> bool:
+    tl = str(text or "").lower()
+    return any(str(needle or "").lower() in tl for needle in needles)
+
+def _pattern_score_adjustments(
+    normalized: Dict[str, Any],
+    per100: Dict[str, Optional[float]],
+    intelligence: Dict[str, Any],
+    *,
+    is_beverage: bool,
+) -> Dict[str, Any]:
+    markers = intelligence.get("markers", {}) if isinstance(intelligence, dict) else {}
+    product_text = _normalized_product_text(normalized)
+    detected_e = _as_list(intelligence.get("detected_e_numbers")) if isinstance(intelligence, dict) else []
+    e_count = len(detected_e)
+    processing_score = int(_to_float(intelligence.get("processing_score")) or 0) if isinstance(intelligence, dict) else 0
+    counts_by_class = intelligence.get("counts_by_class", {}) if isinstance(intelligence, dict) else {}
+    ingredient_count = sum(int(v or 0) for v in counts_by_class.values()) if isinstance(counts_by_class, dict) else 0
+    sugar = _to_float(per100.get("sugar_g"))
+    dairy_like = _contains_any(product_text, _DAIRY_MARKERS)
+    if isinstance(intelligence, dict) and "MILK" in _as_list(intelligence.get("allergens")):
+        dairy_like = True
+    reduced_fat_keyword = _contains_any(product_text, _REDUCED_FAT_MARKERS)
+    zero_sweetened_beverage = bool(is_beverage and (sugar is not None and sugar <= 1.5) and int(markers.get("sweeteners", 0)) > 0)
+
+    adjustments: List[Dict[str, Any]] = []
+    cap: Optional[int] = None
+
+    if zero_sweetened_beverage:
+        adjustments.append({"rule_id": "non_sugar_sweetener_presence", "delta": -10})
+        if int(markers.get("sweeteners", 0)) >= 2:
+            adjustments.append({"rule_id": "multiple_non_sugar_sweeteners", "delta": -6})
+        additive_complexity = (
+            e_count >= 3
+            or int(markers.get("flavourings", 0)) > 0
+            or int(markers.get("colorants", 0)) > 0
+            or processing_score >= 6
+        )
+        if additive_complexity:
+            adjustments.append({"rule_id": "additive_heavy_zero_beverage", "delta": -8})
+            cap = 74
+        else:
+            cap = 82
+
+    simple_dairy = (
+        dairy_like
+        and reduced_fat_keyword
+        and int(markers.get("sweeteners", 0)) == 0
+        and int(markers.get("flavourings", 0)) == 0
+        and int(markers.get("colorants", 0)) == 0
+        and int(markers.get("preservatives", 0)) == 0
+        and int(markers.get("emulsifiers_stabilizers", 0)) == 0
+        and e_count <= 1
+        and ingredient_count <= 6
+        and processing_score <= 3
+    )
+    additive_heavy_dairy = (
+        dairy_like
+        and reduced_fat_keyword
+        and (
+            int(markers.get("sweeteners", 0)) > 0
+            or int(markers.get("flavourings", 0)) > 0
+            or int(markers.get("emulsifiers_stabilizers", 0)) > 0
+            or e_count >= 2
+            or ingredient_count >= 8
+            or processing_score >= 5
+        )
+    )
+
+    if simple_dairy:
+        adjustments.append({"rule_id": "reduced_fat_dairy_simple", "delta": 4})
+    elif additive_heavy_dairy:
+        adjustments.append({"rule_id": "reduced_fat_dairy_additive_heavy", "delta": -6})
+
+    total_delta = sum(int(item.get("delta", 0)) for item in adjustments)
+    return {
+        "applied": adjustments,
+        "total_delta": total_delta,
+        "score_cap": cap,
+        "flags": {
+            "zero_sweetened_beverage": zero_sweetened_beverage,
+            "simple_reduced_fat_dairy": simple_dairy,
+            "additive_heavy_light_dairy": additive_heavy_dairy,
+        },
+    }
 
 def _extract_e_numbers(text: str) -> List[str]:
     out: List[str] = []
@@ -1313,10 +1428,18 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
 
     w_who = 0.85 if is_bev else 0.75
     w_hyb = 1.0 - w_who
-    score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
+    base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
+    pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
+    score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0)
+    score_cap = pattern_adjustments.get("score_cap")
+    if isinstance(score_cap, int):
+        score = min(score, score_cap)
+    score = int(round(_clamp(score, 1.0, 100.0)))
 
     breakdown["who_baseline"] = who_breakdown
     breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
+    breakdown["pre_pattern_score"] = base_score
+    breakdown["pattern_adjustments"] = pattern_adjustments
 
     why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
     dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)

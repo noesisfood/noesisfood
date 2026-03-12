@@ -245,5 +245,119 @@
       "de": "Relativ hoher Salzgehalt pro 100 g.",
       "fr": "Teneur en sel relativement élevée pour 100 g."
     }
+  },
+  {
+    "rule_id": "non_sugar_sweetener_presence",
+    "category": "sweetener_complexity",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "marker_min", "trigger_conditions": { "marker": "sweeteners", "min": 1 } },
+        { "trigger_type": "data_threshold", "trigger_conditions": { "path": "nutrition_per_100.sugar_g", "lte": 1.5 } }
+      ]
+    },
+    "severity": "medium",
+    "label": {
+      "el": "Γλυκαντικά χωρίς ζάχαρη",
+      "en": "Non-sugar sweeteners",
+      "de": "Zuckerfreie Süßstoffe",
+      "fr": "Édulcorants sans sucre"
+    },
+    "message": {
+      "el": "Η χαμηλή ζάχαρη συνοδεύεται από γλυκαντικά.",
+      "en": "Low sugar here is supported by non-sugar sweeteners.",
+      "de": "Der niedrige Zuckergehalt wird hier durch Süßstoffe erreicht.",
+      "fr": "La faible teneur en sucre s’appuie ici sur des édulcorants."
+    }
+  },
+  {
+    "rule_id": "additive_heavy_zero_beverage",
+    "category": "zero_beverage",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "marker_min", "trigger_conditions": { "marker": "sweeteners", "min": 2 } },
+        { "trigger_type": "data_threshold", "trigger_conditions": { "path": "nutrition_per_100.sugar_g", "lte": 1.5 } },
+        { "trigger_type": "canonical_any", "trigger_terms": ["carbonated water", "carbon dioxide"] },
+        { "trigger_type": "any", "trigger_conditions": { "conditions": [
+          { "trigger_type": "e_number_count_min", "trigger_conditions": { "min": 3 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "colorants", "min": 1 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "flavourings", "min": 1 } }
+        ]}}
+      ]
+    },
+    "severity": "high",
+    "label": {
+      "el": "Zero ποτό με σύνθετη φόρμουλα",
+      "en": "Complex zero drink",
+      "de": "Komplexes Zero-Getränk",
+      "fr": "Boisson zero complexe"
+    },
+    "message": {
+      "el": "Αν και δεν έχει ζάχαρη, παραμένει αρκετά σύνθετο λόγω γλυκαντικών και προσθέτων.",
+      "en": "Despite the lack of sugar, it remains fairly complex because of sweeteners and additives.",
+      "de": "Trotz fehlendem Zucker bleibt es durch Süßstoffe und Zusatzstoffe recht komplex.",
+      "fr": "Malgré l’absence de sucre, la formule reste assez complexe à cause des édulcorants et additifs."
+    }
+  },
+  {
+    "rule_id": "simple_reduced_fat_dairy",
+    "category": "reduced_fat_dairy_simple",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "product_text_any", "trigger_terms": ["light", "lite", "low fat", "low-fat", "reduced fat", "reduced-fat", "0%", "fettreduziert", "allégé", "χαμηλά λιπαρά", "μειωμένων λιπαρών"] },
+        { "trigger_type": "product_text_any", "trigger_terms": ["milk", "milch", "lait", "yogurt", "yoghurt", "yaourt", "cheese", "käse", "fromage", "γάλα", "γιαούρ", "τυρί"] },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "sweeteners", "max": 0 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "flavourings", "max": 0 } },
+        { "trigger_type": "marker_max", "trigger_conditions": { "marker": "emulsifiers_stabilizers", "max": 0 } },
+        { "trigger_type": "e_number_count_max", "trigger_conditions": { "max": 1 } },
+        { "trigger_type": "ingredient_count_lte", "trigger_conditions": { "max": 6 } }
+      ]
+    },
+    "severity": "low",
+    "label": {
+      "el": "Απλό light γαλακτοκομικό",
+      "en": "Simple reduced-fat dairy",
+      "de": "Einfaches fettreduziertes Milchprodukt",
+      "fr": "Produit laitier allégé simple"
+    },
+    "message": {
+      "el": "Το light στοιχείο δεν θεωρείται αρνητικό όταν η σύνθεση παραμένει απλή.",
+      "en": "The reduced-fat positioning is not treated negatively when the composition stays simple.",
+      "de": "Die fettreduzierte Positionierung wird nicht negativ gewertet, wenn die Zusammensetzung einfach bleibt.",
+      "fr": "Le caractère allégé n’est pas jugé négativement lorsque la composition reste simple."
+    }
+  },
+  {
+    "rule_id": "reduced_fat_dairy_additive_heavy",
+    "category": "flavored_light_dairy",
+    "trigger_type": "all",
+    "trigger_conditions": {
+      "conditions": [
+        { "trigger_type": "product_text_any", "trigger_terms": ["light", "lite", "low fat", "low-fat", "reduced fat", "reduced-fat", "0%", "fettreduziert", "allégé", "χαμηλά λιπαρά", "μειωμένων λιπαρών"] },
+        { "trigger_type": "product_text_any", "trigger_terms": ["milk", "milch", "lait", "yogurt", "yoghurt", "yaourt", "cheese", "käse", "fromage", "γάλα", "γιαούρ", "τυρί"] },
+        { "trigger_type": "any", "trigger_conditions": { "conditions": [
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "sweeteners", "min": 1 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "flavourings", "min": 1 } },
+          { "trigger_type": "marker_min", "trigger_conditions": { "marker": "emulsifiers_stabilizers", "min": 1 } },
+          { "trigger_type": "e_number_count_min", "trigger_conditions": { "min": 2 } },
+          { "trigger_type": "processing_label_any", "trigger_terms": ["Highly processed"] }
+        ]}}
+      ]
+    },
+    "severity": "medium",
+    "label": {
+      "el": "Πιο σύνθετο light γαλακτοκομικό",
+      "en": "More processed reduced-fat dairy",
+      "de": "Stärker verarbeitetes fettreduziertes Milchprodukt",
+      "fr": "Produit laitier allégé plus transformé"
+    },
+    "message": {
+      "el": "Παρότι είναι light, η σύνθεση παραμένει σχετικά επεξεργασμένη.",
+      "en": "Even though it is reduced-fat, the formulation remains relatively processed.",
+      "de": "Obwohl es fettreduziert ist, bleibt die Formulierung relativ stark verarbeitet.",
+      "fr": "Même allégé, sa formulation reste relativement transformée."
+    }
   }
 ]
