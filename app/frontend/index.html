@@ -388,8 +388,11 @@
         err_network: "Network error. Is the server running?",
         fallback_title: "Alternative analysis path",
         fallback_not_found: "This product was not found in the available database.",
+        fallback_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
         fallback_continue: "You can continue with an ingredient photo or manual data entry.",
         fallback_alt: "Barcode-based analysis was not possible, but you can continue with an alternative method.",
+        partial_notice_title: "Partial product data",
+        partial_notice_body: "The product was found, but the available data is not sufficient for full analysis.",
         fallback_ingredient_photo: "Ingredient photo",
         fallback_nutrition_photo: "Nutrition photo",
         fallback_manual_entry: "Manual entry",
@@ -548,8 +551,11 @@
         err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
         fallback_title: "Εναλλακτική πορεία ανάλυσης",
         fallback_not_found: "Το προϊόν δεν βρέθηκε στη διαθέσιμη βάση δεδομένων.",
+        fallback_incomplete: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν για πλήρη ανάλυση.",
         fallback_continue: "Μπορείς να συνεχίσεις με φωτογραφία συστατικών ή χειροκίνητη εισαγωγή στοιχείων.",
         fallback_alt: "Η ανάλυση με barcode δεν ήταν δυνατή, αλλά μπορείς να συνεχίσεις εναλλακτικά.",
+        partial_notice_title: "Μερικά διαθέσιμα στοιχεία",
+        partial_notice_body: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν για πλήρη ανάλυση.",
         fallback_ingredient_photo: "Φωτογραφία συστατικών",
         fallback_nutrition_photo: "Φωτογραφία διατροφικού πίνακα",
         fallback_manual_entry: "Χειροκίνητη εισαγωγή",
@@ -708,8 +714,11 @@
         err_network: "Netzwerkfehler. Läuft der Server?",
         fallback_title: "Alternativer Analyseweg",
         fallback_not_found: "Dieses Produkt wurde in der verfügbaren Datenbank nicht gefunden.",
+        fallback_incomplete: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen für eine vollständige Analyse nicht aus.",
         fallback_continue: "Du kannst mit einem Zutatenfoto oder manueller Eingabe fortfahren.",
         fallback_alt: "Die Analyse per Barcode war nicht möglich, aber du kannst alternativ fortfahren.",
+        partial_notice_title: "Teilweise Produktdaten",
+        partial_notice_body: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen für eine vollständige Analyse nicht aus.",
         fallback_ingredient_photo: "Zutatenfoto",
         fallback_nutrition_photo: "Nährwertfoto",
         fallback_manual_entry: "Manuelle Eingabe",
@@ -868,8 +877,11 @@
         err_network: "Erreur réseau. Le serveur est-il démarré ?",
         fallback_title: "Parcours d’analyse alternatif",
         fallback_not_found: "Ce produit n’a pas été trouvé dans la base de données disponible.",
+        fallback_incomplete: "Le produit a été trouvé, mais les données disponibles ne suffisent pas pour une analyse complète.",
         fallback_continue: "Vous pouvez continuer avec une photo des ingrédients ou une saisie manuelle.",
         fallback_alt: "L’analyse par code-barres n’a pas été possible, mais vous pouvez continuer autrement.",
+        partial_notice_title: "Données produit partielles",
+        partial_notice_body: "Le produit a été trouvé, mais les données disponibles ne suffisent pas pour une analyse complète.",
         fallback_ingredient_photo: "Photo des ingrédients",
         fallback_nutrition_photo: "Photo du tableau nutritionnel",
         fallback_manual_entry: "Saisie manuelle",
@@ -982,10 +994,13 @@
 
     function renderRecoveryBlock(){
       if (!isRecoverableScanFailure(state.errorCode)) return "";
+      const recoveryLead = state.errorCode === "PRODUCT_NOT_FOUND"
+        ? t("fallback_not_found")
+        : (state.errorCode === "MISSING_KEY_DATA" ? t("fallback_incomplete") : t("fallback_alt"));
       return `
         <div class="section" style="margin-top:12px;">
           <div class="sectionTitle">${t("fallback_title")}</div>
-          <div class="mini">${state.errorCode === "PRODUCT_NOT_FOUND" ? t("fallback_not_found") : t("fallback_alt")}</div>
+          <div class="mini">${recoveryLead}</div>
           <div class="mini" style="margin-top:6px;">${t("fallback_continue")}</div>
           ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
           <div class="btns">
@@ -996,6 +1011,16 @@
           ${state.recoveryOpen ? renderManualEntryForm() : ``}
           <input id="ingredientPhotoInput" type="file" accept="image/*" style="display:none;" />
           <input id="nutritionPhotoInput" type="file" accept="image/*" style="display:none;" />
+        </div>
+      `;
+    }
+
+    function renderPartialLookupNotice(data){
+      const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
+      if (lookupState !== "found_but_incomplete") return "";
+      return `
+        <div class="ok" style="margin-top:12px;">
+          <b>${t("partial_notice_title")}</b><br/>${t("partial_notice_body")}
         </div>
       `;
     }
@@ -2635,6 +2660,7 @@
               </div>
               <div class="whyFoot" style="margin-top:10px;">${t("baseline_helper")} <span class="mini">(${t("baseline_criteria")})</span></div>
             </div>
+            ${renderPartialLookupNotice(d)}
             ${buildWhyScoreHTML(d)}
             ${whoServingBlock(d)}
             <div class="section" style="margin-top:12px;">

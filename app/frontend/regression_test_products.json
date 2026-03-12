@@ -398,6 +398,7 @@
     "expected_flags": [],
     "expected_e_numbers": [],
     "expected_error_code": "INVALID_BARCODE",
+    "expected_lookup_state": "invalid_barcode",
     "priority": "P1",
     "smoke_test": false
   },
@@ -412,20 +413,21 @@
     "expected_flags": [],
     "expected_e_numbers": [],
     "expected_error_code": "PRODUCT_NOT_FOUND",
+    "expected_lookup_state": "not_found",
     "priority": "P1",
     "smoke_test": false
   },
   {
-    "product_name": "Incomplete product payload",
+    "product_name": "Found but incomplete product",
     "brand": "",
-    "barcode": "",
+    "barcode": "4056489150589",
     "expected_source_language": "",
-    "category": "error handling",
-    "notes": "Use a known problematic local or OFF payload with missing fields. The app should keep a graceful partial state or show a friendly analysis-unavailable message, never a raw internal server error.",
+    "category": "incomplete data",
+    "notes": "Known barcode that should be found in OpenFoodFacts but handled as incomplete if key fields are missing. The app should show a partial analysis or a graceful incomplete-data recovery state, never a raw server error.",
     "key_expected_matches": [],
     "expected_flags": [],
     "expected_e_numbers": [],
-    "expected_error_code": "ANALYSIS_UNAVAILABLE",
+    "expected_lookup_state": "found_but_incomplete",
     "priority": "P1",
     "smoke_test": false
   },
@@ -441,6 +443,7 @@
     ],
     "expected_flags": ["contains_caffeine"],
     "expected_e_numbers": [],
+    "expected_lookup_state": "found_and_analyzable",
     "priority": "P1",
     "smoke_test": false
   }

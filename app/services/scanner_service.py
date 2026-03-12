@@ -1283,6 +1283,13 @@ def _scan_error(code: str, message: str, status_code: int) -> Dict[str, Any]:
     }
 
 
+def _lookup_state_payload(state: str, missing_fields: Optional[List[str]] = None) -> Dict[str, Any]:
+    return {
+        "lookup_state": state,
+        "lookup_missing_fields": list(missing_fields or []),
+    }
+
+
 def _is_supported_lookup_key(value: str) -> bool:
     key = str(value or "").strip()
     if not key:
@@ -1308,6 +1315,43 @@ def _has_minimum_product_data(normalized: Dict[str, Any]) -> bool:
     return bool(name or ingredients or has_nutrition)
 
 
+def _lookup_missing_fields(normalized: Dict[str, Any], raw: Optional[Dict[str, Any]] = None) -> List[str]:
+    normalized = normalized if isinstance(normalized, dict) else {}
+    nutrition = normalized.get("nutrition_per_100") or {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+    raw_product = raw.get("product") if isinstance(raw, dict) and isinstance(raw.get("product"), dict) else (raw if isinstance(raw, dict) else {})
+    raw_nutriments = raw_product.get("nutriments") if isinstance(raw_product.get("nutriments"), dict) else {}
+    ingredients = _as_list(normalized.get("ingredients"))
+    categories = normalized.get("categories") or normalized.get("categories_tags") or []
+    additives = _as_list(normalized.get("additives_tags")) or _as_list(normalized.get("additives_original_tags"))
+    serving_value = _to_float(_get_path(normalized, "serving", "value") or nutrition.get("serving_size"))
+    missing = []
+    if not str(normalized.get("name") or "").strip():
+        missing.append("product_name")
+    if not ingredients:
+        missing.append("ingredients")
+    raw_nutrition_present = any(k in raw_nutriments for k in (
+        "sugars_100g", "sugar_100g", "sugars", "sugar",
+        "salt_100g", "salt",
+        "saturated-fat_100g", "saturated_fat_100g", "saturated-fat", "saturated_fat",
+        "proteins_100g", "protein_100g", "proteins", "protein",
+        "energy-kcal_100g", "energy-kcal", "energy_100g", "energy"
+    ))
+    normalized_nutrition_present = any(nutrition.get(k) is not None for k in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "energy_kcal"))
+    if not raw_nutrition_present and not normalized_nutrition_present:
+        missing.append("nutriments")
+    if serving_value is None:
+        missing.append("serving_size")
+    if not additives:
+        missing.append("additives")
+    if isinstance(categories, str):
+        categories = [c.strip() for c in categories.split(",") if c.strip()]
+    if not categories:
+        missing.append("categories")
+    return missing
+
+
 def _manual_ingredients_from_text(text: Any) -> List[Dict[str, Any]]:
     parts = [
         part.strip()
@@ -1329,6 +1373,8 @@ def _analyze_normalized_product(
     curated_is_beverage: bool = False,
     curated_beverage_signal: Optional[str] = None,
 ) -> Dict[str, Any]:
+    lookup_missing = _lookup_missing_fields(norm, raw)
+    lookup_state = "found_but_incomplete" if lookup_missing else "found_and_analyzable"
     alerts = _collect_alerts(_as_list(rasff), norm)
     ingredients_raw = norm.get("ingredients") or []
 
@@ -1419,6 +1465,8 @@ def _analyze_normalized_product(
         "key": key,
         "source": source,
         "matched_by": matched_by,
+        "lookup_state": lookup_state,
+        "lookup_missing_fields": lookup_missing,
         "product": product_block,
         "alerts": alerts,
         "ingredients": ingredients,
@@ -1433,6 +1481,8 @@ def _analyze_normalized_product(
         "meta": {
             "is_beverage": is_bev,
             "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
+            "lookup_state": lookup_state,
+            "lookup_missing_fields": lookup_missing,
         },
     }
 
@@ -1489,19 +1539,31 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     if raw is None:
         status = int((off_error or {}).get("status") or 0)
         if status == 404:
-            return _scan_error("PRODUCT_NOT_FOUND", "Product not found.", 404)
+            err = _scan_error("PRODUCT_NOT_FOUND", "Product not found.", 404)
+            err.update(_lookup_state_payload("not_found"))
+            return err
         if status == 400:
-            return _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
-        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 502)
+            err = _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
+            err.update(_lookup_state_payload("invalid_barcode"))
+            return err
+        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 502)
+        err.update(_lookup_state_payload("found_but_incomplete"))
+        return err
 
     try:
         norm = _normalize(raw, source=source)
     except Exception:
-        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete"))
+        return err
     if not isinstance(norm, dict) or not norm:
-        return _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err = _scan_error("ANALYSIS_UNAVAILABLE", "This product could not be analyzed.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete"))
+        return err
     if not _has_minimum_product_data(norm):
-        return _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
+        err = _scan_error("MISSING_KEY_DATA", "Key data required for product assessment is missing.", 422)
+        err.update(_lookup_state_payload("found_but_incomplete", _lookup_missing_fields(norm, raw if isinstance(raw, dict) else None)))
+        return err
     if source == "local":
         curated = raw if isinstance(raw, dict) else {}
 
