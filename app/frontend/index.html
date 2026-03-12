@@ -847,6 +847,26 @@
       return cls || t("group_other");
     }
 
+    function localizeEAdditiveMeaning(ed){
+      if (!ed || typeof ed !== "object") return "";
+      const direct = ed?.[`meaning_${lang}`] || ed?.meaning_en || ed?.meaning_el || "";
+      const raw = String(direct || "").trim();
+      if (!raw) return "";
+
+      const segments = raw
+        .split("/")
+        .map(part => String(part || "").trim())
+        .filter(Boolean);
+
+      const localized = segments.map(part => {
+        const entry = resolveIngredientGlossaryEntry(part);
+        if (!entry) return part;
+        return entry.translations?.[lang] || entry.translations?.en || entry.translations?.el || part;
+      });
+
+      return localized.join(" / ");
+    }
+
     const fmtNum = (x) => {
       if (x === null || x === undefined || Number.isNaN(Number(x))) return "-";
       const n = Number(x);
@@ -865,9 +885,9 @@
       const s = String(text || "").toLowerCase();
       if (!s.trim()) return null;
       if (/[\u0370-\u03ff]/.test(s)) return "EL";
-      if (/(\\bund\\b|\\bzutaten\\b|\\bzucker\\b)/.test(s)) return "DE";
-      if (/(\\boraz\\b|\\bcukier\\b|\\bskladniki\\b)/.test(s)) return "PL";
-      if (/(\\bet\\b|\\bsucre\\b|\\bingredients\\b)/.test(s)) return "FR";
+      if (/\bund\b|\bzutaten\b|\bzucker\b/.test(s)) return "DE";
+      if (/\boraz\b|\bcukier\b|\bskladniki\b|\bskładniki\b|\bkwas\b|\bkofeina\b|\bkwasowosci\b|\bkwasowości\b/.test(s)) return "PL";
+      if (/\bet\b|\bsucre\b|\bingredients\b/.test(s)) return "FR";
       return null;
     }
 
@@ -990,7 +1010,7 @@
                 <div class="eRow">
                   <div class="eLeft">
                     <b>${ed.code || "E-"} - ${ed.name || t("additive_fallback")}</b>
-                    <small>${ed.meaning_el || ""}</small>
+                    <small>${localizeEAdditiveMeaning(ed)}</small>
                   </div>
                   <div class="eRole">${ed.role || ""}</div>
                 </div>

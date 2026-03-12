@@ -114,7 +114,16 @@
       "fr": "Acidifiant",
       "de": "Säuerungsmittel"
     },
-    "aliases": ["acidifier", "acidifiers", "acidity regulator", "acidity regulators", "acidifiant", "acidifiants", "säuerungsmittel", "saeuerungsmittel"]
+    "aliases": ["acidifier", "acidifiers", "acidity regulator", "acidity regulators", "acidifiant", "acidifiants", "säuerungsmittel", "saeuerungsmittel", "ρυθμιστής οξύτητας", "ρυθμιστες οξυτητας", "regulator kwasowości", "regulator kwasowosci"]
+  },
+  "acid": {
+    "translations": {
+      "el": "Οξύ",
+      "en": "Acid",
+      "fr": "Acide",
+      "de": "Säure"
+    },
+    "aliases": ["acid", "acids", "acide", "säure", "saeure", "οξύ", "οξεα", "kwas"]
   },
   "citric acid": {
     "translations": {
@@ -123,7 +132,7 @@
       "fr": "Acide citrique",
       "de": "Zitronensäure"
     },
-    "aliases": ["citric acid", "acide citrique", "zitronensäure", "zitronensaeure"]
+    "aliases": ["citric acid", "acide citrique", "zitronensäure", "zitronensaeure", "κιτρικό οξύ", "kwas cytrynowy"]
   },
   "phosphoric acid": {
     "translations": {
@@ -132,7 +141,7 @@
       "fr": "Acide phosphorique",
       "de": "Phosphorsäure"
     },
-    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure"]
+    "aliases": ["phosphoric acid", "acide phosphorique", "phosphorsäure", "phosphorsaeure", "φωσφορικό οξύ"]
   },
   "malic acid": {
     "translations": {
@@ -141,7 +150,7 @@
       "fr": "Acide malique",
       "de": "Apfelsäure"
     },
-    "aliases": ["malic acid", "acide malique", "apfelsäure", "apfelsaeure"]
+    "aliases": ["malic acid", "acide malique", "apfelsäure", "apfelsaeure", "μηλικό οξύ"]
   },
   "lactic acid": {
     "translations": {
@@ -150,7 +159,7 @@
       "fr": "Acide lactique",
       "de": "Milchsäure"
     },
-    "aliases": ["lactic acid", "acide lactique", "milchsäure", "milchsaeure"]
+    "aliases": ["lactic acid", "acide lactique", "milchsäure", "milchsaeure", "γαλακτικό οξύ"]
   },
   "ascorbic acid": {
     "translations": {
@@ -159,7 +168,16 @@
       "fr": "Acide ascorbique",
       "de": "Ascorbinsäure"
     },
-    "aliases": ["ascorbic acid", "acide ascorbique", "ascorbinsäure", "ascorbinsaeure"]
+    "aliases": ["ascorbic acid", "acide ascorbique", "ascorbinsäure", "ascorbinsaeure", "ασκορβικό οξύ"]
+  },
+  "pantothenic acid": {
+    "translations": {
+      "el": "Παντοθενικό οξύ",
+      "en": "Pantothenic acid",
+      "fr": "Acide pantothénique",
+      "de": "Pantothensäure"
+    },
+    "aliases": ["pantothenic acid", "acide pantothénique", "acide pantothenique", "pantothensäure", "pantothensaeure", "παντοθενικό οξύ", "kwas pantotenowy"]
   },
   "colorant": {
     "translations": {
@@ -186,7 +204,7 @@
       "fr": "Conservateur",
       "de": "Konservierungsstoff"
     },
-    "aliases": ["preservative", "preservatives", "conservateur", "conservateurs", "konservierungsstoff", "konservierungsstoffe"]
+    "aliases": ["preservative", "preservatives", "conservateur", "conservateurs", "konservierungsstoff", "konservierungsstoffe", "συντηρητικό", "συντηρητικο"]
   },
   "sweetener": {
     "translations": {
@@ -195,7 +213,7 @@
       "fr": "Édulcorant",
       "de": "Süßungsmittel"
     },
-    "aliases": ["sweetener", "sweeteners", "édulcorant", "édulcorants", "edulcorant", "edulcorants", "süßungsmittel", "suessungsmittel"]
+    "aliases": ["sweetener", "sweeteners", "édulcorant", "édulcorants", "edulcorant", "edulcorants", "süßungsmittel", "suessungsmittel", "γλυκαντικό", "γλυκαντικο"]
   },
   "emulsifier": {
     "translations": {
@@ -204,7 +222,7 @@
       "fr": "Émulsifiant",
       "de": "Emulgator"
     },
-    "aliases": ["emulsifier", "emulsifiers", "émulsifiant", "émulsifiants", "emulsifiant", "emulsifiants", "emulgator", "emulgatoren"]
+    "aliases": ["emulsifier", "emulsifiers", "émulsifiant", "émulsifiants", "emulsifiant", "emulsifiants", "emulgator", "emulgatoren", "γαλακτωματοποιητής", "γαλακτωματοποιητης"]
   },
   "stabilizer": {
     "translations": {
@@ -213,7 +231,7 @@
       "fr": "Stabilisant",
       "de": "Stabilisator"
     },
-    "aliases": ["stabilizer", "stabilizers", "stabiliser", "stabilisers", "stabilisant", "stabilisants", "stabilisator", "stabilisatoren"]
+    "aliases": ["stabilizer", "stabilizers", "stabiliser", "stabilisers", "stabilisant", "stabilisants", "stabilisator", "stabilisatoren", "σταθεροποιητής", "σταθεροποιητης"]
   },
   "thickener": {
     "translations": {
@@ -222,7 +240,7 @@
       "fr": "Épaississant",
       "de": "Verdickungsmittel"
     },
-    "aliases": ["thickener", "thickeners", "épaississant", "épaississants", "epaississant", "epaississants", "verdickungsmittel"]
+    "aliases": ["thickener", "thickeners", "épaississant", "épaississants", "epaississant", "epaississants", "verdickungsmittel", "πηκτικό", "πηκτικο", "πηκτικό μέσο", "πηκτικο μεσο"]
   },
   "flavouring": {
     "translations": {
@@ -258,7 +276,16 @@
       "fr": "Caféine",
       "de": "Koffein"
     },
-    "aliases": ["caffeine", "caféine", "cafeine", "koffein"]
+    "aliases": ["caffeine", "caféine", "cafeine", "koffein", "καφεΐνη", "καφεινη", "kofeina"]
+  },
+  "flavor enhancer": {
+    "translations": {
+      "el": "Ενισχυτικό γεύσης",
+      "en": "Flavor enhancer",
+      "fr": "Exhausteur de goût",
+      "de": "Geschmacksverstärker"
+    },
+    "aliases": ["flavor enhancer", "flavour enhancer", "exhausteur de goût", "exhausteur de gout", "geschmacksverstärker", "geschmacksverstaerker", "ενισχυτικό γεύσης", "ενισχυτικο γευσης"]
   },
   "vegetable oil": {
     "translations": {
