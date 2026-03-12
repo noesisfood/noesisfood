@@ -667,6 +667,7 @@
     }
 
     const INGREDIENT_GLOSSARY_URLS = ["/static/ingredient_glossary.json"];
+    const E_NUMBER_KB_URLS = ["/static/e_number_knowledge_base.json"];
     let ingredientGlossary = null;
     let ingredientGlossaryEntries = null;
     let ingredientGlossaryAliasRaw = null;
@@ -677,6 +678,12 @@
     let ingredientGlossaryWarned = false;
     let ingredientGlossaryResolvedUrl = null;
     let ingredientGlossaryLoadedLogged = false;
+    let eNumberKnowledgeBase = null;
+    let eNumberKnowledgeBasePromise = null;
+    let eNumberKnowledgeBaseLoadFailed = false;
+    let eNumberKnowledgeBaseWarned = false;
+    let eNumberKnowledgeBaseResolvedUrl = null;
+    let eNumberKnowledgeBaseLoadedLogged = false;
     const INGREDIENT_GLOSSARY_UNMATCHED_KEY = "nf_glossary_unmatched_v2";
     let ingredientTranslationStats = { translated: 0, total: 0 };
 
@@ -944,6 +951,69 @@
       return ingredientGlossaryPromise;
     }
 
+    function _normalizeECode(value){
+      return String(value || "")
+        .toUpperCase()
+        .replace(/\s+/g, "")
+        .trim();
+    }
+
+    async function ensureENumberKnowledgeBaseLoaded(){
+      if (eNumberKnowledgeBase && typeof eNumberKnowledgeBase === "object") return true;
+      if (eNumberKnowledgeBasePromise) return eNumberKnowledgeBasePromise;
+      eNumberKnowledgeBaseLoadFailed = false;
+      eNumberKnowledgeBasePromise = (async () => {
+        const triedUrls = [];
+        let lastError = null;
+
+        for (const candidateUrl of E_NUMBER_KB_URLS){
+          const requestUrl = `${candidateUrl}${candidateUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+          triedUrls.push(candidateUrl);
+          try {
+            const response = await fetch(requestUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const obj = await response.json();
+            if (!obj || typeof obj !== "object" || !Object.keys(obj).length) throw new Error("E-number KB JSON empty");
+
+            eNumberKnowledgeBase = obj;
+            eNumberKnowledgeBaseResolvedUrl = candidateUrl;
+            eNumberKnowledgeBaseLoadFailed = false;
+            if (!eNumberKnowledgeBaseLoadedLogged){
+              console.debug(`[e-number-kb] loaded from ${candidateUrl} with ${Object.keys(obj).length} entries`);
+              eNumberKnowledgeBaseLoadedLogged = true;
+            }
+            render();
+            return true;
+          } catch (err) {
+            lastError = `${candidateUrl}: ${err && err.message ? err.message : err}`;
+          }
+        }
+
+        throw new Error(`Tried ${triedUrls.join(", ")}; final error: ${lastError || "unknown"}`);
+      })()
+        .catch((err) => {
+          eNumberKnowledgeBase = null;
+          eNumberKnowledgeBaseResolvedUrl = null;
+          eNumberKnowledgeBaseLoadFailed = true;
+          if (!eNumberKnowledgeBaseWarned){
+            console.warn(`[e-number-kb] Failed to load knowledge base from ${E_NUMBER_KB_URLS.join(", ")}. ${err && err.message ? err.message : err}`);
+            eNumberKnowledgeBaseWarned = true;
+          }
+          render();
+          return false;
+        })
+        .finally(() => {
+          eNumberKnowledgeBasePromise = null;
+        });
+      return eNumberKnowledgeBasePromise;
+    }
+
+    function resolveENumberKnowledgeEntry(code){
+      const normalized = _normalizeECode(code);
+      if (!normalized || !eNumberKnowledgeBase || typeof eNumberKnowledgeBase !== "object") return null;
+      return eNumberKnowledgeBase[normalized] || null;
+    }
+
     function resolveIngredientGlossaryEntry(value, captureContext = null){
       for (const candidate of _ingredientLookupVariants(value)){
         const rawKey = _ingredientLookupKey(candidate);
@@ -1060,6 +1130,9 @@
 
     function localizeEAdditiveMeaning(ed){
       if (!ed || typeof ed !== "object") return "";
+      const kbEntry = resolveENumberKnowledgeEntry(ed?.code || "");
+      const kbDescription = String(kbEntry?.description?.[lang] || kbEntry?.description?.en || kbEntry?.description?.el || "").trim();
+      if (kbDescription) return kbDescription;
       const direct = ed?.[`meaning_${lang}`] || ed?.meaning_en || ed?.meaning_el || "";
       const raw = String(direct || "").trim();
       if (!raw) return "";
@@ -1081,6 +1154,9 @@
     }
 
     function localizeEAdditiveName(ed){
+      const kbEntry = resolveENumberKnowledgeEntry(ed?.code || "");
+      const kbName = String(kbEntry?.name?.[lang] || kbEntry?.name?.en || kbEntry?.name?.el || "").trim();
+      if (kbName) return kbName;
       const name = String(ed?.name || "").trim();
       if (!name) return t("additive_fallback");
       const normalized = _normalizeIngredientToken(name);
@@ -1090,6 +1166,9 @@
     }
 
     function localizeEAdditiveRole(ed){
+      const kbEntry = resolveENumberKnowledgeEntry(ed?.code || "");
+      const kbRole = String(kbEntry?.role?.[lang] || kbEntry?.role?.en || kbEntry?.role?.el || "").trim();
+      if (kbRole) return kbRole;
       const role = String(ed?.role || "").trim();
       if (!role) return "";
       return localizeGlossaryValue(role, localizedIngredientGroup(role));
@@ -1382,6 +1461,10 @@
 
       if (step === 3){
         app.innerHTML = renderIngredientsIntel(state.data || {});
+        const eDetails = Array.isArray(state.data?.ingredients_intelligence?.e_number_details) ? state.data.ingredients_intelligence.e_number_details : [];
+        if (eDetails.length){
+          ensureENumberKnowledgeBaseLoaded();
+        }
         const translateToggle = document.getElementById("translateIngredientsToggle");
         if (translateToggle){
           translateToggle.onchange = (e) => {

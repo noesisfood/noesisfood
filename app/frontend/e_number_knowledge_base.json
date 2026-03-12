@@ -1,0 +1,332 @@
+{
+  "E100": {
+    "name": { "el": "Κουρκουμίνη", "en": "Curcumin", "de": "Curcumin", "fr": "Curcumine" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως χρωστική.",
+      "en": "EU food additive mainly used as a colorant.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Farbstoff verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme colorant."
+    }
+  },
+  "E101": {
+    "name": { "el": "Ριβοφλαβίνη", "en": "Riboflavin", "de": "Riboflavin", "fr": "Riboflavine" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως χρωστική με βιταμίνη Β2.",
+      "en": "EU food additive mainly used as a colorant based on vitamin B2.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Farbstoff auf Basis von Vitamin B2 verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme colorant à base de vitamine B2."
+    }
+  },
+  "E102": {
+    "name": { "el": "Ταρτραζίνη", "en": "Tartrazine", "de": "Tartrazin", "fr": "Tartrazine" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για κίτρινο χρώμα.",
+      "en": "EU food additive mainly used to give foods a yellow colour.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich für eine gelbe Farbe verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour donner une couleur jaune."
+    }
+  },
+  "E150": {
+    "name": { "el": "Χρωστική καραμέλας", "en": "Caramel colour", "de": "Karamellfarbstoff", "fr": "Colorant caramel" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Οικογένεια προσθέτων της ΕΕ που χρησιμοποιείται κυρίως για καφέ χρώμα καραμέλας.",
+      "en": "EU additive family mainly used to give foods a brown caramel colour.",
+      "de": "EU-Zusatzstofffamilie, die hauptsächlich für eine braune Karamellfarbe verwendet wird.",
+      "fr": "Famille d’additifs de l’UE principalement utilisée pour donner une couleur brune de caramel."
+    }
+  },
+  "E150A": {
+    "name": { "el": "Απλή χρωστική καραμέλας", "en": "Plain caramel", "de": "Einfacher Karamellfarbstoff", "fr": "Caramel ordinaire" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Παραλλαγή χρωστικής καραμέλας της ΕΕ που χρησιμοποιείται κυρίως για καφέ χρώμα.",
+      "en": "EU caramel colour variant mainly used to add a brown colour.",
+      "de": "EU-Karamellfarbstoff-Variante, die hauptsächlich für eine braune Farbe verwendet wird.",
+      "fr": "Variante de caramel de l’UE principalement utilisée pour apporter une couleur brune."
+    }
+  },
+  "E150B": {
+    "name": { "el": "Καυστική θειώδης καραμέλα", "en": "Caustic sulphite caramel", "de": "Sulfit-Zuckerkulör", "fr": "Caramel au sulfite caustique" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Παραλλαγή χρωστικής καραμέλας της ΕΕ που χρησιμοποιείται κυρίως για σκούρο καφέ χρώμα.",
+      "en": "EU caramel colour variant mainly used for a darker brown colour.",
+      "de": "EU-Karamellfarbstoff-Variante, die hauptsächlich für eine dunklere braune Farbe verwendet wird.",
+      "fr": "Variante de caramel de l’UE principalement utilisée pour une couleur brune plus foncée."
+    }
+  },
+  "E150C": {
+    "name": { "el": "Αμμωνιακή καραμέλα", "en": "Ammonia caramel", "de": "Ammoniak-Zuckerkulör", "fr": "Caramel ammoniacal" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Παραλλαγή χρωστικής καραμέλας της ΕΕ που χρησιμοποιείται συχνά σε ποτά και σάλτσες.",
+      "en": "EU caramel colour variant often used in drinks and sauces.",
+      "de": "EU-Karamellfarbstoff-Variante, die häufig in Getränken und Saucen verwendet wird.",
+      "fr": "Variante de caramel de l’UE souvent utilisée dans les boissons et les sauces."
+    }
+  },
+  "E150D": {
+    "name": { "el": "Θειώδης αμμωνιακή καραμέλα", "en": "Sulphite ammonia caramel", "de": "Ammoniumsulfit-Zuckerkulör", "fr": "Caramel au sulfite d’ammonium" },
+    "role": { "el": "Χρωστική", "en": "Colorant", "de": "Farbstoff", "fr": "Colorant" },
+    "category": "colorant",
+    "description": {
+      "el": "Παραλλαγή χρωστικής καραμέλας της ΕΕ που χρησιμοποιείται κυρίως για πολύ σκούρο καφέ χρώμα.",
+      "en": "EU caramel colour variant mainly used for a very dark brown colour.",
+      "de": "EU-Karamellfarbstoff-Variante, die hauptsächlich für eine sehr dunkle braune Farbe verwendet wird.",
+      "fr": "Variante de caramel de l’UE principalement utilisée pour une couleur brun très foncé."
+    }
+  },
+  "E200": {
+    "name": { "el": "Σορβικό οξύ", "en": "Sorbic acid", "de": "Sorbinsäure", "fr": "Acide sorbique" },
+    "role": { "el": "Συντηρητικό", "en": "Preservative", "de": "Konservierungsstoff", "fr": "Conservateur" },
+    "category": "preservative",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για να περιορίζει την ανάπτυξη μικροοργανισμών.",
+      "en": "EU food additive mainly used to help limit the growth of microorganisms.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich dazu dient, das Wachstum von Mikroorganismen zu begrenzen.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour aider à limiter la croissance des micro-organismes."
+    }
+  },
+  "E202": {
+    "name": { "el": "Σορβικό κάλιο", "en": "Potassium sorbate", "de": "Kaliumsorbat", "fr": "Sorbate de potassium" },
+    "role": { "el": "Συντηρητικό", "en": "Preservative", "de": "Konservierungsstoff", "fr": "Conservateur" },
+    "category": "preservative",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως συντηρητικό.",
+      "en": "EU food additive mainly used as a preservative.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Konservierungsstoff verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme conservateur."
+    }
+  },
+  "E211": {
+    "name": { "el": "Βενζοϊκό νάτριο", "en": "Sodium benzoate", "de": "Natriumbenzoat", "fr": "Benzoate de sodium" },
+    "role": { "el": "Συντηρητικό", "en": "Preservative", "de": "Konservierungsstoff", "fr": "Conservateur" },
+    "category": "preservative",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για συντήρηση όξινων προϊόντων.",
+      "en": "EU food additive mainly used to preserve acidic foods and drinks.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich zur Konservierung saurer Lebensmittel und Getränke verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour conserver les aliments et boissons acides."
+    }
+  },
+  "E250": {
+    "name": { "el": "Νιτρώδες νάτριο", "en": "Sodium nitrite", "de": "Natriumnitrit", "fr": "Nitrite de sodium" },
+    "role": { "el": "Συντηρητικό", "en": "Preservative", "de": "Konservierungsstoff", "fr": "Conservateur" },
+    "category": "preservative",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για συντήρηση και σταθεροποίηση χρώματος σε ορισμένα προϊόντα κρέατος.",
+      "en": "EU food additive mainly used to preserve certain meats and help keep their colour stable.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich zur Konservierung bestimmter Fleischwaren und zur Stabilisierung ihrer Farbe verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour conserver certaines viandes et aider à stabiliser leur couleur."
+    }
+  },
+  "E290": {
+    "name": { "el": "Διοξείδιο του άνθρακα", "en": "Carbon dioxide", "de": "Kohlendioxid", "fr": "Dioxyde de carbone" },
+    "role": { "el": "Αέριο συσκευασίας", "en": "Packaging gas", "de": "Packgas", "fr": "Gaz d’emballage" },
+    "category": "other",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για ανθράκωση ή ως αέριο συσκευασίας.",
+      "en": "EU food additive mainly used for carbonation or as a packaging gas.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich für Kohlensäure oder als Packgas verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour la gazéification ou comme gaz d’emballage."
+    }
+  },
+  "E300": {
+    "name": { "el": "Ασκορβικό οξύ", "en": "Ascorbic acid", "de": "Ascorbinsäure", "fr": "Acide ascorbique" },
+    "role": { "el": "Αντιοξειδωτικό", "en": "Antioxidant", "de": "Antioxidationsmittel", "fr": "Antioxydant" },
+    "category": "antioxidant",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως αντιοξειδωτικό για προστασία χρώματος και γεύσης.",
+      "en": "EU food additive mainly used as an antioxidant to help protect colour and flavour.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Antioxidationsmittel zum Schutz von Farbe und Geschmack verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme antioxydant pour aider à protéger la couleur et la saveur."
+    }
+  },
+  "E322": {
+    "name": { "el": "Λεκιθίνες", "en": "Lecithins", "de": "Lecithine", "fr": "Lécithines" },
+    "role": { "el": "Γαλακτωματοποιητής", "en": "Emulsifier", "de": "Emulgator", "fr": "Émulsifiant" },
+    "category": "emulsifier",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για να βοηθά το νερό και το λίπος να αναμειγνύονται.",
+      "en": "EU food additive mainly used to help water and fat mix together.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich dabei hilft, Wasser und Fett zu vermischen.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour aider l’eau et la graisse à se mélanger."
+    }
+  },
+  "E330": {
+    "name": { "el": "Κιτρικό οξύ", "en": "Citric acid", "de": "Zitronensäure", "fr": "Acide citrique" },
+    "role": { "el": "Ρυθμιστής οξύτητας", "en": "Acidifier", "de": "Säuerungsmittel", "fr": "Acidifiant" },
+    "category": "acidifier",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως ρυθμιστής οξύτητας.",
+      "en": "EU food additive mainly used as an acidifier.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Säuerungsmittel verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme acidifiant."
+    }
+  },
+  "E331": {
+    "name": { "el": "Κιτρικά νάτρια", "en": "Sodium citrates", "de": "Natriumcitrat", "fr": "Citrates de sodium" },
+    "role": { "el": "Ρυθμιστής οξύτητας", "en": "Acidifier", "de": "Säuerungsmittel", "fr": "Acidifiant" },
+    "category": "acidifier",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για έλεγχο οξύτητας και σταθερότητας.",
+      "en": "EU food additive mainly used to control acidity and support stability.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich zur Kontrolle der Säure und zur Stabilisierung verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour contrôler l’acidité et soutenir la stabilité."
+    }
+  },
+  "E407": {
+    "name": { "el": "Καραγενάνη", "en": "Carrageenan", "de": "Carrageen", "fr": "Carraghénane" },
+    "role": { "el": "Πηκτωματοποιητής", "en": "Gelling agent", "de": "Geliermittel", "fr": "Gélifiant" },
+    "category": "gelling agent",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για πιο πηχτή ή σταθερή υφή.",
+      "en": "EU food additive mainly used to give foods a thicker or more stable texture.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich für eine dickere oder stabilere Textur verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour donner une texture plus épaisse ou plus stable."
+    }
+  },
+  "E412": {
+    "name": { "el": "Κόμμι γκουάρ", "en": "Guar gum", "de": "Guarkernmehl", "fr": "Gomme guar" },
+    "role": { "el": "Πηκτικό μέσο", "en": "Thickener", "de": "Verdickungsmittel", "fr": "Épaississant" },
+    "category": "thickener",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για πιο πηχτή υφή.",
+      "en": "EU food additive mainly used to make foods thicker.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich verwendet wird, um Lebensmittel dicker zu machen.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour épaissir les aliments."
+    }
+  },
+  "E415": {
+    "name": { "el": "Κόμμι ξανθάνης", "en": "Xanthan gum", "de": "Xanthan", "fr": "Gomme xanthane" },
+    "role": { "el": "Πηκτικό μέσο", "en": "Thickener", "de": "Verdickungsmittel", "fr": "Épaississant" },
+    "category": "thickener",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για πάχυνση και σταθεροποίηση.",
+      "en": "EU food additive mainly used for thickening and stabilising texture.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich zum Verdicken und Stabilisieren der Textur verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour épaissir et stabiliser la texture."
+    }
+  },
+  "E420": {
+    "name": { "el": "Σορβιτόλη", "en": "Sorbitol", "de": "Sorbit", "fr": "Sorbitol" },
+    "role": { "el": "Γλυκαντικό", "en": "Sweetener", "de": "Süßungsmittel", "fr": "Édulcorant" },
+    "category": "sweetener",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως γλυκαντικό και υγραντικό.",
+      "en": "EU food additive mainly used as a sweetener and moisture-retaining agent.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Süßungsmittel und Feuchthaltemittel verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme édulcorant et agent de maintien de l’humidité."
+    }
+  },
+  "E422": {
+    "name": { "el": "Γλυκερόλη", "en": "Glycerol", "de": "Glycerin", "fr": "Glycérol" },
+    "role": { "el": "Υγραντικό", "en": "Humectant", "de": "Feuchthaltemittel", "fr": "Humectant" },
+    "category": "other",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για να βοηθά τα προϊόντα να διατηρούν την υγρασία τους.",
+      "en": "EU food additive mainly used to help foods retain moisture.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich dazu dient, dass Produkte Feuchtigkeit behalten.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour aider les produits à retenir leur humidité."
+    }
+  },
+  "E440": {
+    "name": { "el": "Πηκτίνες", "en": "Pectins", "de": "Pektine", "fr": "Pectines" },
+    "role": { "el": "Πηκτωματοποιητής", "en": "Gelling agent", "de": "Geliermittel", "fr": "Gélifiant" },
+    "category": "gelling agent",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για ζελέ, μαρμελάδες και πιο σταθερή υφή.",
+      "en": "EU food additive mainly used for gels, jams, and a more stable texture.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich für Gelees, Konfitüren und eine stabilere Textur verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour les gels, les confitures et une texture plus stable."
+    }
+  },
+  "E471": {
+    "name": { "el": "Μονο- και διγλυκερίδια λιπαρών οξέων", "en": "Mono- and diglycerides of fatty acids", "de": "Mono- und Diglyceride von Speisefettsäuren", "fr": "Mono- et diglycérides d’acides gras" },
+    "role": { "el": "Γαλακτωματοποιητής", "en": "Emulsifier", "de": "Emulgator", "fr": "Émulsifiant" },
+    "category": "emulsifier",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για να βοηθά την ανάμειξη λιπαρών και υδατικών συστατικών.",
+      "en": "EU food additive mainly used to help fatty and watery ingredients mix together.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich dabei hilft, fetthaltige und wässrige Zutaten zu vermischen.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour aider les ingrédients gras et aqueux à se mélanger."
+    }
+  },
+  "E500": {
+    "name": { "el": "Ανθρακικά νάτρια", "en": "Sodium carbonates", "de": "Natriumcarbonate", "fr": "Carbonates de sodium" },
+    "role": { "el": "Διογκωτικό μέσο", "en": "Raising agent", "de": "Backtriebmittel", "fr": "Agent levant" },
+    "category": "other",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως διογκωτικό μέσο ή για ρύθμιση οξύτητας.",
+      "en": "EU food additive mainly used as a raising agent or acidity regulator.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als Backtriebmittel oder Säureregulator verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme agent levant ou régulateur d’acidité."
+    }
+  },
+  "E504": {
+    "name": { "el": "Ανθρακικά μαγνήσια", "en": "Magnesium carbonates", "de": "Magnesiumcarbonate", "fr": "Carbonates de magnésium" },
+    "role": { "el": "Αντισυσσωματικός παράγοντας", "en": "Anti-caking agent", "de": "Trennmittel", "fr": "Antiagglomérant" },
+    "category": "other",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για να μην σβολιάζουν οι σκόνες.",
+      "en": "EU food additive mainly used to help powders stay free-flowing.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich dafür verwendet wird, Pulver rieselfähig zu halten.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour aider les poudres à rester fluides."
+    }
+  },
+  "E621": {
+    "name": { "el": "Γλουταμινικό μονονάτριο", "en": "Monosodium glutamate", "de": "Mononatriumglutamat", "fr": "Glutamate monosodique" },
+    "role": { "el": "Ενισχυτικό γεύσης", "en": "Flavor enhancer", "de": "Geschmacksverstärker", "fr": "Exhausteur de goût" },
+    "category": "flavor enhancer",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως για ενίσχυση της γεύσης.",
+      "en": "EU food additive mainly used to boost savoury flavour.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich zur Verstärkung des herzhaften Geschmacks verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé pour renforcer la saveur."
+    }
+  },
+  "E950": {
+    "name": { "el": "Ακεσουλφάμη Κ", "en": "Acesulfame K", "de": "Acesulfam K", "fr": "Acésulfame K" },
+    "role": { "el": "Γλυκαντικό", "en": "Sweetener", "de": "Süßungsmittel", "fr": "Édulcorant" },
+    "category": "sweetener",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως γλυκαντικό χωρίς ζάχαρη.",
+      "en": "EU food additive mainly used as a low- or no-sugar sweetener.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als zuckerarmes oder zuckerfreies Süßungsmittel verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme édulcorant à faible teneur en sucre ou sans sucre."
+    }
+  },
+  "E951": {
+    "name": { "el": "Ασπαρτάμη", "en": "Aspartame", "de": "Aspartam", "fr": "Aspartame" },
+    "role": { "el": "Γλυκαντικό", "en": "Sweetener", "de": "Süßungsmittel", "fr": "Édulcorant" },
+    "category": "sweetener",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως γλυκαντικό χαμηλών θερμίδων.",
+      "en": "EU food additive mainly used as a low-calorie sweetener.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als kalorienarmes Süßungsmittel verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme édulcorant peu calorique."
+    }
+  },
+  "E955": {
+    "name": { "el": "Σουκραλόζη", "en": "Sucralose", "de": "Sucralose", "fr": "Sucralose" },
+    "role": { "el": "Γλυκαντικό", "en": "Sweetener", "de": "Süßungsmittel", "fr": "Édulcorant" },
+    "category": "sweetener",
+    "description": {
+      "el": "Πρόσθετο τροφίμων της ΕΕ που χρησιμοποιείται κυρίως ως γλυκαντικό χωρίς ζάχαρη.",
+      "en": "EU food additive mainly used as a sugar-free sweetener.",
+      "de": "EU-Lebensmittelzusatzstoff, der hauptsächlich als zuckerfreies Süßungsmittel verwendet wird.",
+      "fr": "Additif alimentaire de l’UE principalement utilisé comme édulcorant sans sucre."
+    }
+  }
+}
