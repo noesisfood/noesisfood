@@ -369,6 +369,16 @@
         final_assessment: "Final assessment",
         partial_assessment: "Partial assessment",
         partial_assessment_note: "Estimate based on available data",
+        quick_verdict_title: "Quick verdict",
+        quick_verdict_better: "Better choice",
+        quick_verdict_moderate: "Moderate choice",
+        quick_verdict_burdened: "More burdened choice",
+        quick_verdict_note: "Detailed product data is available below.",
+        quick_reasons_title: "Top reasons",
+        quick_signals_title: "Key signals",
+        full_details_title: "Full details",
+        full_details_cta: "See all details",
+        full_details_note: "Detailed product data",
         baseline_assessment: "Baseline nutrition assessment",
         baseline_helper: "The final assessment is adjusted from the baseline nutrition assessment based on the product’s ingredient profile and processing level.",
         baseline_criteria: "based on international nutrition criteria",
@@ -551,6 +561,16 @@
         final_assessment: "Τελική αξιολόγηση",
         partial_assessment: "Μερική αξιολόγηση",
         partial_assessment_note: "Εκτίμηση με διαθέσιμα στοιχεία",
+        quick_verdict_title: "Συνοπτική αξιολόγηση",
+        quick_verdict_better: "Καλή επιλογή",
+        quick_verdict_moderate: "Μέτρια επιλογή",
+        quick_verdict_burdened: "Πιο επιβαρυμένη επιλογή",
+        quick_verdict_note: "Τα αναλυτικά στοιχεία είναι διαθέσιμα παρακάτω.",
+        quick_reasons_title: "Κύριοι λόγοι",
+        quick_signals_title: "Βασικά σήματα",
+        full_details_title: "Πλήρη στοιχεία",
+        full_details_cta: "Δες όλα τα στοιχεία",
+        full_details_note: "Αναλυτικά δεδομένα προϊόντος",
         baseline_assessment: "Βασική διατροφική αξιολόγηση",
         baseline_helper: "Η τελική αξιολόγηση προσαρμόζεται από τη βασική διατροφική αξιολόγηση με βάση τη σύνθεση και τον βαθμό επεξεργασίας του προϊόντος.",
         baseline_criteria: "με βάση διεθνή διατροφικά κριτήρια",
@@ -733,6 +753,16 @@
         final_assessment: "Endbewertung",
         partial_assessment: "Teilbewertung",
         partial_assessment_note: "Schätzung auf Basis der verfügbaren Daten",
+        quick_verdict_title: "Schnellbewertung",
+        quick_verdict_better: "Bessere Wahl",
+        quick_verdict_moderate: "Mittlere Wahl",
+        quick_verdict_burdened: "Stärker belastete Wahl",
+        quick_verdict_note: "Detaillierte Produktdaten sind unten verfügbar.",
+        quick_reasons_title: "Wichtigste Gründe",
+        quick_signals_title: "Wichtige Signale",
+        full_details_title: "Vollständige Details",
+        full_details_cta: "Alle Details anzeigen",
+        full_details_note: "Detaillierte Produktdaten",
         baseline_assessment: "Grundlegende Ernährungsbewertung",
         baseline_helper: "Die Endbewertung wird aus der grundlegenden Ernährungsbewertung anhand der Zutatenzusammensetzung und des Verarbeitungsgrads angepasst.",
         baseline_criteria: "basierend auf internationalen Ernährungskriterien",
@@ -915,6 +945,16 @@
         final_assessment: "Évaluation finale",
         partial_assessment: "Évaluation partielle",
         partial_assessment_note: "Estimation basée sur les données disponibles",
+        quick_verdict_title: "Verdict rapide",
+        quick_verdict_better: "Meilleur choix",
+        quick_verdict_moderate: "Choix moyen",
+        quick_verdict_burdened: "Choix plus chargé",
+        quick_verdict_note: "Les données détaillées du produit sont disponibles ci-dessous.",
+        quick_reasons_title: "Raisons principales",
+        quick_signals_title: "Signaux clés",
+        full_details_title: "Détails complets",
+        full_details_cta: "Voir tous les détails",
+        full_details_note: "Données détaillées du produit",
         baseline_assessment: "Évaluation nutritionnelle de base",
         baseline_helper: "L’évaluation finale est ajustée à partir de l’évaluation nutritionnelle de base selon la composition des ingrédients et le niveau de transformation du produit.",
         baseline_criteria: "basée sur des critères nutritionnels internationaux",
@@ -2543,6 +2583,35 @@
       `;
     }
 
+    function quickVerdictLabel(score){
+      const n = Number(score);
+      if (Number.isNaN(n)) return t("quick_verdict_moderate");
+      if (n >= 60) return t("quick_verdict_better");
+      if (n >= 40) return t("quick_verdict_moderate");
+      return t("quick_verdict_burdened");
+    }
+
+    function quickReasonItems(data){
+      const structured = evaluateScoreExplanations(data);
+      return [...structured.negative, ...structured.positive, ...structured.neutral].slice(0, 5);
+    }
+
+    function quickSignalItems(data){
+      const intel = data?.ingredients_intelligence || {};
+      const markers = intel?.markers || {};
+      const eCount = Array.isArray(intel?.e_number_details) ? intel.e_number_details.length : 0;
+      const items = [];
+      if (markers?.sweeteners) items.push(`${t("sweeteners")}: ${markers.sweeteners}`);
+      if (markers?.caffeine) items.push(t("caffeine"));
+      if (eCount >= 3) items.push(`${t("e_numbers")}: ${eCount}`);
+      if (markers?.colorants) items.push(`${t("group_colorant")}: ${markers.colorants}`);
+      if (markers?.flavourings) items.push(`${t("group_flavoring")}: ${markers.flavourings}`);
+      if (intel?.processing_score !== null && intel?.processing_score !== undefined){
+        items.push(`${t("processing")}: ${localizeProcessingLabel(intel?.processing_label || "")}`);
+      }
+      return items.slice(0, 5);
+    }
+
     function whoServingBlock(data){
       const who = data?.who_impact;
       if (!who) return ``;
@@ -2851,8 +2920,11 @@
         const analysisConfidence = localizedConfidenceTier(d?.analysis_confidence || d?.meta?.analysis_confidence || "high");
         const assessmentLabel = analysisState === "partial_analysis" ? t("partial_assessment") : t("final_assessment");
         const assessmentSubline = analysisState === "partial_analysis"
-          ? `${t("partial_assessment_note")} • ${t("confidence")}: ${analysisConfidence}`
+          ? `${t("partial_assessment_note")} | ${t("confidence")}: ${analysisConfidence}`
           : t("vitascore");
+        const quickReasons = quickReasonItems(d);
+        const quickSignals = quickSignalItems(d);
+        const quickVerdict = quickVerdictLabel(score);
         const tier = tierFromScore(score);
         const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
         const unit = d?.meta?.serving?.unit || (p?.quantity?.toLowerCase?.().includes("ml") ? "ml" : "g");
@@ -2871,6 +2943,7 @@
               </div>
             </div>
             <div class="section" style="margin-top:12px;">
+              <div class="sectionTitle">${t("quick_verdict_title")}</div>
               <div class="scoreWrap">
                 <div>
                   <div class="mini">${assessmentLabel}</div>
@@ -2879,6 +2952,7 @@
                 </div>
                 <div class="tier" style="background:${tier.color}; border-color:${tier.border};">${tier.label}</div>
               </div>
+              <div class="ok" style="margin-top:12px;"><b>${quickVerdict}</b></div>
               <div class="grid2">
                 ${analysisState === "partial_analysis" ? `<div class="kv"><small>${t("confidence")}</small><b>${analysisConfidence}</b></div>` : ``}
                 <div class="kv"><small>${t("baseline_assessment")}</small><b>${baselineScore ?? "-"}/100</b></div>
@@ -2887,13 +2961,21 @@
                 <div class="kv"><small>${t("sat_fat")}</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
                 <div class="kv"><small>${t("protein")}</small><b>${fmtNum(prot)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
               </div>
+              ${quickReasons.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_reasons_title")}</b><br/>${quickReasons.map(item => `- ${_escapeHtml(item.message || "")}`).join("<br/>")}</div>` : ``}
+              ${quickSignals.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_signals_title")}</b><br/>${quickSignals.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
               <div class="whyFoot" style="margin-top:10px;">${t("baseline_helper")} <span class="mini">(${t("baseline_criteria")})</span></div>
+              <div class="mini" style="margin-top:8px;">${t("quick_verdict_note")}</div>
             </div>
             ${renderPartialLookupNotice(d)}
             ${renderAnalysisStateNotice(d)}
             ${renderPhotoExtractionNotice(d)}
-            ${buildWhyScoreHTML(d)}
-            ${whoServingBlock(d)}
+            <div class="section" style="margin-top:12px;">
+              <div class="sectionTitle">${t("full_details_title")}</div>
+              <div class="mini">${t("full_details_note")}</div>
+              <div class="btns" style="margin-top:8px;">
+                <button class="primary" id="nextBtn">${t("full_details_cta")}</button>
+              </div>
+            </div>
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">${t("compare_title")}</div>
               ${compareCandidates.length ? `
@@ -2909,7 +2991,6 @@
             </div>
             <div class="btns">
               <button class="ghost" id="backBtn">${t("back")}</button>
-              <button class="primary" id="nextBtn">${t("next")}</button>
             </div>
           </div>
         `;
@@ -2937,7 +3018,15 @@
       }
 
       if (step === 3){
-        app.innerHTML = renderIngredientsIntel(state.data || {});
+        app.innerHTML = `
+          <div class="section">
+            <div class="sectionTitle">${t("full_details_title")}</div>
+            <div class="mini">${t("full_details_note")}</div>
+          </div>
+          ${buildWhyScoreHTML(state.data || {})}
+          ${whoServingBlock(state.data || {})}
+          ${renderIngredientsIntel(state.data || {})}
+        `;
         const eDetails = Array.isArray(state.data?.ingredients_intelligence?.e_number_details) ? state.data.ingredients_intelligence.e_number_details : [];
         if (eDetails.length){
           ensureENumberKnowledgeBaseLoaded();
