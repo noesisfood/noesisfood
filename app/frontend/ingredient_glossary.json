@@ -33,7 +33,16 @@
       "fr": "Sucre",
       "de": "Zucker"
     },
-    "aliases": ["sugar", "sucres", "sucre", "zucker", "sacharoza", "Sacharoza"]
+    "aliases": ["sugar", "sucres", "sucre", "zucker"]
+  },
+  "sucrose": {
+    "translations": {
+      "el": "Σακχαρόζη",
+      "en": "Sucrose",
+      "fr": "Saccharose",
+      "de": "Saccharose"
+    },
+    "aliases": ["sucrose", "saccharose", "sacharoza", "Sacharoza"]
   },
   "glucose": {
     "translations": {
@@ -188,6 +197,15 @@
     },
     "aliases": ["colorant", "colorants", "colouring", "coloring", "colorant alimentaire", "farbstoff", "farbstoffe", "χρωστική", "χρωστικη", "χρωστικές", "barwnik", "barwniki", "Barwniki"]
   },
+  "colorants": {
+    "translations": {
+      "el": "Χρωστικές",
+      "en": "Colorants",
+      "fr": "Colorants",
+      "de": "Farbstoffe"
+    },
+    "aliases": ["colorants", "χρωστικές", "barwniki", "Barwniki", "farbstoffe"]
+  },
   "caramel colour": {
     "translations": {
       "el": "Χρωστική καραμέλας",
@@ -251,6 +269,15 @@
     },
     "aliases": ["flavouring", "flavourings", "flavoring", "flavorings", "arôme", "aromes", "arome", "aroma", "aromen", "άρωμα", "αρωμα", "αρώματα", "aromaty", "Aromaty"]
   },
+  "flavourings": {
+    "translations": {
+      "el": "Αρώματα",
+      "en": "Flavourings",
+      "fr": "Arômes",
+      "de": "Aromen"
+    },
+    "aliases": ["flavourings", "flavorings", "αρώματα", "aromaty", "Aromaty", "arômes", "aromen"]
+  },
   "natural flavouring": {
     "translations": {
       "el": "Φυσικό άρωμα",
@@ -277,6 +304,15 @@
       "de": "Koffein"
     },
     "aliases": ["caffeine", "caféine", "cafeine", "koffein", "καφεΐνη", "καφεινη", "kofeina"]
+  },
+  "additive": {
+    "translations": {
+      "el": "Πρόσθετο",
+      "en": "Additive",
+      "fr": "Additif",
+      "de": "Zusatzstoff"
+    },
+    "aliases": ["additive", "additives", "πρόσθετο", "προσθετο", "additif", "additifs", "zusatzstoff", "zusatzstoffe"]
   },
   "taurine": {
     "translations": {

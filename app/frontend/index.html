@@ -291,6 +291,7 @@
         none: "none",
         e_explained: "E-numbers explained",
         additive_fallback: "Food additive",
+        additive_fallback_e: "Food additive (E-number)",
         e_none: "No E-numbers detected from additives/tags or ingredient text.",
         flags: "Flags",
         ingredients_grouped: "Ingredients list (grouped)",
@@ -322,6 +323,9 @@
         tier_good: "Good",
         tier_okay: "Okay",
         tier_caution: "Caution",
+        processing_minimal: "Minimally processed",
+        processing_processed: "Processed",
+        processing_high: "Highly processed",
         ingredients_translate_toggle: "Translate ingredients (glossary)",
         ingredients_translate_unavailable: "Glossary unavailable. Keeping original ingredient names.",
         ingredients_translate_loading: "Loading glossary...",
@@ -345,7 +349,7 @@
         how_title: "Πώς δουλεύει",
         how_l1: "Ανάκτηση OpenFoodFacts + κανονικοποίηση",
         how_l2: "WHO-first baseline + hybrid nuance",
-        how_l3: "Ingredients Intelligence + ανάλυση E-numbers",
+        how_l3: "Νοημοσύνη συστατικών + ανάλυση E-numbers",
         why_title: "Γιατί αυτό το σκορ;",
         why_none: "Δεν υπάρχει διαθέσιμη εξήγηση.",
         tips: "Συμβουλές",
@@ -359,7 +363,7 @@
         who_note: "Υπολογισμός ανά μερίδα με βάση το δηλωμένο serving size.",
         who_flag_ideal: "Ξεπερνά το ιδανικό 25g",
         who_flag_upper: "Ξεπερνά το ανώτατο 50g",
-        ingredients_title: "Ingredients Intelligence",
+        ingredients_title: "Νοημοσύνη συστατικών",
         ingredients_note: "Τα συστατικά εμφανίζονται όπως τα επιστρέφει το API.",
         ingredients_source_language: "Γλώσσα πηγής",
         ingredients_ui_label: "UI",
@@ -372,6 +376,7 @@
         none: "κανένα",
         e_explained: "Επεξήγηση E-numbers",
         additive_fallback: "Πρόσθετο τροφίμων",
+        additive_fallback_e: "Πρόσθετο τροφίμων (E-number)",
         e_none: "Δεν εντοπίστηκαν E-numbers από additives/tags ή ingredients text.",
         flags: "Σημάνσεις",
         ingredients_grouped: "Λίστα συστατικών (ομαδοποιημένη)",
@@ -403,6 +408,9 @@
         tier_good: "Καλό",
         tier_okay: "OK",
         tier_caution: "Προσοχή",
+        processing_minimal: "Ελάχιστα επεξεργασμένο",
+        processing_processed: "Επεξεργασμένο",
+        processing_high: "Πολύ επεξεργασμένο",
         ingredients_translate_toggle: "Μετάφραση συστατικών (γλωσσάρι)",
         ingredients_translate_unavailable: "Το γλωσσάρι δεν είναι διαθέσιμο. Διατηρούνται τα αρχικά ονόματα.",
         ingredients_translate_loading: "Φόρτωση γλωσσαρίου...",
@@ -453,6 +461,7 @@
         none: "keine",
         e_explained: "E-Nummern erklärt",
         additive_fallback: "Lebensmittelzusatzstoff",
+        additive_fallback_e: "Lebensmittelzusatzstoff (E-Nummer)",
         e_none: "Keine E-Nummern aus Additiven/Tags oder Zutaten erkannt.",
         flags: "Hinweise",
         ingredients_grouped: "Zutatenliste (gruppiert)",
@@ -484,6 +493,9 @@
         tier_good: "Gut",
         tier_okay: "Okay",
         tier_caution: "Vorsicht",
+        processing_minimal: "Minimal verarbeitet",
+        processing_processed: "Verarbeitet",
+        processing_high: "Stark verarbeitet",
         ingredients_translate_toggle: "Zutaten übersetzen (Glossar)",
         ingredients_translate_unavailable: "Glossar nicht verfügbar. Originale Zutatennamen bleiben erhalten.",
         ingredients_translate_loading: "Glossar wird geladen...",
@@ -534,6 +546,7 @@
         none: "aucun",
         e_explained: "E-numbers expliqués",
         additive_fallback: "Additif alimentaire",
+        additive_fallback_e: "Additif alimentaire (E-number)",
         e_none: "Aucun E-number détecté depuis additifs/tags ou texte ingrédients.",
         flags: "Drapeaux",
         ingredients_grouped: "Liste des ingrédients (groupée)",
@@ -565,6 +578,9 @@
         tier_good: "Bon",
         tier_okay: "Correct",
         tier_caution: "Attention",
+        processing_minimal: "Peu transformé",
+        processing_processed: "Transformé",
+        processing_high: "Très transformé",
         ingredients_translate_toggle: "Traduire les ingrédients (glossaire)",
         ingredients_translate_unavailable: "Glossaire indisponible. Les noms d'ingrédients d'origine sont conservés.",
         ingredients_translate_loading: "Chargement du glossaire...",
@@ -819,6 +835,16 @@
       return entry.translations?.[lang] || entry.translations?.en || entry.translations?.el || fallback || raw;
     }
 
+    function localizeProcessingLabel(value){
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const key = _ingredientLookupKey(raw);
+      if (key === "minimally processed") return t("processing_minimal");
+      if (key === "processed") return t("processing_processed");
+      if (key === "highly processed") return t("processing_high");
+      return raw;
+    }
+
     function ingredientDisplayName(name){
       const original = String(name || "").trim();
       if (!original) return { primary: "-", secondary: "", translated: false };
@@ -876,6 +902,9 @@
     function localizeEAdditiveName(ed){
       const name = String(ed?.name || "").trim();
       if (!name) return t("additive_fallback");
+      const normalized = _normalizeIngredientToken(name);
+      if (normalized === "food additive e number") return t("additive_fallback_e");
+      if (normalized === "food additive") return t("additive_fallback");
       return localizeGlossaryValue(name, name);
     }
 
@@ -989,9 +1018,9 @@
       const unmatchedIngredientNames = [];
 
       const scorePill = (score === null || score === undefined) ? `` : (
-        score <= 2 ? `<span class="pill good">${t("processing")}: ${score}/10 | ${label}</span>` :
-        score <= 5 ? `<span class="pill warn">${t("processing")}: ${score}/10 | ${label}</span>` :
-                     `<span class="pill bad">${t("processing")}: ${score}/10 | ${label}</span>`
+        score <= 2 ? `<span class="pill good">${t("processing")}: ${score}/10 | ${localizeProcessingLabel(label)}</span>` :
+        score <= 5 ? `<span class="pill warn">${t("processing")}: ${score}/10 | ${localizeProcessingLabel(label)}</span>` :
+                     `<span class="pill bad">${t("processing")}: ${score}/10 | ${localizeProcessingLabel(label)}</span>`
       );
       const caffeinePill = (markers?.caffeine ? `<span class="pill warn">${t("caffeine")}</span>` : ``);
       const ePill = (eDetails.length ? `<span class="pill warn">${t("e_numbers")}: ${eDetails.length}</span>` : `<span class="pill">${t("e_numbers")}: ${t("none")}</span>`);
