@@ -326,6 +326,7 @@
         ingredients_translate_unavailable: "Glossary unavailable. Keeping original ingredient names.",
         ingredients_translate_loading: "Loading glossary...",
         ingredients_translate_count: "Translated __TRANSLATED_COUNT__/__TOTAL_COUNT__",
+        e_generic_meaning: "EU food additive code; showing the primary role.",
         group_acidifier: "Acidifier",
         group_colorant: "Colorant",
         group_flavoring: "Flavoring",
@@ -406,6 +407,7 @@
         ingredients_translate_unavailable: "Το γλωσσάρι δεν είναι διαθέσιμο. Διατηρούνται τα αρχικά ονόματα.",
         ingredients_translate_loading: "Φόρτωση γλωσσαρίου...",
         ingredients_translate_count: "Μεταφράστηκαν __TRANSLATED_COUNT__/__TOTAL_COUNT__",
+        e_generic_meaning: "Κωδικός πρόσθετου τροφίμων στην ΕΕ· εμφανίζεται ο βασικός ρόλος.",
         group_acidifier: "Οξινιστής",
         group_colorant: "Χρωστική",
         group_flavoring: "Αρωματική ύλη",
@@ -486,6 +488,7 @@
         ingredients_translate_unavailable: "Glossar nicht verfügbar. Originale Zutatennamen bleiben erhalten.",
         ingredients_translate_loading: "Glossar wird geladen...",
         ingredients_translate_count: "Übersetzt __TRANSLATED_COUNT__/__TOTAL_COUNT__",
+        e_generic_meaning: "EU-Zusatzstoffcode; die Hauptfunktion wird angezeigt.",
         group_acidifier: "Säuerungsmittel",
         group_colorant: "Farbstoff",
         group_flavoring: "Aroma",
@@ -566,6 +569,7 @@
         ingredients_translate_unavailable: "Glossaire indisponible. Les noms d'ingrédients d'origine sont conservés.",
         ingredients_translate_loading: "Chargement du glossaire...",
         ingredients_translate_count: "Traduit __TRANSLATED_COUNT__/__TOTAL_COUNT__",
+        e_generic_meaning: "Code d’additif alimentaire de l’UE ; rôle principal affiché.",
         group_acidifier: "Acidifiant",
         group_colorant: "Colorant",
         group_flavoring: "Arôme",
@@ -854,6 +858,8 @@
       const direct = ed?.[`meaning_${lang}`] || ed?.meaning_en || ed?.meaning_el || "";
       const raw = String(direct || "").trim();
       if (!raw) return "";
+      const genericEl = "Κωδικός πρόσθετου τροφίμων στην ΕΕ (δείχνουμε τον βασικό ρόλο).";
+      if (raw === genericEl) return t("e_generic_meaning");
 
       const segments = raw
         .split("/")

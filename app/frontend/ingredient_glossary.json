@@ -6,7 +6,7 @@
       "fr": "Eau",
       "de": "Wasser"
     },
-    "aliases": ["water", "eau", "wasser"]
+    "aliases": ["water", "eau", "wasser", "woda", "Water", "Woda"]
   },
   "carbonated water": {
     "translations": {
@@ -24,7 +24,7 @@
       "fr": "Dioxyde de carbone",
       "de": "Kohlensäure"
     },
-    "aliases": ["carbon dioxide", "carbonation", "co2", "dioxyde de carbone", "kohlensäure", "kohlensaeure", "kohlendioxid"]
+    "aliases": ["carbon dioxide", "carbonation", "co2", "dioxyde de carbone", "kohlensäure", "kohlensaeure", "kohlendioxid", "dwutlenek węgla", "dwutlenek wegla", "Dwutlenek węgla"]
   },
   "sugar": {
     "translations": {
@@ -33,7 +33,7 @@
       "fr": "Sucre",
       "de": "Zucker"
     },
-    "aliases": ["sugar", "sucres", "sucre", "zucker"]
+    "aliases": ["sugar", "sucres", "sucre", "zucker", "sacharoza", "Sacharoza"]
   },
   "glucose": {
     "translations": {
@@ -42,7 +42,7 @@
       "fr": "Glucose",
       "de": "Glukose"
     },
-    "aliases": ["glucose", "glukose"]
+    "aliases": ["glucose", "glukose", "glukoza", "Glukoza"]
   },
   "fructose": {
     "translations": {
@@ -186,7 +186,7 @@
       "fr": "Colorant",
       "de": "Farbstoff"
     },
-    "aliases": ["colorant", "colorants", "colouring", "coloring", "colorant alimentaire", "farbstoff", "farbstoffe"]
+    "aliases": ["colorant", "colorants", "colouring", "coloring", "colorant alimentaire", "farbstoff", "farbstoffe", "χρωστική", "χρωστικη", "χρωστικές", "barwnik", "barwniki", "Barwniki"]
   },
   "caramel colour": {
     "translations": {
@@ -195,7 +195,7 @@
       "fr": "Colorant caramel",
       "de": "Karamellfarbstoff"
     },
-    "aliases": ["caramel colour", "caramel color", "colour caramel", "colorant caramel", "karamellfarbstoff"]
+    "aliases": ["caramel colour", "caramel color", "colour caramel", "colorant caramel", "karamellfarbstoff", "χρωστική καραμέλας", "χρωστικη καραμελας"]
   },
   "preservative": {
     "translations": {
@@ -249,7 +249,7 @@
       "fr": "Arôme",
       "de": "Aroma"
     },
-    "aliases": ["flavouring", "flavourings", "flavoring", "flavorings", "arôme", "aromes", "arome", "aroma", "aromen"]
+    "aliases": ["flavouring", "flavourings", "flavoring", "flavorings", "arôme", "aromes", "arome", "aroma", "aromen", "άρωμα", "αρωμα", "αρώματα", "aromaty", "Aromaty"]
   },
   "natural flavouring": {
     "translations": {
@@ -277,6 +277,51 @@
       "de": "Koffein"
     },
     "aliases": ["caffeine", "caféine", "cafeine", "koffein", "καφεΐνη", "καφεινη", "kofeina"]
+  },
+  "taurine": {
+    "translations": {
+      "el": "Ταυρίνη",
+      "en": "Taurine",
+      "fr": "Taurine",
+      "de": "Taurin"
+    },
+    "aliases": ["taurine", "taurin", "ταυρίνη", "ταυρινη", "tauryna", "Tauryna"]
+  },
+  "vitamins": {
+    "translations": {
+      "el": "Βιταμίνες",
+      "en": "Vitamins",
+      "fr": "Vitamines",
+      "de": "Vitamine"
+    },
+    "aliases": ["vitamins", "vitamines", "vitamine", "βιταμίνες", "βιταμινες", "witaminy", "Witaminy"]
+  },
+  "niacin": {
+    "translations": {
+      "el": "Νιασίνη",
+      "en": "Niacin",
+      "fr": "Niacine",
+      "de": "Niacin"
+    },
+    "aliases": ["niacin", "niacine", "νιασίνη", "νιασινη", "niacyna", "Niacyna"]
+  },
+  "vitamin b6": {
+    "translations": {
+      "el": "Βιταμίνη B6",
+      "en": "Vitamin B6",
+      "fr": "Vitamine B6",
+      "de": "Vitamin B6"
+    },
+    "aliases": ["vitamin b6", "vitamine b6", "βιταμίνη b6", "βιταμινη b6", "witamina b6", "Witamina B6"]
+  },
+  "vitamin b12": {
+    "translations": {
+      "el": "Βιταμίνη B12",
+      "en": "Vitamin B12",
+      "fr": "Vitamine B12",
+      "de": "Vitamin B12"
+    },
+    "aliases": ["vitamin b12", "vitamine b12", "βιταμίνη b12", "βιταμινη b12", "witamina b12", "Witamina B12"]
   },
   "flavor enhancer": {
     "translations": {
