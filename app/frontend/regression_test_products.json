@@ -1,0 +1,310 @@
+[
+  {
+    "product_name": "Coca-Cola Original Taste",
+    "brand": "Coca-Cola",
+    "barcode": "5449000000996",
+    "expected_source_language": "DE",
+    "category": "cola / soft drink",
+    "notes": "Primary smoke test for German additive labels and E-number card localization.",
+    "key_expected_matches": [
+      { "source": "Wasser", "canonical": "water", "expected_en": "Water" },
+      { "source": "Zucker", "canonical": "sugar", "expected_en": "Sugar" },
+      { "source": "Säuerungsmittel", "canonical": "acidifier", "expected_en": "Acidifier" },
+      { "source": "Farbstoff", "canonical": "colorant", "expected_en": "Colorant" },
+      { "source": "natürliches Aroma", "canonical": "natural flavouring", "expected_en": "Natural flavouring" },
+      { "source": "Aroma Koffein", "canonical": "caffeine flavouring", "expected_en": "Caffeine flavouring" }
+    ],
+    "expected_flags": ["additives_detected", "contains_caffeine"],
+    "expected_e_numbers": ["E150", "E338"],
+    "priority": "P0"
+  },
+  {
+    "product_name": "Red Bull Energy Drink",
+    "brand": "Red Bull",
+    "barcode": "9002490100070",
+    "expected_source_language": "PL",
+    "category": "energy drink",
+    "notes": "High-value Polish source test for glossary alias coverage and translation count.",
+    "key_expected_matches": [
+      { "source": "woda", "canonical": "water", "expected_en": "Water" },
+      { "source": "sacharoza", "canonical": "sucrose", "expected_en": "Sucrose" },
+      { "source": "glukoza", "canonical": "glucose", "expected_en": "Glucose" },
+      { "source": "dwutlenek węgla", "canonical": "carbon dioxide", "expected_en": "Carbon dioxide" },
+      { "source": "tauryna", "canonical": "taurine", "expected_en": "Taurine" },
+      { "source": "kofeina", "canonical": "caffeine", "expected_en": "Caffeine" },
+      { "source": "witaminy", "canonical": "vitamins", "expected_en": "Vitamins" }
+    ],
+    "expected_flags": ["additives_detected", "contains_caffeine"],
+    "expected_e_numbers": [],
+    "priority": "P0"
+  },
+  {
+    "product_name": "Fanta Orange",
+    "brand": "Fanta",
+    "barcode": "5449000054227",
+    "expected_source_language": "DE",
+    "category": "soft drink",
+    "notes": "Useful for acidifier, orange flavouring, and colorant checks.",
+    "key_expected_matches": [
+      { "source": "Wasser", "canonical": "water", "expected_en": "Water" },
+      { "source": "Säuerungsmittel", "canonical": "acidifier", "expected_en": "Acidifier" },
+      { "source": "natürliches Orangenaroma", "canonical": "natural orange flavouring", "expected_en": "Natural orange flavouring" }
+    ],
+    "expected_flags": ["additives_detected"],
+    "expected_e_numbers": ["E330"],
+    "priority": "P1"
+  },
+  {
+    "product_name": "Sprite",
+    "brand": "Sprite",
+    "barcode": "5449000011527",
+    "expected_source_language": "DE",
+    "category": "soft drink",
+    "notes": "Checks carbonated water and citric acid handling without caffeine.",
+    "key_expected_matches": [
+      { "source": "Wasser", "canonical": "water", "expected_en": "Water" },
+      { "source": "Kohlensäure", "canonical": "carbon dioxide", "expected_en": "Carbon dioxide" },
+      { "source": "Zitronensäure", "canonical": "citric acid", "expected_en": "Citric acid" }
+    ],
+    "expected_flags": ["additives_detected"],
+    "expected_e_numbers": ["E330"],
+    "priority": "P1"
+  },
+  {
+    "product_name": "Schweppes Indian Tonic",
+    "brand": "Schweppes",
+    "barcode": "5202174000071",
+    "expected_source_language": "DE",
+    "category": "flavored water / tonic",
+    "notes": "Good candidate for sweetener or acidifier labels plus carbonation.",
+    "key_expected_matches": [
+      { "source": "Wasser", "canonical": "water", "expected_en": "Water" },
+      { "source": "Kohlensäure", "canonical": "carbon dioxide", "expected_en": "Carbon dioxide" },
+      { "source": "Aroma", "canonical": "flavouring", "expected_en": "Flavouring" }
+    ],
+    "expected_flags": ["additives_detected"],
+    "expected_e_numbers": [],
+    "priority": "P2"
+  },
+  {
+    "product_name": "Volvic Touch Citron",
+    "brand": "Volvic",
+    "barcode": "3057640257774",
+    "expected_source_language": "FR",
+    "category": "flavored water",
+    "notes": "French source case for flavouring and juice concentrate aliases.",
+    "key_expected_matches": [
+      { "source": "eau", "canonical": "water", "expected_en": "Water" },
+      { "source": "arôme naturel", "canonical": "natural flavouring", "expected_en": "Natural flavouring" },
+      { "source": "concentré de jus de citron", "canonical": "lemon juice concentrate", "expected_en": "Lemon juice concentrate" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P1"
+  },
+  {
+    "product_name": "Innocent Orange Juice",
+    "brand": "Innocent",
+    "barcode": "5038862101577",
+    "expected_source_language": "EN",
+    "category": "fruit juice",
+    "notes": "Baseline English product with simple ingredients and no additive expectations.",
+    "key_expected_matches": [
+      { "source": "orange juice", "canonical": "orange juice", "expected_en": "Orange juice" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P1"
+  },
+  {
+    "product_name": "Haribo Goldbears",
+    "brand": "Haribo",
+    "barcode": "4001686301260",
+    "expected_source_language": "DE",
+    "category": "candy",
+    "notes": "Useful for glucose syrup, starch, gelling agent, and flavoring checks.",
+    "key_expected_matches": [
+      { "source": "Glukosesirup", "canonical": "glucose syrup", "expected_en": "Glucose syrup" },
+      { "source": "Zucker", "canonical": "sugar", "expected_en": "Sugar" },
+      { "source": "Geliermittel", "canonical": "gelling agent", "expected_en": "Gelling agent" },
+      { "source": "Aromen", "canonical": "flavourings", "expected_en": "Flavourings" }
+    ],
+    "expected_flags": ["additives_detected"],
+    "expected_e_numbers": [],
+    "priority": "P2"
+  },
+  {
+    "product_name": "Oreo Original",
+    "brand": "Oreo",
+    "barcode": "7622210449283",
+    "expected_source_language": "DE",
+    "category": "biscuits / cookies",
+    "notes": "Good for wheat flour, palm oil, cocoa, and raising-agent style ingredient runs.",
+    "key_expected_matches": [
+      { "source": "Weizenmehl", "canonical": "wheat flour", "expected_en": "Wheat flour" },
+      { "source": "Palmöl", "canonical": "palm oil", "expected_en": "Palm oil" },
+      { "source": "Kakao", "canonical": "cocoa", "expected_en": "Cocoa" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2"
+  },
+  {
+    "product_name": "LU Petit Beurre",
+    "brand": "LU",
+    "barcode": "7622210214676",
+    "expected_source_language": "FR",
+    "category": "biscuits / cookies",
+    "notes": "French cereal and dairy-free baked goods coverage.",
+    "key_expected_matches": [
+      { "source": "farine de blé", "canonical": "wheat flour", "expected_en": "Wheat flour" },
+      { "source": "sucre", "canonical": "sugar", "expected_en": "Sugar" },
+      { "source": "sirop de sucre inverti", "canonical": "invert sugar syrup", "expected_en": "Invert sugar syrup" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2"
+  },
+  {
+    "product_name": "Nestlé Chocapic",
+    "brand": "Nestlé",
+    "barcode": "7613034626840",
+    "expected_source_language": "FR",
+    "category": "breakfast cereals",
+    "notes": "Cereal, cocoa, vitamin, and mineral terminology coverage.",
+    "key_expected_matches": [
+      { "source": "farine de blé complète", "canonical": "whole wheat flour", "expected_en": "Whole wheat flour" },
+      { "source": "cacao", "canonical": "cocoa", "expected_en": "Cocoa" },
+      { "source": "vitamines", "canonical": "vitamins", "expected_en": "Vitamins" },
+      { "source": "calcium", "canonical": "calcium", "expected_en": "Calcium" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2"
+  },
+  {
+    "product_name": "Kellogg's Corn Flakes",
+    "brand": "Kellogg's",
+    "barcode": "5050083396508",
+    "expected_source_language": "EN",
+    "category": "breakfast cereals",
+    "notes": "Simple control case for grain and vitamin labels from English source text.",
+    "key_expected_matches": [
+      { "source": "corn", "canonical": "corn flour", "expected_en": "Corn flour" },
+      { "source": "vitamin b6", "canonical": "vitamin b6", "expected_en": "Vitamin B6" },
+      { "source": "vitamin b12", "canonical": "vitamin b12", "expected_en": "Vitamin B12" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  },
+  {
+    "product_name": "Danone Natural Yogurt",
+    "brand": "Danone",
+    "barcode": "8410100089392",
+    "expected_source_language": "FR",
+    "category": "yogurt / dairy",
+    "notes": "Basic dairy case; useful to ensure no over-translation regressions.",
+    "key_expected_matches": [
+      { "source": "lait", "canonical": "milk", "expected_en": "Milk" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  },
+  {
+    "product_name": "Milka Alpine Milk Chocolate",
+    "brand": "Milka",
+    "barcode": "7622210718693",
+    "expected_source_language": "DE",
+    "category": "chocolate / cocoa product",
+    "notes": "Tests chocolate, milk powder, cocoa butter, and whey aliases.",
+    "key_expected_matches": [
+      { "source": "Zucker", "canonical": "sugar", "expected_en": "Sugar" },
+      { "source": "Kakaobutter", "canonical": "cocoa butter", "expected_en": "Cocoa butter" },
+      { "source": "Magermilchpulver", "canonical": "skimmed milk powder", "expected_en": "Skimmed milk powder" },
+      { "source": "Molkenpulver", "canonical": "whey powder", "expected_en": "Whey powder" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2"
+  },
+  {
+    "product_name": "Lay's Classic",
+    "brand": "Lay's",
+    "barcode": "3168930010904",
+    "expected_source_language": "FR",
+    "category": "chips / salty snack",
+    "notes": "Oil and salt terminology check for a very short list.",
+    "key_expected_matches": [
+      { "source": "pommes de terre", "canonical": "potato starch", "expected_en": "Potato starch" },
+      { "source": "huile de tournesol", "canonical": "sunflower oil", "expected_en": "Sunflower oil" },
+      { "source": "sel", "canonical": "salt", "expected_en": "Salt" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  },
+  {
+    "product_name": "Pringles Original",
+    "brand": "Pringles",
+    "barcode": "5053990100299",
+    "expected_source_language": "EN",
+    "category": "chips / salty snack",
+    "notes": "Useful for starch, rice flour, wheat starch, and emulsifier style snack formulas.",
+    "key_expected_matches": [
+      { "source": "dehydrated potatoes", "canonical": "potato starch", "expected_en": "Potato starch" },
+      { "source": "rice flour", "canonical": "rice flour", "expected_en": "Rice flour" },
+      { "source": "wheat starch", "canonical": "wheat starch", "expected_en": "Wheat starch" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  },
+  {
+    "product_name": "Heinz Tomato Ketchup",
+    "brand": "Heinz",
+    "barcode": "8715700110620",
+    "expected_source_language": "DE",
+    "category": "sauce / condiment",
+    "notes": "Good for acidifier and fruit/vegetable concentrate style ingredient chains.",
+    "key_expected_matches": [
+      { "source": "Branntweinessig", "canonical": "acidifier", "expected_en": "Acidifier" },
+      { "source": "Zucker", "canonical": "sugar", "expected_en": "Sugar" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  },
+  {
+    "product_name": "Maille Dijon Mustard",
+    "brand": "Maille",
+    "barcode": "8722700057480",
+    "expected_source_language": "FR",
+    "category": "sauce / condiment",
+    "notes": "Useful for preservative-free short labels and allergen-heavy ingredient text.",
+    "key_expected_matches": [
+      { "source": "eau", "canonical": "water", "expected_en": "Water" },
+      { "source": "vinaigre", "canonical": "acidifier", "expected_en": "Acidifier" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  },
+  {
+    "product_name": "Actimel Strawberry",
+    "brand": "Danone",
+    "barcode": "3033490004953",
+    "expected_source_language": "FR",
+    "category": "yogurt / dairy drink",
+    "notes": "Covers dairy proteins, vitamins, and flavoring in a single compact product.",
+    "key_expected_matches": [
+      { "source": "lait écrémé", "canonical": "milk", "expected_en": "Milk" },
+      { "source": "vitamine b6", "canonical": "vitamin b6", "expected_en": "Vitamin B6" },
+      { "source": "arôme", "canonical": "flavouring", "expected_en": "Flavouring" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P3"
+  }
+]
