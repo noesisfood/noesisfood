@@ -277,6 +277,7 @@
         unit:"g",
       }
     };
+    let latestAnalysisRequestId = 0;
     const supportedLangs = ["el", "en", "de", "fr"];
     const languageOptionLabels = { el: "EL", en: "EN", de: "DE", fr: "FR" };
     const RECENT_PRODUCTS_KEY = "nf_recent_products_v1";
@@ -1129,6 +1130,15 @@
       return i18n[lang]?.[key] || i18n.en[key] || key;
     }
 
+    function beginAnalysisRequest(){
+      latestAnalysisRequestId += 1;
+      return latestAnalysisRequestId;
+    }
+
+    function isCurrentAnalysisRequest(requestId){
+      return Number(requestId) === Number(latestAnalysisRequestId);
+    }
+
     function normalizeLookupKey(value){
       return String(value || "").trim().replace(/\s+/g, "");
     }
@@ -1356,6 +1366,7 @@
     }
 
     async function doManualAnalysis(){
+      const requestId = beginAnalysisRequest();
       state.manualForm = readManualForm();
       state.loading = true;
       state.error = "";
@@ -1368,6 +1379,7 @@
           body: JSON.stringify(state.manualForm),
         });
         const data = await res.json().catch(()=> ({}));
+        if (!isCurrentAnalysisRequest(requestId)) return;
         if (!res.ok || data?.error){
           state.error = localizeScanError(data, res.status);
           state.errorCode = scanErrorCode(data, res.status);
@@ -1385,6 +1397,7 @@
         step = 2;
         render();
       }catch(_e){
+        if (!isCurrentAnalysisRequest(requestId)) return;
         state.error = t("err_network");
         state.loading = false;
         render();
@@ -1401,6 +1414,7 @@
     }
 
     async function doPhotoAnalysis(){
+      const requestId = beginAnalysisRequest();
       const previousData = state.data && typeof state.data === "object" ? state.data : null;
       state.loading = true;
       state.error = "";
@@ -1429,6 +1443,7 @@
           body: JSON.stringify(payload),
         });
         const data = await res.json().catch(()=> ({}));
+        if (!isCurrentAnalysisRequest(requestId)) return;
         if (!res.ok || data?.error){
           state.error = localizeScanError(data, res.status);
           state.errorCode = scanErrorCode(data, res.status);
@@ -1467,6 +1482,7 @@
         step = 2;
         render();
       }catch(_e){
+        if (!isCurrentAnalysisRequest(requestId)) return;
         state.error = t("err_network");
         state.loading = false;
         state.recoveryOpen = true;
@@ -3252,10 +3268,14 @@
     }
 
     async function doScan(key){
-      state.key = normalizeLookupKey(key);
+      const nextKey = normalizeLookupKey(key);
+      const requestId = beginAnalysisRequest();
+      state.key = nextKey;
       if (!state.key){
         state.error = t("err_enter_key");
         state.errorCode = "INVALID_BARCODE";
+        state.data = null;
+        state.compareTargetKey = "";
         state.recoveryOpen = false;
         render();
         return;
@@ -3263,6 +3283,8 @@
       if (!isSupportedLookupKey(state.key)){
         state.error = t("err_invalid_barcode");
         state.errorCode = "INVALID_BARCODE";
+        state.data = null;
+        state.compareTargetKey = "";
         state.recoveryOpen = false;
         render();
         return;
@@ -3270,13 +3292,18 @@
       state.loading = true;
       state.error = "";
       state.errorCode = "";
+      state.data = null;
+      state.compareTargetKey = "";
+      state.recoveryOpen = false;
       state.refreshNotice = null;
       state.recoveryPhotoMessage = "";
+      state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
       state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
       render();
       try{
         const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
         const data = await res.json().catch(()=> ({}));
+        if (!isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
         if (!res.ok || data?.error){
           state.error = localizeScanError(data, res.status);
           state.errorCode = scanErrorCode(data, res.status);
@@ -3300,6 +3327,7 @@
         step = 2;
         render();
       }catch(e){
+        if (!isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
         state.error = t("err_network");
         state.errorCode = "";
         state.loading = false;
@@ -3309,16 +3337,21 @@
 
     async function refreshCurrentDataForLanguage(){
       if (!state.key || !state.data) return;
+      const requestId = beginAnalysisRequest();
+      const currentKey = state.key;
       const preservedStep = step;
       try{
-        const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
+        const res = await fetch(`/scan/${encodeURIComponent(currentKey)}?lang=${lang}`);
         const data = await res.json().catch(()=> ({}));
+        if (!isCurrentAnalysisRequest(requestId) || state.key !== currentKey) return;
         if (!res.ok || data?.error) throw new Error(localizeScanError(data, res.status));
         state.data = data;
-        _storeRecentProduct(data, state.key);
+        _storeRecentProduct(data, currentKey);
       }catch(e){
+        if (!isCurrentAnalysisRequest(requestId) || state.key !== currentKey) return;
         console.warn(`[lang-switch] Failed to refresh data for ${lang}: ${e && e.message ? e.message : e}`);
       }finally{
+        if (!isCurrentAnalysisRequest(requestId) || state.key !== currentKey) return;
         step = preservedStep;
         render();
       }
