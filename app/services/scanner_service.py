@@ -437,6 +437,20 @@ _LEGUME_MARKERS = [
 
 _YOGURT_MARKERS = ["yogurt", "yoghurt", "jogurt", "yaourt", "γιαούρτι", "γιαουρτι"]
 _CHEESE_MARKERS = ["cheese", "käse", "fromage", "feta", "τυρί", "τυρι", "φέτα", "φετα"]
+_TOMATO_VEG_MARKERS = [
+    "tomato", "tomatoes", "chopped tomatoes", "diced tomatoes", "peeled tomatoes", "passata",
+    "pomodoro", "pomodori", "tomate", "tomates", "ντομάτα", "ντομάτες", "τομάτα", "τομάτες",
+]
+_FRUIT_MARKERS = [
+    "fruit", "fruits", "apple", "apples", "pear", "pears", "peach", "peaches", "apricot", "apricots",
+    "banana", "bananas", "berry", "berries", "mango", "orange", "oranges", "grape", "grapes",
+    "μήλο", "μήλα", "φρούτο", "φρούτα",
+]
+_OATS_GRAINS_MARKERS = [
+    "oat", "oats", "oatmeal", "rolled oats", "whole grain oats", "porridge oats",
+    "grain", "grains", "barley", "buckwheat", "quinoa", "rye", "spelt",
+    "βρώμη", "δημητριακά",
+]
 
 _PLAIN_NUTS_SEEDS_MARKERS = [
     "walnut", "walnuts", "almond", "almonds", "hazelnut", "hazelnuts", "pistachio", "pistachios",
@@ -451,6 +465,12 @@ _NUTS_SEEDS_EXCLUSION_MARKERS = [
     "flavoured", "flavored", "aroma", "aromas", "arôme", "smoked", "bbq", "barbecue", "chili", "paprika",
     "spicy", "wasabi", "tamari", "soy sauce", "honey", "caramel", "candied", "praline", "glazed", "coated",
     "coating", "chocolate", "cocoa", "sugar", "syrup", "sirop", "sucre", "zucker", "ζάχαρη", "σοκολάτα",
+]
+
+_WHOLE_FOOD_EXCLUSION_MARKERS = [
+    "sauce", "salsa", "ketchup", "spread", "dip", "seasoned", "seasoning", "prepared", "ready meal",
+    "processed", "snack", "chips", "crisps", "cracker", "cookie", "biscuit", "dessert",
+    "sauce tomate", "σάλτσα", "σνακ",
 ]
 
 _ING_MAP = {
@@ -741,6 +761,149 @@ def _traditional_balance_adjustments(
             "nutrient_dense_category": nutrient_dense_category,
             "no_additives": no_additives,
             "plain_nuts_seed_candidate": plain_nuts_seed_candidate,
+        },
+    }
+
+
+def _whole_food_floor_adjustments(
+    normalized: Dict[str, Any],
+    per100: Dict[str, Optional[float]],
+    intelligence: Dict[str, Any],
+    *,
+    is_beverage: bool,
+    lang: str,
+    current_score: int,
+) -> Dict[str, Any]:
+    if is_beverage:
+        return {"applied": [], "floor_score": None, "floor_delta": 0}
+
+    markers = intelligence.get("markers", {}) if isinstance(intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    product_text = _normalized_product_text(normalized)
+    ingredient_count = len(_as_list(normalized.get("ingredients")))
+    processing_score = int(_to_float(intelligence.get("processing_score")) or 0) if isinstance(intelligence, dict) else 0
+    salt = _to_float(per100.get("salt_g"))
+    sugar = _to_float(per100.get("sugar_g"))
+    satfat = _to_float(per100.get("saturated_fat_g"))
+
+    no_additives = all(int(markers.get(k) or 0) == 0 for k in (
+        "sweeteners", "flavourings", "colorants", "preservatives", "emulsifiers_stabilizers", "e_numbers"
+    ))
+    minimally_processed = processing_score <= 2
+    simple_single = ingredient_count <= 2
+    simple_short = ingredient_count <= 4
+    excluded = _contains_any(product_text, _WHOLE_FOOD_EXCLUSION_MARKERS)
+
+    plain_nuts_seed = (
+        _contains_any(product_text, _PLAIN_NUTS_SEEDS_MARKERS)
+        and not _contains_any(product_text, _NUTS_SEEDS_EXCLUSION_MARKERS)
+        and simple_short and minimally_processed and no_additives
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 6.0)
+    )
+    plain_legumes = (
+        _contains_any(product_text, _LEGUME_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 6.0)
+    )
+    plain_tomato_veg = (
+        _contains_any(product_text, _TOMATO_VEG_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 8.0)
+    )
+    plain_fruit = (
+        _contains_any(product_text, _FRUIT_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.1)
+        and (sugar is None or sugar <= 18.0)
+    )
+    simple_oats_grains = (
+        _contains_any(product_text, _OATS_GRAINS_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 10.0)
+    )
+
+    floor_score: Optional[int] = None
+    applied: List[Dict[str, Any]] = []
+
+    if plain_nuts_seed:
+        floor_score = 64
+    elif plain_legumes:
+        floor_score = 63
+    elif plain_tomato_veg:
+        floor_score = 62
+    elif simple_oats_grains:
+        floor_score = 60
+    elif plain_fruit:
+        floor_score = 61
+
+    if floor_score is None:
+        return {"applied": [], "floor_score": None, "floor_delta": 0}
+
+    if salt is not None and salt >= 1.0:
+        floor_score -= 4
+    if sugar is not None and sugar >= 15.0 and not plain_fruit:
+        floor_score -= 4
+    if satfat is not None and satfat >= 15.0 and not plain_nuts_seed:
+        floor_score -= 3
+
+    floor_score = int(max(0, floor_score))
+    if current_score >= floor_score:
+        return {"applied": [], "floor_score": floor_score, "floor_delta": 0}
+
+    message_map = {
+        "whole_food_category": {
+            "el": "Το προϊόν ανήκει σε κατηγορία απλών, ολόκληρων τροφίμων.",
+            "en": "This product belongs to a simple whole-food category.",
+            "de": "Dieses Produkt gehört zu einer einfachen Whole-Food-Kategorie.",
+            "fr": "Ce produit appartient à une catégorie d’aliments entiers simples.",
+        },
+        "minimal_processing_floor": {
+            "el": "Η ελάχιστη επεξεργασία βελτιώνει τη συνολική εικόνα.",
+            "en": "Minimal processing improves the overall picture.",
+            "de": "Die minimale Verarbeitung verbessert das Gesamtbild.",
+            "fr": "La transformation minimale améliore l’ensemble.",
+        },
+        "simple_category_floor": {
+            "el": "Η πολύ απλή σύνθεση της κατηγορίας λειτουργεί θετικά.",
+            "en": "The very simple category composition helps the assessment.",
+            "de": "Die sehr einfache Zusammensetzung dieser Kategorie wirkt sich positiv aus.",
+            "fr": "La composition très simple de cette catégorie aide l’évaluation.",
+        },
+        "not_processed_snack_floor": {
+            "el": "Η κατηγορία αυτή δεν πρέπει να αντιμετωπίζεται όπως τα επεξεργασμένα σνακ.",
+            "en": "This category should not be treated like processed snack foods.",
+            "de": "Diese Kategorie sollte nicht wie verarbeitete Snacks behandelt werden.",
+            "fr": "Cette catégorie ne doit pas être traitée comme des snacks transformés.",
+        },
+    }
+
+    reason_ids = ["whole_food_category", "minimal_processing_floor", "simple_category_floor"]
+    if plain_nuts_seed or simple_oats_grains or plain_legumes:
+        reason_ids.append("not_processed_snack_floor")
+
+    for idx, rule_id in enumerate(reason_ids):
+        applied.append({
+            "rule_id": rule_id,
+            "impact_direction": "positive",
+            "impact_weight": 57 - idx,
+            "message": message_map[rule_id].get(lang) or message_map[rule_id]["en"],
+        })
+
+    return {
+        "applied": applied,
+        "floor_score": floor_score,
+        "floor_delta": int(floor_score - current_score),
+        "flags": {
+            "plain_nuts_seed": plain_nuts_seed,
+            "plain_legumes": plain_legumes,
+            "plain_tomato_veg": plain_tomato_veg,
+            "plain_fruit": plain_fruit,
+            "simple_oats_grains": simple_oats_grains,
         },
     }
 
@@ -1877,6 +2040,7 @@ def _fallback_assessment_response(
             "hybrid_score": score,
             "who_baseline": {"score": score},
             "balance_adjustments": {"applied": [], "total_delta": 0},
+            "floor_adjustments": {"applied": [], "floor_score": None, "floor_delta": 0},
             "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
         },
         "why_this_score": [],
@@ -1983,6 +2147,18 @@ def _analyze_normalized_product(
         breakdown["pre_pattern_score"] = base_score
         breakdown["pattern_adjustments"] = pattern_adjustments
         breakdown["balance_adjustments"] = balance_adjustments
+        floor_adjustments = _whole_food_floor_adjustments(
+            norm,
+            per100,
+            ingredients_intelligence,
+            is_beverage=is_bev,
+            lang=lang,
+            current_score=score,
+        )
+        floor_score = floor_adjustments.get("floor_score")
+        if isinstance(floor_score, int):
+            score = max(score, floor_score)
+        breakdown["floor_adjustments"] = floor_adjustments
         breakdown["analysis_mode"] = {
             "state": analysis_state,
             "confidence": analysis_confidence,

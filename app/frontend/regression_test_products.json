@@ -554,5 +554,65 @@
     "expected_e_numbers": [],
     "priority": "P2",
     "smoke_test": false
+  },
+  {
+    "product_name": "Plain chopped tomatoes",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "plain vegetables",
+    "notes": "Very simple chopped tomatoes should benefit from the whole-food floor and not be treated like processed sauces.",
+    "key_expected_matches": [
+      { "source": "tomatoes", "canonical": "tomato", "expected_en": "Tomato" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Simple legumes",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "plain legumes",
+    "notes": "Simple beans or lentils should receive the conservative whole-food floor when the composition remains short and additive-free.",
+    "key_expected_matches": [
+      { "source": "lentils", "canonical": "lentil", "expected_en": "Lentil" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Simple oat product",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "simple grains",
+    "notes": "Plain oats with a short composition should qualify for the conservative whole-food floor.",
+    "key_expected_matches": [
+      { "source": "oats", "canonical": "oat", "expected_en": "Oat" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Processed tomato sauce with additives",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "processed vegetables",
+    "notes": "Tomato sauces with additives or sauce-style composition should stay excluded from the whole-food floor.",
+    "key_expected_matches": [
+      { "source": "preservative", "canonical": "preservative", "expected_en": "Preservative" }
+    ],
+    "expected_flags": ["preservatives_present"],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
   }
 ]

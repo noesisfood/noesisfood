@@ -2615,7 +2615,10 @@
       const backendBalanceReasons = Array.isArray(data?.vitascore_breakdown?.balance_adjustments?.applied)
         ? data.vitascore_breakdown.balance_adjustments.applied
         : [];
-      for (const item of backendBalanceReasons){
+      const backendFloorReasons = Array.isArray(data?.vitascore_breakdown?.floor_adjustments?.applied)
+        ? data.vitascore_breakdown.floor_adjustments.applied
+        : [];
+      for (const item of [...backendBalanceReasons, ...backendFloorReasons]){
         const message = String(item?.message || "").trim();
         if (!message) continue;
         const direction = ["negative", "positive", "neutral"].includes(item?.impact_direction) ? item.impact_direction : "positive";
