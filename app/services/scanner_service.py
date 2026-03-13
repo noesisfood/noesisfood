@@ -438,6 +438,21 @@ _LEGUME_MARKERS = [
 _YOGURT_MARKERS = ["yogurt", "yoghurt", "jogurt", "yaourt", "γιαούρτι", "γιαουρτι"]
 _CHEESE_MARKERS = ["cheese", "käse", "fromage", "feta", "τυρί", "τυρι", "φέτα", "φετα"]
 
+_PLAIN_NUTS_SEEDS_MARKERS = [
+    "walnut", "walnuts", "almond", "almonds", "hazelnut", "hazelnuts", "pistachio", "pistachios",
+    "cashew", "cashews", "pecan", "pecans", "macadamia", "macadamias", "brazil nut", "brazil nuts",
+    "mixed nuts", "mixed seeds", "sunflower seed", "pumpkin seed", "flaxseed", "linseed", "chia seed",
+    "sesame seed", "καρύδι", "καρύδια", "αμύγδαλο", "αμύγδαλα", "φουντούκι", "φουντούκια",
+    "ξηροί καρποί", "σπόροι",
+]
+
+_NUTS_SEEDS_EXCLUSION_MARKERS = [
+    "salted", "sea salt", "with salt", "roasted salted", "gesalzen", "salé", "sale", "salt", "sel", "salz",
+    "flavoured", "flavored", "aroma", "aromas", "arôme", "smoked", "bbq", "barbecue", "chili", "paprika",
+    "spicy", "wasabi", "tamari", "soy sauce", "honey", "caramel", "candied", "praline", "glazed", "coated",
+    "coating", "chocolate", "cocoa", "sugar", "syrup", "sirop", "sucre", "zucker", "ζάχαρη", "σοκολάτα",
+]
+
 _ING_MAP = {
     "Sweetener": ["aspartame", "acesulfame", "acesulfame-k", "sucralose", "stevia", "steviol", "saccharin",
                   "cyclamate", "neotame", "advantame", "süßstoff", "sweetener", "sweeteners"],
@@ -600,6 +615,7 @@ def _traditional_balance_adjustments(
     salt = _to_float(per100.get("salt_g"))
     satfat = _to_float(per100.get("saturated_fat_g"))
     energy = _to_float(per100.get("energy_kcal"))
+    sugar = _to_float(per100.get("sugar_g"))
 
     no_additives = all(int(markers.get(k) or 0) == 0 for k in (
         "sweeteners", "flavourings", "colorants", "preservatives", "emulsifiers_stabilizers", "e_numbers"
@@ -608,10 +624,26 @@ def _traditional_balance_adjustments(
     simple_single = ingredient_count <= 2
     simple_short = ingredient_count <= 4
     nuts_or_seeds = _contains_any(product_text, _NUTS_SEEDS_MARKERS)
+    plain_nuts_or_seeds = _contains_any(product_text, _PLAIN_NUTS_SEEDS_MARKERS)
+    nuts_seed_excluded = _contains_any(product_text, _NUTS_SEEDS_EXCLUSION_MARKERS)
     legumes = _contains_any(product_text, _LEGUME_MARKERS)
     plain_yogurt = _contains_any(product_text, _YOGURT_MARKERS) and int(markers.get("sweeteners", 0)) == 0 and int(markers.get("flavourings", 0)) == 0
     simple_cheese = _contains_any(product_text, _CHEESE_MARKERS) and ingredient_count <= 5 and int(markers.get("sweeteners", 0)) == 0
     nutrient_dense_category = nuts_or_seeds or legumes or plain_yogurt or simple_cheese
+    plain_nuts_seed_candidate = bool(
+        plain_nuts_or_seeds
+        and not nuts_seed_excluded
+        and minimally_processed
+        and no_additives
+        and simple_short
+        and int(markers.get("sweeteners", 0)) == 0
+        and int(markers.get("flavourings", 0)) == 0
+        and int(markers.get("colorants", 0)) == 0
+        and int(markers.get("preservatives", 0)) == 0
+        and e_count == 0
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 6.0)
+    )
 
     message_map = {
         "single_ingredient_simple": {
@@ -644,6 +676,18 @@ def _traditional_balance_adjustments(
             "de": "Die einfache traditionelle Zusammensetzung verbessert das Gesamtbild.",
             "fr": "La composition simple et traditionnelle améliore l’ensemble.",
         },
+        "plain_nuts_seed_category": {
+            "el": "Η κατηγορία των απλών ξηρών καρπών έχει υψηλή θρεπτική πυκνότητα.",
+            "en": "Plain nuts and seeds are a nutrient-dense product category.",
+            "de": "Einfache Nüsse und Samen gehören zu einer nährstoffdichten Produktkategorie.",
+            "fr": "Les noix et graines simples appartiennent à une catégorie à forte densité nutritionnelle.",
+        },
+        "plain_nuts_seed_simple": {
+            "el": "Η μονοσυστατική σύνθεση λειτουργεί θετικά.",
+            "en": "The single-ingredient composition helps the assessment.",
+            "de": "Die Zusammensetzung aus nur einer Zutat wirkt sich positiv aus.",
+            "fr": "La composition à ingrédient unique aide l’évaluation.",
+        },
     }
 
     applied: List[Dict[str, Any]] = []
@@ -658,6 +702,10 @@ def _traditional_balance_adjustments(
         applied.append({"rule_id": "nutrient_dense_category", "delta": 2, "impact_weight": 52})
     if (plain_yogurt or simple_cheese) and simple_short and no_additives:
         applied.append({"rule_id": "traditional_simple", "delta": 1, "impact_weight": 50})
+    if plain_nuts_seed_candidate:
+        applied.append({"rule_id": "plain_nuts_seed_category", "delta": 4, "impact_weight": 64})
+        if simple_single:
+            applied.append({"rule_id": "plain_nuts_seed_simple", "delta": 2, "impact_weight": 60})
 
     total_delta = sum(int(item.get("delta", 0)) for item in applied)
     if salt is not None and salt >= 1.8:
@@ -667,7 +715,8 @@ def _traditional_balance_adjustments(
     if energy is not None and energy >= 650 and not nuts_or_seeds:
         total_delta -= 1
 
-    total_delta = max(0, min(7, total_delta))
+    total_cap = 13 if plain_nuts_seed_candidate else 7
+    total_delta = max(0, min(total_cap, total_delta))
     running = 0
     kept: List[Dict[str, Any]] = []
     for item in applied:
@@ -691,6 +740,7 @@ def _traditional_balance_adjustments(
             "minimally_processed": minimally_processed,
             "nutrient_dense_category": nutrient_dense_category,
             "no_additives": no_additives,
+            "plain_nuts_seed_candidate": plain_nuts_seed_candidate,
         },
     }
 

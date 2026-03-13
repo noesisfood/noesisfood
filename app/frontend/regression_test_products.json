@@ -464,5 +464,95 @@
     "expected_analysis_state": "full_analysis",
     "priority": "P1",
     "smoke_test": false
+  },
+  {
+    "product_name": "Plain walnuts",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "plain nuts / seeds",
+    "notes": "Single-ingredient walnuts should receive the plain nuts fairness uplift and score materially better than processed nut snacks.",
+    "key_expected_matches": [
+      { "source": "walnuts", "canonical": "walnut", "expected_en": "Walnut" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Plain almonds",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "plain nuts / seeds",
+    "notes": "Plain almonds should benefit from the nut-density balancing layer when the composition stays simple and additive-free.",
+    "key_expected_matches": [
+      { "source": "almonds", "canonical": "almond", "expected_en": "Almond" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Plain hazelnuts",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "plain nuts / seeds",
+    "notes": "Plain hazelnuts should receive the same fair but conservative uplift as other simple nuts.",
+    "key_expected_matches": [
+      { "source": "hazelnuts", "canonical": "hazelnut", "expected_en": "Hazelnut" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Salted nuts",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "processed nut snack",
+    "notes": "Salted nuts should not receive the same uplift as plain nuts because the salt signal should keep the balancing conservative.",
+    "key_expected_matches": [
+      { "source": "salt", "canonical": "salt", "expected_en": "Salt" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Flavored nuts",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "processed nut snack",
+    "notes": "Flavored nuts should be excluded from the plain-nut uplift when flavourings or seasoning cues are present.",
+    "key_expected_matches": [
+      { "source": "flavouring", "canonical": "flavouring", "expected_en": "Flavouring" }
+    ],
+    "expected_flags": ["flavourings_present"],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Coated or sugared nuts",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "processed nut snack",
+    "notes": "Chocolate-coated or candied nuts should stay excluded from the plain nut fairness uplift.",
+    "key_expected_matches": [
+      { "source": "sugar", "canonical": "sugar", "expected_en": "Sugar" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
   }
 ]
