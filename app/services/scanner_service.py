@@ -535,6 +535,70 @@ def _norm_ing_text(s: str) -> str:
     s = re.sub(r"\s+", " ", s)
     return s
 
+_INGREDIENT_HEADING_MARKERS = {
+    "zutaten", "ingredients", "ingredient", "ingrédients", "ingredienti", "ingredientes",
+    "συστατικά", "składniki", "skladniki",
+}
+
+_INGREDIENT_NOISE_MARKERS = [
+    "rainforest alliance", "rainforest allianz", "alliance-zertifiziert", "allianz-zertifiziert",
+    "certified", "zertifiziert", "certifié", "πιστοποιη", "certification", "sustainable sourcing",
+    "mehr unter", "more at", "learn more", "see more", "visit", "www.", ".com", ".org", ".de", ".fr",
+    "ra.org", "fairtrade", "utz", "recycling", "packaging", "label", "consumer service",
+    "service client", "kundendienst", "hotline",
+]
+
+def _ingredient_confidence_text(value: str) -> str:
+    text = _norm_ing_text(value).lower()
+    text = re.sub(r"[\(\)\[\]\{\}:]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+def _is_noisy_ingredient_text(value: str) -> bool:
+    raw = _norm_ing_text(value)
+    if not raw:
+        return True
+
+    tl = _ingredient_confidence_text(raw)
+    if not tl:
+        return True
+
+    if tl in _INGREDIENT_HEADING_MARKERS:
+        return True
+
+    if re.search(r"(https?://|www\.|[a-z0-9-]+\.(com|org|de|fr|gr|eu)\b)", tl):
+        return True
+
+    if any(marker in tl for marker in _INGREDIENT_NOISE_MARKERS):
+        return True
+
+    if re.fullmatch(r"(zutaten|ingredients?|ingrédients|συστατικά|składniki)\s*[:\-]?", tl):
+        return True
+
+    # Likely wrapper or sentence fragment rather than composition.
+    if (
+        len(tl) >= 45
+        and len(tl.split()) >= 6
+        and not re.search(r"\be\s?\d{3,4}[a-z]?\b", tl)
+        and not any(ch in raw for ch in ",;%")
+    ):
+        return True
+
+    # Product-description style fragments are usually sentence-like and not ingredient-like.
+    if any(phrase in tl for phrase in [
+        "certified cocoa", "source of", "rich in", "with a touch of", "made with",
+        "ideal for", "perfect for", "qualité", "qualität", "ποιότητα",
+    ]):
+        return True
+
+    return False
+
+def _sanitize_ingredient_candidate(name: str) -> str:
+    text = _norm_ing_text(name)
+    text = re.sub(r"^(zutaten|ingredients?|ingrédients|ingredientes|ingredienti|συστατικά|składniki)\s*[:\-]\s*", "", text, flags=re.I)
+    text = _norm_ing_text(text)
+    return text
+
 def _normalized_product_text(normalized: Dict[str, Any]) -> str:
     parts: List[str] = []
     for value in [
@@ -1272,6 +1336,7 @@ def _ingredients_intelligence(
     }
 
     global_caffeine_found = False
+    seen_names: set[str] = set()
 
     # 1) start with E-numbers from additives_tags
     for e in additives_e_numbers or []:
@@ -1282,9 +1347,16 @@ def _ingredients_intelligence(
     # 2) enrich ingredients and also collect E from text
     for ing in ingredients or []:
         name = ing.get("name") if isinstance(ing, dict) else str(ing)
-        name = _norm_ing_text(str(name or ""))
+        name = _sanitize_ingredient_candidate(str(name or ""))
         if not name:
             continue
+        if _is_noisy_ingredient_text(name):
+            continue
+
+        name_key = _ingredient_confidence_text(name)
+        if not name_key or name_key in seen_names:
+            continue
+        seen_names.add(name_key)
 
         tl = name.lower()
         if any(mk in tl for mk in _CAFFEINE_MARKERS):
