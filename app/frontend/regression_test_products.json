@@ -556,6 +556,66 @@
     "smoke_test": false
   },
   {
+    "product_name": "Simple feta",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "traditional simple cheese",
+    "notes": "Simple feta should receive a conservative traditional-cheese recalibration: clearly above generic processed foods, but still below plain nuts.",
+    "key_expected_matches": [
+      { "source": "feta", "canonical": "feta", "expected_en": "Feta" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Simple traditional cheese",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "traditional simple cheese",
+    "notes": "A short-ingredient traditional cheese should get a milder uplift than nuts, with salt and saturated fat still constraining the final band.",
+    "key_expected_matches": [
+      { "source": "cheese", "canonical": "cheese", "expected_en": "Cheese" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Processed cheese product",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "processed cheese",
+    "notes": "Processed cheese products or spreads should stay excluded from the traditional-cheese recalibration.",
+    "key_expected_matches": [
+      { "source": "emulsifier", "canonical": "emulsifier", "expected_en": "Emulsifier" }
+    ],
+    "expected_flags": ["emulsifiers_present"],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
+    "product_name": "Additive-heavy cheese formulation",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "EN",
+    "category": "processed cheese",
+    "notes": "Cheese with stabilizers, emulsifiers, or flavourings should not receive the simple traditional cheese uplift.",
+    "key_expected_matches": [
+      { "source": "stabilizer", "canonical": "stabilizer", "expected_en": "Stabilizer" }
+    ],
+    "expected_flags": ["emulsifiers_present"],
+    "expected_e_numbers": [],
+    "priority": "P2",
+    "smoke_test": false
+  },
+  {
     "product_name": "Plain chopped tomatoes",
     "brand": "",
     "barcode": "4063367413360",

@@ -454,6 +454,10 @@ _LEGUME_MARKERS = [
 
 _YOGURT_MARKERS = ["yogurt", "yoghurt", "jogurt", "yaourt", "γιαούρτι", "γιαουρτι"]
 _CHEESE_MARKERS = ["cheese", "käse", "fromage", "feta", "τυρί", "τυρι", "φέτα", "φετα"]
+_TRADITIONAL_CHEESE_MARKERS = [
+    "feta", "φέτα", "φετα", "sheep cheese", "goat cheese", "greek cheese", "white cheese", "brined cheese",
+    "traditional cheese", "fromage grec", "schafskäse",
+]
 _TOMATO_VEG_MARKERS = [
     "tomato", "tomatoes", "chopped tomatoes", "diced tomatoes", "peeled tomatoes", "passata",
     "pomodoro", "pomodori", "tomate", "tomates", "ντομάτα", "ντομάτες", "τομάτα", "τομάτες",
@@ -488,6 +492,12 @@ _WHOLE_FOOD_EXCLUSION_MARKERS = [
     "sauce", "salsa", "ketchup", "spread", "dip", "seasoned", "seasoning", "prepared", "ready meal",
     "processed", "snack", "chips", "crisps", "cracker", "cookie", "biscuit", "dessert",
     "sauce tomate", "σάλτσα", "σνακ",
+]
+
+_CHEESE_EXCLUSION_MARKERS = [
+    "processed cheese", "cheese spread", "spreadable cheese", "analogue cheese", "processed cheese product",
+    "cream cheese spread", "fromage fondu", "fromage à tartiner", "schmelzkäse", "schmelzkase",
+    "τυρί κρέμα", "τυρι κρεμα", "άλειμμα τυριού", "αλειμμα τυριου",
 ]
 
 _ING_MAP = {
@@ -666,6 +676,17 @@ def _traditional_balance_adjustments(
     legumes = _contains_any(product_text, _LEGUME_MARKERS)
     plain_yogurt = _contains_any(product_text, _YOGURT_MARKERS) and int(markers.get("sweeteners", 0)) == 0 and int(markers.get("flavourings", 0)) == 0
     simple_cheese = _contains_any(product_text, _CHEESE_MARKERS) and ingredient_count <= 5 and int(markers.get("sweeteners", 0)) == 0
+    traditional_simple_cheese = bool(
+        (_contains_any(product_text, _TRADITIONAL_CHEESE_MARKERS) or simple_cheese)
+        and not _contains_any(product_text, _CHEESE_EXCLUSION_MARKERS)
+        and ingredient_count <= 5
+        and processing_score <= 3
+        and int(markers.get("sweeteners", 0)) == 0
+        and int(markers.get("flavourings", 0)) == 0
+        and int(markers.get("colorants", 0)) == 0
+        and int(markers.get("preservatives", 0)) == 0
+        and e_count == 0
+    )
     nutrient_dense_category = nuts_or_seeds or legumes or plain_yogurt or simple_cheese
     plain_nuts_seed_candidate = bool(
         plain_nuts_or_seeds
@@ -725,6 +746,42 @@ def _traditional_balance_adjustments(
             "de": "Die Zusammensetzung aus nur einer Zutat wirkt sich positiv aus.",
             "fr": "La composition à ingrédient unique aide l’évaluation.",
         },
+        "plain_nuts_seed_pure": {
+            "el": "Το προϊόν είναι 100% ξηρός καρπός ή σπόρος χωρίς πρόσθετα.",
+            "en": "The product is 100% plain nuts or seeds with no additives.",
+            "de": "Das Produkt besteht zu 100% aus einfachen Nüssen oder Samen ohne Zusatzstoffe.",
+            "fr": "Le produit est composé à 100% de noix ou graines simples, sans additifs.",
+        },
+        "plain_nuts_seed_clean": {
+            "el": "Η απουσία αλατιού και προσθέτων βελτιώνει σημαντικά τη συνολική εικόνα.",
+            "en": "The absence of salt and additives significantly improves the overall picture.",
+            "de": "Das Fehlen von Salz und Zusatzstoffen verbessert das Gesamtbild deutlich.",
+            "fr": "L’absence de sel et d’additifs améliore nettement l’ensemble.",
+        },
+        "traditional_cheese_simple": {
+            "el": "Η απλή παραδοσιακή σύνθεση λειτουργεί θετικά.",
+            "en": "The simple traditional composition helps the assessment.",
+            "de": "Die einfache traditionelle Zusammensetzung wirkt sich positiv aus.",
+            "fr": "La composition traditionnelle simple aide l’évaluation.",
+        },
+        "traditional_cheese_low_processed": {
+            "el": "Το προϊόν είναι χαμηλής επεξεργασίας.",
+            "en": "The product is low-processed.",
+            "de": "Das Produkt ist wenig verarbeitet.",
+            "fr": "Le produit est peu transformé.",
+        },
+        "traditional_cheese_short_list": {
+            "el": "Η σύντομη λίστα συστατικών βελτιώνει τη συνολική εικόνα.",
+            "en": "The short ingredient list improves the overall picture.",
+            "de": "Die kurze Zutatenliste verbessert das Gesamtbild.",
+            "fr": "La liste courte d’ingrédients améliore l’ensemble.",
+        },
+        "traditional_cheese_caution": {
+            "el": "Παρότι η κατηγορία έχει αλάτι και κορεσμένα, η απλή σύνθεση λειτουργεί θετικά.",
+            "en": "Although this category carries salt and saturated fat, the simple composition helps the assessment.",
+            "de": "Obwohl diese Kategorie Salz und gesättigte Fettsäuren enthält, wirkt sich die einfache Zusammensetzung positiv aus.",
+            "fr": "Même si cette catégorie comporte du sel et des acides gras saturés, la composition simple aide l’évaluation.",
+        },
     }
 
     applied: List[Dict[str, Any]] = []
@@ -741,8 +798,18 @@ def _traditional_balance_adjustments(
         applied.append({"rule_id": "traditional_simple", "delta": 1, "impact_weight": 50})
     if plain_nuts_seed_candidate:
         applied.append({"rule_id": "plain_nuts_seed_category", "delta": 4, "impact_weight": 64})
+        applied.append({"rule_id": "plain_nuts_seed_pure", "delta": 2, "impact_weight": 63})
         if simple_single:
             applied.append({"rule_id": "plain_nuts_seed_simple", "delta": 2, "impact_weight": 60})
+        if salt is not None and salt <= 0.05:
+            applied.append({"rule_id": "plain_nuts_seed_clean", "delta": 1, "impact_weight": 59})
+    if traditional_simple_cheese:
+        applied.append({"rule_id": "traditional_cheese_simple", "delta": 2, "impact_weight": 58})
+        applied.append({"rule_id": "traditional_cheese_low_processed", "delta": 1, "impact_weight": 56})
+        if ingredient_count <= 4:
+            applied.append({"rule_id": "traditional_cheese_short_list", "delta": 1, "impact_weight": 55})
+        if (salt is not None and salt >= 1.0) or (satfat is not None and satfat >= 8.0):
+            applied.append({"rule_id": "traditional_cheese_caution", "delta": 1, "impact_weight": 54})
 
     total_delta = sum(int(item.get("delta", 0)) for item in applied)
     if salt is not None and salt >= 1.8:
@@ -752,7 +819,7 @@ def _traditional_balance_adjustments(
     if energy is not None and energy >= 650 and not nuts_or_seeds:
         total_delta -= 1
 
-    total_cap = 13 if plain_nuts_seed_candidate else 7
+    total_cap = 16 if plain_nuts_seed_candidate else (8 if traditional_simple_cheese else 7)
     total_delta = max(0, min(total_cap, total_delta))
     running = 0
     kept: List[Dict[str, Any]] = []
@@ -778,6 +845,7 @@ def _traditional_balance_adjustments(
             "nutrient_dense_category": nutrient_dense_category,
             "no_additives": no_additives,
             "plain_nuts_seed_candidate": plain_nuts_seed_candidate,
+            "traditional_simple_cheese": traditional_simple_cheese,
         },
     }
 
@@ -843,12 +911,22 @@ def _whole_food_floor_adjustments(
         and (salt is None or salt <= 0.2)
         and (sugar is None or sugar <= 10.0)
     )
+    traditional_simple_cheese = (
+        (_contains_any(product_text, _TRADITIONAL_CHEESE_MARKERS) or _contains_any(product_text, _CHEESE_MARKERS))
+        and not _contains_any(product_text, _CHEESE_EXCLUSION_MARKERS)
+        and ingredient_count <= 5 and minimally_processed and not excluded
+        and int(markers.get("sweeteners", 0)) == 0
+        and int(markers.get("flavourings", 0)) == 0
+        and int(markers.get("colorants", 0)) == 0
+        and int(markers.get("preservatives", 0)) == 0
+        and (salt is None or salt <= 3.2)
+    )
 
     floor_score: Optional[int] = None
     applied: List[Dict[str, Any]] = []
 
     if plain_nuts_seed:
-        floor_score = 64
+        floor_score = 82
     elif plain_legumes:
         floor_score = 63
     elif plain_tomato_veg:
@@ -857,6 +935,8 @@ def _whole_food_floor_adjustments(
         floor_score = 60
     elif plain_fruit:
         floor_score = 61
+    elif traditional_simple_cheese:
+        floor_score = 72
 
     if floor_score is None:
         return {"applied": [], "floor_score": None, "floor_delta": 0}
@@ -867,6 +947,10 @@ def _whole_food_floor_adjustments(
         floor_score -= 4
     if satfat is not None and satfat >= 15.0 and not plain_nuts_seed:
         floor_score -= 3
+    if traditional_simple_cheese and salt is not None and salt >= 2.5:
+        floor_score -= 3
+    if traditional_simple_cheese and satfat is not None and satfat >= 18.0:
+        floor_score -= 2
 
     floor_score = int(max(0, floor_score))
     if current_score >= floor_score:
@@ -902,6 +986,8 @@ def _whole_food_floor_adjustments(
     reason_ids = ["whole_food_category", "minimal_processing_floor", "simple_category_floor"]
     if plain_nuts_seed or simple_oats_grains or plain_legumes:
         reason_ids.append("not_processed_snack_floor")
+    if traditional_simple_cheese:
+        reason_ids = ["whole_food_category", "minimal_processing_floor", "simple_category_floor"]
 
     for idx, rule_id in enumerate(reason_ids):
         applied.append({
@@ -921,6 +1007,7 @@ def _whole_food_floor_adjustments(
             "plain_tomato_veg": plain_tomato_veg,
             "plain_fruit": plain_fruit,
             "simple_oats_grains": simple_oats_grains,
+            "traditional_simple_cheese": traditional_simple_cheese,
         },
     }
 
@@ -978,17 +1065,29 @@ def _whole_food_cap_adjustments(
         and (salt is None or salt <= 0.2)
         and (sugar is None or sugar <= 10.0)
     )
+    traditional_simple_cheese = (
+        (_contains_any(product_text, _TRADITIONAL_CHEESE_MARKERS) or _contains_any(product_text, _CHEESE_MARKERS))
+        and not _contains_any(product_text, _CHEESE_EXCLUSION_MARKERS)
+        and ingredient_count <= 5 and minimally_processed and not excluded
+        and int(markers.get("sweeteners", 0)) == 0
+        and int(markers.get("flavourings", 0)) == 0
+        and int(markers.get("colorants", 0)) == 0
+        and int(markers.get("preservatives", 0)) == 0
+        and (salt is None or salt <= 3.2)
+    )
 
     cap_score: Optional[int] = None
     state = str(analysis_state or "").lower()
     if plain_nuts_seed:
-        cap_score = 78 if state == "full_analysis" else 76
+        cap_score = 87 if state == "full_analysis" else 85
     elif plain_legumes:
         cap_score = 76 if state == "full_analysis" else 74
     elif plain_tomato_veg:
         cap_score = 74 if state == "full_analysis" else 72
     elif simple_oats_grains:
         cap_score = 72 if state == "full_analysis" else 70
+    elif traditional_simple_cheese:
+        cap_score = 81 if state == "full_analysis" else 78
 
     if cap_score is None or current_score <= cap_score:
         return {"applied": [], "cap_score": cap_score, "cap_delta": 0}
@@ -1002,6 +1101,7 @@ def _whole_food_cap_adjustments(
             "plain_legumes": plain_legumes,
             "plain_tomato_veg": plain_tomato_veg,
             "simple_oats_grains": simple_oats_grains,
+            "traditional_simple_cheese": traditional_simple_cheese,
         },
     }
 
@@ -2123,6 +2223,7 @@ def _fallback_assessment_response(
     qty = norm.get("quantity")
     if isinstance(qty, str) and qty.strip().startswith("0"):
         qty = None
+    serving_amount = _to_float(_get_path(norm, "nutrition_per_100", "serving_size") or _get_path(norm, "serving", "value"))
     return {
         "key": key,
         "source": source,
