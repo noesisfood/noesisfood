@@ -2305,24 +2305,21 @@
 
     function ingredientDisplayName(name, captureContext = null){
       const original = String(name || "").trim();
-      if (!original) return { primary: "-", secondary: "", translated: false };
-      if (!(supportedLangs.includes(lang) && state.translateIngredients)) {
-        return { primary: _escapeHtml(original), secondary: "", translated: false };
-      }
+      if (!original) return { primary: "-", secondary: "", translated: false, visible: false };
 
       if (/^e\s*\d{3,4}[a-z]?$/i.test(original)) {
-        return { primary: _escapeHtml(original), secondary: "", translated: false };
+        return { primary: _escapeHtml(original), secondary: "", translated: false, visible: true };
       }
 
       const translated = localizeGlossaryValue(original, "", captureContext);
       if (!translated) {
-        return { primary: _escapeHtml(original), secondary: "", translated: false };
+        return { primary: "", secondary: "", translated: false, visible: false };
       }
-      const showSecondary = lang === "el" && _ingredientLookupKey(translated) !== _ingredientLookupKey(original);
       return {
         primary: _escapeHtml(translated),
-        secondary: showSecondary ? _escapeHtml(original) : "",
-        translated: true
+        secondary: "",
+        translated: true,
+        visible: true
       };
     }
 
@@ -2893,9 +2890,11 @@
 
       const groups = {};
       for (const ing of ings){
+        const nm = ingredientDisplayName(ing?.name || "-", unmatchedCaptureContext);
+        if (!nm.visible) continue;
         const cls = (ing?.class || "Other");
         if (!groups[cls]) groups[cls] = [];
-        groups[cls].push(ing);
+        groups[cls].push({ ...ing, _display: nm });
       }
       const groupOrder = Object.keys(groups).sort((a,b)=> a.localeCompare(b));
       const translationStats = { translated: 0, total: 0 };
@@ -2968,10 +2967,8 @@
               ${groupOrder.length ? groupOrder.map(cls => `
                 <div class="groupTitle">${localizedIngredientGroup(cls)}</div>
                 ${groups[cls].map(ing => {
-                  const nm = ingredientDisplayName(ing?.name || "-", unmatchedCaptureContext);
                   translationStats.total += 1;
-                  if (nm.translated) translationStats.translated += 1;
-                  else if (state.translateIngredients) unmatchedIngredientNames.push(String(ing?.name || "-").trim());
+                  if (ing?._display?.translated) translationStats.translated += 1;
                   const note = localizeIngredientNote(ing?.note || "");
                   const risk = (ing?.risk || "low").toLowerCase();
                   const riskLabel = (risk === "high" ? t("risk_high") : (risk === "medium" ? t("risk_medium") : t("risk_low")));
@@ -2979,8 +2976,7 @@
                   return `
                     <div class="ingItem">
                       <div class="ingLeft">
-                        <b>${nm.primary}</b>
-                        ${nm.secondary ? `<small>${nm.secondary}</small>` : ``}
+                        <b>${ing?._display?.primary || ""}</b>
                         ${note ? `<small>${note}</small>` : ``}
                       </div>
                       <div class="${riskCls}">${riskLabel}</div>
