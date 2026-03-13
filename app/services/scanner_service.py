@@ -622,6 +622,23 @@ def _sanitize_ingredient_candidate(name: str) -> str:
     text = _norm_ing_text(text)
     return text
 
+def _sanitize_ingredients_minimal(ingredients: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    seen_names: set[str] = set()
+    for ing in ingredients or []:
+        raw_name = ing.get("name") if isinstance(ing, dict) else str(ing)
+        name = _sanitize_ingredient_candidate(str(raw_name or ""))
+        if not name or _is_noisy_ingredient_text(name):
+            continue
+        name_key = _ingredient_confidence_text(name)
+        if not name_key or name_key in seen_names:
+            continue
+        seen_names.add(name_key)
+        item = dict(ing) if isinstance(ing, dict) else {"name": name}
+        item["name"] = name
+        out.append(item)
+    return out
+
 def _normalized_product_text(normalized: Dict[str, Any]) -> str:
     parts: List[str] = []
     for value in [
@@ -1482,6 +1499,7 @@ def _ingredients_intelligence(
     intelligence = {
         "processing_score": score_i,
         "processing_label": proc_label,
+        "sanitized_ingredients": enriched,
         "flags": flags,
         "counts_by_class": counts,
         "detected_e_numbers": sorted(all_e_numbers),
@@ -2276,13 +2294,14 @@ def _fallback_assessment_response(
             additives_e_numbers=additives_e_numbers,
         )
     except Exception:
-        ingredients = ingredients_raw
+        ingredients = _sanitize_ingredients_minimal(ingredients_raw)
         ingredients_intelligence = {
             "processing_score": None,
             "processing_label": "",
             "markers": {},
             "flags": [],
             "e_number_details": [],
+            "sanitized_ingredients": ingredients,
         }
     try:
         per100 = _nutrients_per_100(norm)

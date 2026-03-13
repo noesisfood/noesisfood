@@ -346,7 +346,7 @@
         who_flag_ideal: "Exceeds ideal 25g",
         who_flag_upper: "Exceeds upper 50g",
         ingredients_title: "Ingredients Intelligence",
-        ingredients_note: "Ingredients are shown as provided by OpenFoodFacts.",
+        ingredients_note: "Ingredients are cleaned and grouped from available product data.",
         ingredients_source_language: "Source language",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Source",
@@ -551,7 +551,7 @@
         who_flag_ideal: "Ξεπερνά το ιδανικό 25g",
         who_flag_upper: "Ξεπερνά το ανώτατο 50g",
         ingredients_title: "Νοημοσύνη συστατικών",
-        ingredients_note: "Τα συστατικά εμφανίζονται όπως παρέχονται από το OpenFoodFacts.",
+        ingredients_note: "Τα συστατικά καθαρίζονται και ομαδοποιούνται από τα διαθέσιμα στοιχεία του προϊόντος.",
         ingredients_source_language: "Γλώσσα πηγής",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Πηγή",
@@ -756,7 +756,7 @@
         who_flag_ideal: "Idealwert 25g überschritten",
         who_flag_upper: "Oberer Wert 50g überschritten",
         ingredients_title: "Zutatenanalyse",
-        ingredients_note: "Zutaten werden wie von OpenFoodFacts bereitgestellt angezeigt.",
+        ingredients_note: "Zutaten werden aus den verfügbaren Produktdaten bereinigt und gruppiert angezeigt.",
         ingredients_source_language: "Quellsprache",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Quelle",
@@ -961,7 +961,7 @@
         who_flag_ideal: "Dépasse l'idéal 25g",
         who_flag_upper: "Dépasse la limite haute 50g",
         ingredients_title: "Analyse des ingrédients",
-        ingredients_note: "Les ingrédients sont affichés tels que fournis par OpenFoodFacts.",
+        ingredients_note: "Les ingrédients sont nettoyés et regroupés à partir des données produit disponibles.",
         ingredients_source_language: "Langue source",
         ingredients_ui_label: "UI",
         ingredients_source_label: "Source",
@@ -2878,8 +2878,10 @@
     }
 
     function renderIngredientsIntel(data){
-      const ings = Array.isArray(data?.ingredients) ? data.ingredients : [];
       const intel = data?.ingredients_intelligence || null;
+      const ings = Array.isArray(intel?.sanitized_ingredients)
+        ? intel.sanitized_ingredients
+        : (Array.isArray(data?.ingredients) ? data.ingredients : []);
       const eDetails = Array.isArray(intel?.e_number_details) ? intel.e_number_details : [];
       const flags = Array.isArray(intel?.flags) ? intel.flags : [];
       const markers = intel?.markers || {};
