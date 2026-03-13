@@ -294,7 +294,13 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
     )
 
     # Categories: keep both human categories and tags if present
-    categories = off_product.get("categories") or ""
+    categories_raw = off_product.get("categories") or ""
+    if isinstance(categories_raw, str):
+        categories = [part.strip() for part in categories_raw.split(",") if part and part.strip()]
+    elif isinstance(categories_raw, list):
+        categories = [str(part).strip() for part in categories_raw if str(part).strip()]
+    else:
+        categories = []
     categories_tags = off_product.get("categories_tags") or []
 
     # Additives tags (useful for E-numbers)

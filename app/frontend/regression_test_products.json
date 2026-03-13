@@ -468,7 +468,7 @@
   {
     "product_name": "Plain walnuts",
     "brand": "",
-    "barcode": "",
+    "barcode": "8480000340245",
     "expected_source_language": "EN",
     "category": "plain nuts / seeds",
     "notes": "Single-ingredient walnuts should receive the plain nuts fairness uplift and score materially better than processed nut snacks.",
@@ -558,7 +558,7 @@
   {
     "product_name": "Plain chopped tomatoes",
     "brand": "",
-    "barcode": "",
+    "barcode": "4063367413360",
     "expected_source_language": "EN",
     "category": "plain vegetables",
     "notes": "Very simple chopped tomatoes should benefit from the whole-food floor and not be treated like processed sauces.",

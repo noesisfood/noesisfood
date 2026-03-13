@@ -309,8 +309,13 @@ def _guess_is_beverage(normalized: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]
     if unit_old == "ml":
         return True, {"signal": "nutrition_per_100.unit", "value": True, "confidence": 0.70}
 
-    categories = (normalized.get("categories") or []) + (normalized.get("categories_tags") or [])
-    categories_s = " ".join([str(x).lower() for x in categories]) if isinstance(categories, list) else str(categories).lower()
+    categories_values: List[str] = []
+    for raw in (normalized.get("categories"), normalized.get("categories_tags")):
+        if isinstance(raw, str):
+            categories_values.extend([part.strip() for part in raw.split(",") if part and part.strip()])
+        elif isinstance(raw, list):
+            categories_values.extend([str(item).strip() for item in raw if str(item).strip()])
+    categories_s = " ".join([str(x).lower() for x in categories_values])
 
     beverage_markers = [
         "beverage", "beverages", "drink", "drinks", "soft drink", "soda",
@@ -1972,10 +1977,14 @@ def _fallback_assessment_response(
       product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
     ingredients_raw = _as_list(norm.get("ingredients"))
     try:
+        is_bev, _bev_meta = _guess_is_beverage(norm)
+    except Exception:
+        is_bev = bool(_get_path(norm, "meta", "is_beverage"))
+    try:
         additives_e_numbers = _collect_additives_tags_from_sources(norm, raw)
         ingredients, ingredients_intelligence = _ingredients_intelligence(
             ingredients_raw,
-            is_beverage=bool(_get_path(norm, "meta", "is_beverage")),
+            is_beverage=is_bev,
             additives_e_numbers=additives_e_numbers,
         )
     except Exception:
@@ -1992,6 +2001,20 @@ def _fallback_assessment_response(
     except Exception:
         per100 = {"energy_kcal": None, "sugar_g": None, "salt_g": None, "saturated_fat_g": None, "fiber_g": None, "protein_g": None, "fruits_veg_percent": None}
     score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
+    balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
+    score += int(balance_adjustments.get("total_delta", 0) or 0)
+    floor_adjustments = _whole_food_floor_adjustments(
+        norm,
+        per100,
+        ingredients_intelligence,
+        is_beverage=is_bev,
+        lang=lang,
+        current_score=score,
+    )
+    floor_score = floor_adjustments.get("floor_score")
+    if isinstance(floor_score, int):
+        score = max(score, floor_score)
+    score = int(round(_clamp(score, 1.0, 100.0)))
     lookup_missing = _lookup_missing_fields(norm, raw)
     qty = norm.get("quantity")
     if isinstance(qty, str) and qty.strip().startswith("0"):
@@ -2039,8 +2062,8 @@ def _fallback_assessment_response(
             "per_serving": {"inputs": {}},
             "hybrid_score": score,
             "who_baseline": {"score": score},
-            "balance_adjustments": {"applied": [], "total_delta": 0},
-            "floor_adjustments": {"applied": [], "floor_score": None, "floor_delta": 0},
+            "balance_adjustments": balance_adjustments,
+            "floor_adjustments": floor_adjustments,
             "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
         },
         "why_this_score": [],
