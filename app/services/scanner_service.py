@@ -323,7 +323,16 @@ def _guess_is_beverage(normalized: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]
         "tea", "coffee", "cola", "lemonade",
         "en:beverages", "en:soft-drinks", "en:juices", "en:waters",
     ]
+    solid_food_markers = [
+        "vegetable", "vegetables", "tomato", "tomatoes", "legume", "legumes", "bean", "beans",
+        "lentil", "lentils", "chickpea", "chickpeas", "nut", "nuts", "seed", "seeds",
+        "grain", "grains", "oat", "oats", "pasta", "rice", "cheese", "yogurt", "yoghurt",
+        "fruit", "fruits", "canned vegetables", "peeled tomatoes",
+        "en:vegetables", "en:tomatoes", "en:nuts", "en:seeds", "en:legumes", "en:cereal-pastas",
+        "en:pastas", "en:shelled-nuts", "en:canned-vegetables", "en:peeled-tomatoes",
+    ]
     marker_hit = any(m in categories_s for m in beverage_markers)
+    solid_hit = any(m in categories_s for m in solid_food_markers)
 
     serving_unit = str(_get_path(normalized, "serving", "unit") or _get_path(normalized, "nutrition_per_100", "unit") or "").lower()
     serving_value = _to_float(_get_path(normalized, "serving", "value") or _get_path(normalized, "nutrition_per_100", "serving_size"))
@@ -334,6 +343,9 @@ def _guess_is_beverage(normalized: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]
     if marker_hit:
         confidence += 0.35
         signals.append("category_marker")
+    if solid_hit and not unit_hit:
+        confidence -= 0.35
+        signals.append("solid_food_marker")
     if unit_hit:
         confidence += 0.20
         signals.append("serving_unit_ml_like")
@@ -908,6 +920,87 @@ def _whole_food_floor_adjustments(
             "plain_legumes": plain_legumes,
             "plain_tomato_veg": plain_tomato_veg,
             "plain_fruit": plain_fruit,
+            "simple_oats_grains": simple_oats_grains,
+        },
+    }
+
+
+def _whole_food_cap_adjustments(
+    normalized: Dict[str, Any],
+    per100: Dict[str, Optional[float]],
+    intelligence: Dict[str, Any],
+    *,
+    is_beverage: bool,
+    analysis_state: str,
+    current_score: int,
+) -> Dict[str, Any]:
+    if is_beverage:
+        return {"applied": [], "cap_score": None, "cap_delta": 0}
+
+    markers = intelligence.get("markers", {}) if isinstance(intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    product_text = _normalized_product_text(normalized)
+    ingredient_count = len(_as_list(normalized.get("ingredients")))
+    processing_score = int(_to_float(intelligence.get("processing_score")) or 0) if isinstance(intelligence, dict) else 0
+    salt = _to_float(per100.get("salt_g"))
+    sugar = _to_float(per100.get("sugar_g"))
+
+    no_additives = all(int(markers.get(k) or 0) == 0 for k in (
+        "sweeteners", "flavourings", "colorants", "preservatives", "emulsifiers_stabilizers", "e_numbers"
+    ))
+    minimally_processed = processing_score <= 2
+    simple_short = ingredient_count <= 4
+    excluded = _contains_any(product_text, _WHOLE_FOOD_EXCLUSION_MARKERS)
+
+    plain_nuts_seed = (
+        _contains_any(product_text, _PLAIN_NUTS_SEEDS_MARKERS)
+        and not _contains_any(product_text, _NUTS_SEEDS_EXCLUSION_MARKERS)
+        and simple_short and minimally_processed and no_additives
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 6.0)
+    )
+    plain_legumes = (
+        _contains_any(product_text, _LEGUME_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 6.0)
+    )
+    plain_tomato_veg = (
+        _contains_any(product_text, _TOMATO_VEG_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 8.0)
+    )
+    simple_oats_grains = (
+        _contains_any(product_text, _OATS_GRAINS_MARKERS)
+        and simple_short and minimally_processed and no_additives and not excluded
+        and (salt is None or salt <= 0.2)
+        and (sugar is None or sugar <= 10.0)
+    )
+
+    cap_score: Optional[int] = None
+    state = str(analysis_state or "").lower()
+    if plain_nuts_seed:
+        cap_score = 78 if state == "full_analysis" else 76
+    elif plain_legumes:
+        cap_score = 76 if state == "full_analysis" else 74
+    elif plain_tomato_veg:
+        cap_score = 74 if state == "full_analysis" else 72
+    elif simple_oats_grains:
+        cap_score = 72 if state == "full_analysis" else 70
+
+    if cap_score is None or current_score <= cap_score:
+        return {"applied": [], "cap_score": cap_score, "cap_delta": 0}
+
+    return {
+        "applied": [],
+        "cap_score": int(cap_score),
+        "cap_delta": int(cap_score - current_score),
+        "flags": {
+            "plain_nuts_seed": plain_nuts_seed,
+            "plain_legumes": plain_legumes,
+            "plain_tomato_veg": plain_tomato_veg,
             "simple_oats_grains": simple_oats_grains,
         },
     }
@@ -2014,6 +2107,17 @@ def _fallback_assessment_response(
     floor_score = floor_adjustments.get("floor_score")
     if isinstance(floor_score, int):
         score = max(score, floor_score)
+    cap_adjustments = _whole_food_cap_adjustments(
+        norm,
+        per100,
+        ingredients_intelligence,
+        is_beverage=is_bev,
+        analysis_state="limited_estimate",
+        current_score=score,
+    )
+    cap_score = cap_adjustments.get("cap_score")
+    if isinstance(cap_score, int):
+        score = min(score, cap_score)
     score = int(round(_clamp(score, 1.0, 100.0)))
     lookup_missing = _lookup_missing_fields(norm, raw)
     qty = norm.get("quantity")
@@ -2064,6 +2168,7 @@ def _fallback_assessment_response(
             "who_baseline": {"score": score},
             "balance_adjustments": balance_adjustments,
             "floor_adjustments": floor_adjustments,
+            "cap_adjustments": cap_adjustments,
             "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
         },
         "why_this_score": [],
@@ -2181,7 +2286,19 @@ def _analyze_normalized_product(
         floor_score = floor_adjustments.get("floor_score")
         if isinstance(floor_score, int):
             score = max(score, floor_score)
+        cap_adjustments = _whole_food_cap_adjustments(
+            norm,
+            per100,
+            ingredients_intelligence,
+            is_beverage=is_bev,
+            analysis_state=analysis_state,
+            current_score=score,
+        )
+        cap_score = cap_adjustments.get("cap_score")
+        if isinstance(cap_score, int):
+            score = min(score, cap_score)
         breakdown["floor_adjustments"] = floor_adjustments
+        breakdown["cap_adjustments"] = cap_adjustments
         breakdown["analysis_mode"] = {
             "state": analysis_state,
             "confidence": analysis_confidence,
