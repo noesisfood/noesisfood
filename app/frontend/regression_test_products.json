@@ -681,7 +681,7 @@
     "barcode": "",
     "expected_source_language": "DE",
     "category": "ingredient sanitization",
-    "notes": "Grouped ingredient rendering should suppress noisy OFF fragments such as headings, certification blurbs, URL fragments, and wrapper text while keeping real ingredients like flour, milk powder, glucose syrup, hazelnuts, palm oil, cocoa, vanilla, lecithin, and E-numbers.",
+    "notes": "Grouped ingredient rendering should suppress noisy OFF fragments such as headings, certification blurbs, URL fragments, wrapper text, and malformed fragments like 'von Eiern aus Bodenhaltung', 'Waffelröllcher gefüllt mit 55% Creme mit Haselnussgeschmack', 'Mager', '3,6 fettarmer Kakao', or standalone 'kulör', while keeping real ingredients like flour, milk powder, glucose syrup, hazelnuts, palm oil, cocoa, vanilla, lecithin, and E-numbers.",
     "key_expected_matches": [
       { "source": "Weizenmehl", "canonical": "wheat flour", "expected_en": "Wheat flour" },
       { "source": "Haselnüsse", "canonical": "hazelnut", "expected_en": "Hazelnut" },

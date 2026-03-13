@@ -546,7 +546,13 @@ _INGREDIENT_NOISE_MARKERS = [
     "mehr unter", "more at", "learn more", "see more", "visit", "www.", ".com", ".org", ".de", ".fr",
     "ra.org", "fairtrade", "utz", "recycling", "packaging", "label", "consumer service",
     "service client", "kundendienst", "hotline",
+    "gefüllt mit", "filled with", "avec", "mit haselnussgeschmack", "with hazelnut flavour",
+    "waffelröll", "waffelroll", "wafer roll", "wafer rolls", "geschmack", "bodenhaltung",
 ]
+
+_INGREDIENT_FRAGMENT_EXACT = {
+    "mager", "magerm", "kulör", "kuloer", "fettarmer kakao", "fettarmer", "fettarm",
+}
 
 def _ingredient_confidence_text(value: str) -> str:
     text = _norm_ing_text(value).lower()
@@ -572,8 +578,24 @@ def _is_noisy_ingredient_text(value: str) -> bool:
     if any(marker in tl for marker in _INGREDIENT_NOISE_MARKERS):
         return True
 
+    if tl in _INGREDIENT_FRAGMENT_EXACT:
+        return True
+
     if re.fullmatch(r"(zutaten|ingredients?|ingrédients|συστατικά|składniki)\s*[:\-]?", tl):
         return True
+
+    if re.match(r"^(von|mit|für|pour|with)\b", tl):
+        return True
+
+    if re.search(r"\b(aus|from|de|d’|des)\b", tl) and len(tl.split()) >= 4 and not re.search(r"\be\s?\d{3,4}[a-z]?\b", tl):
+        return True
+
+    if re.search(r"\b(geschmack|flavour|flavor|saveur)\b", tl):
+        return True
+
+    if re.match(r"^\d+(?:[.,]\d+)?\s+[a-zà-ÿäöüß-]+(?:\s+[a-zà-ÿäöüß-]+){0,2}$", tl):
+        if any(token in tl for token in ["fettarm", "mager", "kakao", "fat", "gras"]):
+            return True
 
     # Likely wrapper or sentence fragment rather than composition.
     if (
@@ -596,6 +618,7 @@ def _is_noisy_ingredient_text(value: str) -> bool:
 def _sanitize_ingredient_candidate(name: str) -> str:
     text = _norm_ing_text(name)
     text = re.sub(r"^(zutaten|ingredients?|ingrédients|ingredientes|ingredienti|συστατικά|składniki)\s*[:\-]\s*", "", text, flags=re.I)
+    text = re.sub(r"^[\-–—•\s]+", "", text)
     text = _norm_ing_text(text)
     return text
 
