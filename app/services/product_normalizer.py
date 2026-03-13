@@ -205,13 +205,22 @@ def _best_ingredients_text(off_product: Dict[str, Any]) -> str:
 
 def _ingredient_name_from_obj(ing: Dict[str, Any]) -> str:
     """
-    Prefer English ingredient label if present.
-    OFF ingredient objects sometimes include: text, text_en, id, etc.
+    Prefer canonical OFF ingredient ids over noisy raw text fragments.
+    OFF ingredient objects often include both human text fragments and a cleaner
+    canonical id; the id is usually safer for final ingredient rendering.
     """
     if not isinstance(ing, dict):
         return str(ing or "").strip()
 
-    for k in ("text_en", "text", "id"):
+    raw_id = str(ing.get("id") or "").strip()
+    if raw_id:
+        canonical = re.sub(r"^[a-z]{2}:", "", raw_id, flags=re.I)
+        canonical = canonical.replace("_", " ").replace("-", " ").strip()
+        canonical = re.sub(r"\s+", " ", canonical)
+        if canonical:
+            return canonical
+
+    for k in ("text_en", "text"):
         v = ing.get(k)
         s = str(v or "").strip()
         if s:
