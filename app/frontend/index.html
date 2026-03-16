@@ -2277,7 +2277,7 @@
         .split(",")
         .map(part => String(part || "").trim())
         .filter(Boolean)
-        .map(part => localizeGlossaryValue(part, part, false).toUpperCase())
+        .map(part => localizeGlossaryValue(part, part, false))
         .join(", ");
     }
 
@@ -2772,6 +2772,7 @@
       const left = _comparisonSummary(currentData, state.key);
       const right = _comparisonSummary(compareData, state.compareTargetKey);
       const scoredReasons = [];
+      const scoreGap = Math.abs(Number(left.score || 0) - Number(right.score || 0));
 
       if (left.score !== right.score){
         const winner = left.score > right.score ? "left" : "right";
@@ -2814,8 +2815,11 @@
       }
 
       let winner = "tie";
-      if (leftPoints > rightPoints) winner = "left";
+      if (scoreGap >= 8 && left.score !== right.score){
+        winner = left.score > right.score ? "left" : "right";
+      } else if (leftPoints > rightPoints) winner = "left";
       else if (rightPoints > leftPoints) winner = "right";
+      else if (left.score !== right.score) winner = left.score > right.score ? "left" : "right";
 
       const reasons = scoredReasons
         .filter(reason => winner !== "tie" && reason.winner === winner)
@@ -2972,6 +2976,17 @@
 
       const groups = {};
       const seenGroupDisplay = {};
+      const genericGroupLabels = new Set([
+        _ingredientLookupKey(t("group_acidifier")),
+        _ingredientLookupKey(t("group_flavoring")),
+        "acidifier",
+        "flavouring",
+        "flavoring",
+        "emulsifier",
+        "stabilizer",
+        "preservative",
+        "colorant"
+      ]);
       for (const ing of ings){
         const nm = ingredientDisplayName(ing?.name || "-", unmatchedCaptureContext);
         if (!nm.visible) continue;
@@ -2982,6 +2997,12 @@
         if (displayKey && seenGroupDisplay[cls].has(displayKey)) continue;
         if (displayKey) seenGroupDisplay[cls].add(displayKey);
         groups[cls].push({ ...ing, _display: nm });
+      }
+      for (const cls of Object.keys(groups)){
+        if (groups[cls].length <= 1) continue;
+        const hasSpecific = groups[cls].some(ing => !genericGroupLabels.has(_ingredientLookupKey(ing?._display?.primary || "")));
+        if (!hasSpecific) continue;
+        groups[cls] = groups[cls].filter(ing => !genericGroupLabels.has(_ingredientLookupKey(ing?._display?.primary || "")));
       }
       const groupOrder = Object.keys(groups).sort((a,b)=> a.localeCompare(b));
       const translationStats = { translated: 0, total: 0 };
