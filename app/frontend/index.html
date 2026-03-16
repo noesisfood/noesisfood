@@ -2753,10 +2753,38 @@
       return count;
     }
 
+    function _flavouringIngredientCount(intel){
+      const items = Array.isArray(intel?.sanitized_ingredients) ? intel.sanitized_ingredients : [];
+      const seen = new Set();
+      let count = 0;
+      for (const item of items){
+        const cls = _ingredientLookupKey(item?.class || "");
+        const name = String(item?.name || "").trim();
+        const nameKey = _ingredientLookupKey(name);
+        const flavourLike = (
+          cls === "flavoring"
+          || cls === "flavouring"
+          || nameKey === "flavoring"
+          || nameKey === "flavouring"
+          || nameKey === "flavorings"
+          || nameKey === "flavourings"
+          || nameKey.includes("flavor")
+          || nameKey.includes("flavour")
+          || nameKey.includes("aroma")
+          || nameKey.includes("arôme")
+        );
+        if (!flavourLike || seen.has(nameKey)) continue;
+        seen.add(nameKey);
+        count += 1;
+      }
+      return count;
+    }
+
     function _flavouringCount(intel){
       return Math.max(
         Number(intel?.markers?.flavourings || 0),
-        _ingredientClassCount(intel, ["Flavoring", "Flavouring"])
+        _ingredientClassCount(intel, ["Flavoring", "Flavouring"]),
+        _flavouringIngredientCount(intel)
       );
     }
 
