@@ -483,6 +483,7 @@
         flag_caffeine: "Contains caffeine",
         flag_allergens: "Allergens: {items}",
         group_acidifier: "Acidifier",
+        group_allergen: "Allergens",
         group_colorant: "Colorant",
         group_flavoring: "Flavouring",
         group_other: "Other",
@@ -688,6 +689,7 @@
         flag_caffeine: "Περιέχει καφεΐνη",
         flag_allergens: "Αλλεργιογόνα: {items}",
         group_acidifier: "Οξινιστής",
+        group_allergen: "Αλλεργιογόνα",
         group_colorant: "Χρωστική",
         group_flavoring: "Αρωματική ύλη",
         group_other: "Άλλο",
@@ -893,6 +895,7 @@
         flag_caffeine: "Enthält Koffein",
         flag_allergens: "Allergene: {items}",
         group_acidifier: "Säuerungsmittel",
+        group_allergen: "Allergene",
         group_colorant: "Farbstoff",
         group_flavoring: "Aroma",
         group_other: "Andere",
@@ -1098,6 +1101,7 @@
         flag_caffeine: "Contient de la caféine",
         flag_allergens: "Allergènes : {items}",
         group_acidifier: "Acidifiant",
+        group_allergen: "Allergènes",
         group_colorant: "Colorant",
         group_flavoring: "Arôme",
         group_other: "Autre",
@@ -2328,6 +2332,7 @@
       const localized = localizeGlossaryValue(key, "");
       if (localized) return localized;
       if (key === "acidifier") return t("group_acidifier");
+      if (key === "allergen") return t("group_allergen");
       if (key === "colorant") return t("group_colorant");
       if (key === "flavoring" || key === "flavouring") return t("group_flavoring");
       if (key === "other") return t("group_other");
