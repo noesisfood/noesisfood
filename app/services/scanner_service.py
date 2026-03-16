@@ -34,6 +34,7 @@ DATA_DIR = APP_DIR.parent / "data"         # app/data/
 
 PRODUCTS_FILE = DATA_DIR / "products.json"
 RASFF_FILE = DATA_DIR / "rasff.json"
+SAFETY_ALERTS_FILE = DATA_DIR / "rasff_alerts.json"
 
 _JSON_CACHE: Dict[str, Dict[str, Any]] = {}
 _SCAN_RESULT_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -707,6 +708,133 @@ def _sanitize_ingredients_minimal(ingredients: List[Dict[str, Any]]) -> List[Dic
         item["name"] = name
         out.append(item)
     return out
+
+
+def _normalize_safety_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def _normalize_safety_alert_entries(raw: Any) -> List[Dict[str, Any]]:
+    entries: List[Dict[str, Any]] = []
+    if isinstance(raw, dict):
+        for barcode, value in raw.items():
+            if isinstance(value, list):
+                for item in value:
+                    entries.append({
+                        "barcode": str(barcode).strip(),
+                        "title": _normalize_safety_text(item),
+                        "source": "local_rasff_alert_index",
+                        "severity": "medium",
+                        "scope": "product",
+                        "batch_specific": False,
+                    })
+            elif isinstance(value, dict):
+                entry = dict(value)
+                entry.setdefault("barcode", str(barcode).strip())
+                entries.append(entry)
+    elif isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, dict):
+                entries.append(dict(item))
+    return entries
+
+
+def _safety_match_score(entry: Dict[str, Any], barcode: str, product_name: str, brand: str) -> int:
+    score = 0
+    barcode = _normalize_safety_text(barcode).lower()
+    product_name = _normalize_safety_text(product_name).lower()
+    brand = _normalize_safety_text(brand).lower()
+
+    entry_codes = {
+        _normalize_safety_text(entry.get("barcode")).lower(),
+        _normalize_safety_text(entry.get("gtin")).lower(),
+        _normalize_safety_text(entry.get("off_code")).lower(),
+        _normalize_safety_text(entry.get("code")).lower(),
+    }
+    entry_codes = {code for code in entry_codes if code}
+    if barcode and barcode in entry_codes:
+        score += 100
+
+    entry_brand = _normalize_safety_text(entry.get("brand")).lower()
+    if brand and entry_brand and brand == entry_brand:
+        score += 15
+
+    entry_name = _normalize_safety_text(entry.get("product_name") or entry.get("name") or entry.get("title")).lower()
+    if product_name and entry_name:
+        if product_name == entry_name:
+            score += 30
+        elif product_name in entry_name or entry_name in product_name:
+            score += 20
+
+    keyword = _normalize_safety_text(entry.get("keyword")).lower()
+    if keyword and ((product_name and keyword in product_name) or (brand and keyword in brand)):
+        score += 10
+
+    return score
+
+
+def _build_safety_lookup_payload(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
+    checked = False
+    source_name = "local_rasff_alert_index"
+    source_label = "Local RASFF alert index"
+    has_matches = False
+    alerts: List[Dict[str, Any]] = []
+
+    raw_dataset = _load_json(SAFETY_ALERTS_FILE, None)
+    if raw_dataset is None and RASFF_FILE.exists():
+        raw_dataset = _load_json(RASFF_FILE, None)
+
+    if raw_dataset is not None:
+        checked = True
+        product_name = str(norm.get("name") or "").strip()
+        brand = str(norm.get("brand") or "").strip()
+        entries = _normalize_safety_alert_entries(raw_dataset)
+        matched: List[Tuple[int, Dict[str, Any]]] = []
+        for entry in entries:
+            score = _safety_match_score(entry, key, product_name, brand)
+            if score <= 0:
+                continue
+            matched.append((score, entry))
+        matched.sort(key=lambda item: item[0], reverse=True)
+
+        seen = set()
+        for score, entry in matched[:8]:
+            title = _normalize_safety_text(entry.get("title") or entry.get("alert") or "Safety alert")
+            summary = _normalize_safety_text(entry.get("summary") or entry.get("description"))
+            url = _normalize_safety_text(entry.get("url") or entry.get("link"))
+            batch = _normalize_safety_text(entry.get("batch") or entry.get("batch_number"))
+            lot = _normalize_safety_text(entry.get("lot") or entry.get("lot_number"))
+            best_before = _normalize_safety_text(entry.get("best_before") or entry.get("expiry") or entry.get("best_before_date"))
+            severity = _normalize_safety_text(entry.get("severity") or "medium").lower() or "medium"
+            scope = _normalize_safety_text(entry.get("scope") or ("batch" if entry.get("batch_specific") else "product")).lower() or "product"
+            batch_specific = bool(entry.get("batch_specific")) or scope in {"batch", "lot", "best_before"}
+            dedupe_key = (title.lower(), batch.lower(), lot.lower(), best_before.lower(), url.lower())
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            alerts.append({
+                "title": title,
+                "summary": summary,
+                "url": url or None,
+                "severity": severity if severity in {"high", "medium", "low"} else "medium",
+                "scope": "batch" if batch_specific else "product",
+                "batch_specific": batch_specific,
+                "batch": batch or None,
+                "lot": lot or None,
+                "best_before": best_before or None,
+                "source": source_name,
+                "source_label": _normalize_safety_text(entry.get("source_label") or entry.get("source")) or source_label,
+                "match_score": score,
+            })
+        has_matches = len(alerts) > 0
+
+    return {
+        "checked": checked,
+        "source": source_name if checked else None,
+        "source_label": source_label if checked else None,
+        "has_matches": has_matches,
+        "alerts": alerts,
+    }
 
 
 def _complete_simple_cheese_ingredients(normalized: Dict[str, Any], ingredients: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -2487,6 +2615,7 @@ def _fallback_assessment_response(
     lookup_state: str,
 ) -> Dict[str, Any]:
     norm = norm if isinstance(norm, dict) else {}
+    safety_lookup = _build_safety_lookup_payload(key, norm)
     product_categories = norm.get("categories") or norm.get("categories_tags") or []
     if isinstance(product_categories, str):
       product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
@@ -2576,7 +2705,11 @@ def _fallback_assessment_response(
             "categories": product_categories,
             "barcode": key if key and not key.startswith("manual:") else None,
         },
-        "alerts": [],
+        "alerts": [str(item.get("title") or "").strip() for item in safety_lookup.get("alerts", []) if str(item.get("title") or "").strip()],
+        "safety_alerts_checked": bool(safety_lookup.get("checked")),
+        "safety_alerts_source": safety_lookup.get("source"),
+        "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
+        "safety_alerts": safety_lookup.get("alerts", []),
         "ingredients": ingredients,
         "ingredients_intelligence": ingredients_intelligence,
         "nutrition_per_100": {
@@ -2619,8 +2752,9 @@ def _fallback_assessment_response(
             "lookup_missing_fields": lookup_missing,
             "analysis_state": "limited_estimate",
             "analysis_confidence": "low",
-            "safety_alerts_checked": False,
-            "safety_alerts_source": "local_rasff_only",
+            "safety_alerts_checked": bool(safety_lookup.get("checked")),
+            "safety_alerts_source": safety_lookup.get("source"),
+            "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
         },
     }
 
@@ -2639,7 +2773,8 @@ def _analyze_normalized_product(
 ) -> Dict[str, Any]:
     lookup_missing = _lookup_missing_fields(norm, raw)
     lookup_state = "found_but_incomplete" if lookup_missing else "found_and_analyzable"
-    alerts = _collect_alerts(_as_list(rasff), norm)
+    safety_lookup = _build_safety_lookup_payload(key, norm)
+    alerts = [str(item.get("title") or "").strip() for item in safety_lookup.get("alerts", []) if str(item.get("title") or "").strip()]
     ingredients_raw = _complete_simple_cheese_ingredients(norm, _as_list(norm.get("ingredients")))
 
     try:
@@ -2798,6 +2933,10 @@ def _analyze_normalized_product(
         "analysis_confidence": analysis_confidence,
         "product": product_block,
         "alerts": alerts,
+        "safety_alerts_checked": bool(safety_lookup.get("checked")),
+        "safety_alerts_source": safety_lookup.get("source"),
+        "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
+        "safety_alerts": safety_lookup.get("alerts", []),
         "ingredients": ingredients,
         "ingredients_intelligence": ingredients_intelligence,
         "nutrition_per_100": {
@@ -2823,8 +2962,9 @@ def _analyze_normalized_product(
             "lookup_missing_fields": lookup_missing,
             "analysis_state": analysis_state,
             "analysis_confidence": analysis_confidence,
-            "safety_alerts_checked": False,
-            "safety_alerts_source": "local_rasff_only",
+            "safety_alerts_checked": bool(safety_lookup.get("checked")),
+            "safety_alerts_source": safety_lookup.get("source"),
+            "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
         },
     }
 
