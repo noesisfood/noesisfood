@@ -2742,6 +2742,24 @@
       return value ? t("yes") : t("no");
     }
 
+    function _ingredientClassCount(intel, classNames){
+      const targets = new Set((Array.isArray(classNames) ? classNames : [classNames]).map(name => _ingredientLookupKey(name)));
+      const items = Array.isArray(intel?.sanitized_ingredients) ? intel.sanitized_ingredients : [];
+      let count = 0;
+      for (const item of items){
+        const cls = _ingredientLookupKey(item?.class || "");
+        if (targets.has(cls)) count += 1;
+      }
+      return count;
+    }
+
+    function _flavouringCount(intel){
+      return Math.max(
+        Number(intel?.markers?.flavourings || 0),
+        _ingredientClassCount(intel, ["Flavoring", "Flavouring"])
+      );
+    }
+
     function _comparisonSummary(data, key){
       const product = data?.product || {};
       const intel = data?.ingredients_intelligence || {};
@@ -2760,7 +2778,7 @@
         sweeteners: Number(markers?.sweeteners || 0),
         caffeine: Number(markers?.caffeine || 0),
         colorants: Number(markers?.colorants || 0),
-        flavourings: Number(markers?.flavourings || 0),
+        flavourings: _flavouringCount(intel),
         preservatives: Number(markers?.preservatives || 0),
         ingredientCount,
         warnings,
@@ -2901,12 +2919,13 @@
       const intel = data?.ingredients_intelligence || {};
       const markers = intel?.markers || {};
       const eCount = Array.isArray(intel?.e_number_details) ? intel.e_number_details.length : 0;
+      const flavouringCount = _flavouringCount(intel);
       const items = [];
       if (markers?.sweeteners) items.push(`${t("sweeteners")}: ${markers.sweeteners}`);
       if (markers?.caffeine) items.push(t("caffeine"));
       if (eCount >= 3) items.push(`${t("e_numbers")}: ${eCount}`);
       if (markers?.colorants) items.push(`${t("group_colorant")}: ${markers.colorants}`);
-      if (markers?.flavourings) items.push(`${t("group_flavoring")}: ${markers.flavourings}`);
+      if (flavouringCount) items.push(`${t("group_flavoring")}: ${flavouringCount}`);
       if (intel?.processing_score !== null && intel?.processing_score !== undefined){
         items.push(`${t("processing")}: ${localizeProcessingLabel(intel?.processing_label || "")}`);
       }
@@ -2978,8 +2997,10 @@
       const seenGroupDisplay = {};
       const genericGroupLabels = new Set([
         _ingredientLookupKey(t("group_acidifier")),
+        _ingredientLookupKey(localizeGlossaryValue("acid", t("group_acidifier"), false)),
         _ingredientLookupKey(t("group_flavoring")),
         "acidifier",
+        "acid",
         "flavouring",
         "flavoring",
         "emulsifier",
