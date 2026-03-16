@@ -252,6 +252,7 @@
     let state = {
       key:"",
       loading:false,
+      scanStatusMessage:"",
       error:"",
       errorCode:"",
       data:null,
@@ -292,6 +293,9 @@
         scan_placeholder: "e.g. 9002490100070",
         scan_btn: "Scan",
         scanning_btn: "Scanning...",
+        scan_loading_title: "Analyzing product...",
+        scan_loading_hint: "Retrieving and normalizing product data...",
+        scan_loading_retry: "The product data is still being finalized. Please try again in a moment.",
         how_title: "How it works",
         how_l1: "OpenFoodFacts fetch + normalization",
         how_l2: "Baseline nutrition assessment + hybrid adjustment",
@@ -1138,6 +1142,26 @@
       return i18n[lang]?.[key] || i18n.en[key] || key;
     }
 
+    function scanLoadingTitle(){
+      if (lang === "el") return "\u0391\u03bd\u03b1\u03bb\u03cd\u03b5\u03c4\u03b1\u03b9 \u03c4\u03bf \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd...";
+      if (lang === "de") return "Produkt wird analysiert...";
+      if (lang === "fr") return "Analyse du produit...";
+      return "Analyzing product...";
+    }
+
+    function scanLoadingHint(delayed = false){
+      if (delayed){
+        if (lang === "el") return "\u03a4\u03b1 \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2 \u03b1\u03ba\u03cc\u03bc\u03b7 \u03bf\u03c1\u03b9\u03c3\u03c4\u03b9\u03ba\u03bf\u03c0\u03bf\u03b9\u03bf\u03cd\u03bd\u03c4\u03b1\u03b9. \u0394\u03bf\u03ba\u03af\u03bc\u03b1\u03c3\u03b5 \u03be\u03b1\u03bd\u03ac \u03c3\u03b5 \u03bb\u03af\u03b3\u03bf.";
+        if (lang === "de") return "Die Produktdaten werden noch finalisiert. Bitte in einem Moment erneut versuchen.";
+        if (lang === "fr") return "Les donn\u00e9es du produit sont encore en cours de finalisation. R\u00e9essayez dans un instant.";
+        return "The product data is still being finalized. Please try again in a moment.";
+      }
+      if (lang === "el") return "\u0393\u03af\u03bd\u03b5\u03c4\u03b1\u03b9 \u03b1\u03bd\u03ac\u03ba\u03c4\u03b7\u03c3\u03b7 \u03ba\u03b1\u03b9 \u03ba\u03b1\u03bd\u03bf\u03bd\u03b9\u03ba\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7 \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03c9\u03bd...";
+      if (lang === "de") return "Produktdaten werden abgerufen und normalisiert...";
+      if (lang === "fr") return "R\u00e9cup\u00e9ration et normalisation des donn\u00e9es produit...";
+      return "Retrieving and normalizing product data...";
+    }
+
     function beginAnalysisRequest(){
       latestAnalysisRequestId += 1;
       return latestAnalysisRequestId;
@@ -1149,6 +1173,58 @@
 
     function normalizeLookupKey(value){
       return String(value || "").trim().replace(/\s+/g, "");
+    }
+
+    function hasRenderableProductIdentity(data){
+      const product = data?.product || {};
+      const name = String(product?.name || "").trim();
+      const unknowns = [
+        String(i18n.en?.unknown_product || "Unknown Product").trim().toLowerCase(),
+        String(i18n.el?.unknown_product || "").trim().toLowerCase(),
+        String(i18n.de?.unknown_product || "").trim().toLowerCase(),
+        String(i18n.fr?.unknown_product || "").trim().toLowerCase()
+      ].filter(Boolean);
+      if (name && !unknowns.includes(name.toLowerCase())) return true;
+      if (String(product?.brand || "").trim()) return true;
+      if (String(product?.image_url || "").trim()) return true;
+      return false;
+    }
+
+    function isPlaceholderScanResult(data){
+      if (!data || typeof data !== "object") return false;
+      const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
+      const source = String(data?.source || "").toLowerCase();
+      if (lookupState !== "found_but_incomplete") return false;
+      if (source !== "openfoodfacts") return false;
+      if (hasRenderableProductIdentity(data)) return false;
+      const nutrition = data?.nutrition_per_100 || {};
+      const hasNutrition = ["sugar_g", "salt_g", "sat_fat_g", "protein_g", "energy_kcal"].some(key => nutrition?.[key] !== null && nutrition?.[key] !== undefined);
+      const hasIngredients = Array.isArray(data?.ingredients) && data.ingredients.length > 0;
+      return !hasNutrition && !hasIngredients;
+    }
+
+    function wait(ms){
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function fetchStableScanResult(key, requestId){
+      const delays = [0, 1200, 1800, 2600];
+      let lastRes = null;
+      let lastData = null;
+      for (let attempt = 0; attempt < delays.length; attempt += 1){
+        if (attempt > 0){
+          state.scanStatusMessage = scanLoadingHint(false);
+          render();
+          await wait(delays[attempt]);
+        }
+        const res = await fetch(`/scan/${encodeURIComponent(key)}?lang=${lang}`);
+        const data = await res.json().catch(()=> ({}));
+        if (!isCurrentAnalysisRequest(requestId) || state.key !== key) return { stale: true };
+        lastRes = res;
+        lastData = data;
+        if (!res.ok || data?.error || !isPlaceholderScanResult(data)) break;
+      }
+      return { res: lastRes, data: lastData };
     }
 
     function isSupportedLookupKey(value){
@@ -1377,6 +1453,7 @@
       const requestId = beginAnalysisRequest();
       state.manualForm = readManualForm();
       state.loading = true;
+      state.scanStatusMessage = "";
       state.error = "";
       state.refreshNotice = null;
       render();
@@ -1425,6 +1502,7 @@
       const requestId = beginAnalysisRequest();
       const previousData = state.data && typeof state.data === "object" ? state.data : null;
       state.loading = true;
+      state.scanStatusMessage = "";
       state.error = "";
       state.errorCode = "";
       state.recoveryPhotoMessage = t("photo_processing");
@@ -3206,6 +3284,7 @@
                 <div class="sectionTitle">${t("scan_title")}</div>
                 <div class="mini">${t("scan_hint")}</div>
                 ${state.error ? `<div class="err">${state.error}</div>` : ``}
+                ${(state.loading || state.scanStatusMessage) ? `<div class="ok"><b>${_escapeHtml(scanLoadingTitle())}</b><br/>${_escapeHtml(state.scanStatusMessage || scanLoadingHint(false))}</div>` : ``}
                 <div style="margin-top:10px;">
                   <input id="keyInput" placeholder="${t("scan_placeholder")}" value="${state.key || ""}"/>
                 </div>
@@ -3437,6 +3516,7 @@
           state.error = "";
           state.errorCode = "";
           state.data = null;
+          state.scanStatusMessage = "";
           state.refreshNotice = null;
           state.compareTargetKey = "";
           state.recoveryOpen = false;
@@ -3454,6 +3534,7 @@
       if (!state.key){
         state.error = t("err_enter_key");
         state.errorCode = "INVALID_BARCODE";
+        state.scanStatusMessage = "";
         state.data = null;
         state.compareTargetKey = "";
         state.recoveryOpen = false;
@@ -3463,6 +3544,7 @@
       if (!isSupportedLookupKey(state.key)){
         state.error = t("err_invalid_barcode");
         state.errorCode = "INVALID_BARCODE";
+        state.scanStatusMessage = "";
         state.data = null;
         state.compareTargetKey = "";
         state.recoveryOpen = false;
@@ -3470,6 +3552,7 @@
         return;
       }
       state.loading = true;
+      state.scanStatusMessage = scanLoadingHint(false);
       state.error = "";
       state.errorCode = "";
       state.data = null;
@@ -3481,20 +3564,29 @@
       state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
       render();
       try{
-        const res = await fetch(`/scan/${encodeURIComponent(state.key)}?lang=${lang}`);
-        const data = await res.json().catch(()=> ({}));
+        const { res, data, stale } = await fetchStableScanResult(state.key, requestId);
+        if (stale) return;
         if (!isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
+        if (isPlaceholderScanResult(data)){
+          state.loading = false;
+          state.scanStatusMessage = scanLoadingHint(true);
+          state.data = null;
+          render();
+          return;
+        }
         if (!res.ok || data?.error){
           state.error = localizeScanError(data, res.status);
           state.errorCode = scanErrorCode(data, res.status);
           state.data = null;
           state.loading = false;
+          state.scanStatusMessage = "";
           state.recoveryOpen = isRecoverableScanFailure(state.errorCode);
           render();
           return;
         }
         state.data = data;
         state.errorCode = "";
+        state.scanStatusMessage = "";
         state.recoveryOpen = false;
         state.recoveryPhotoMessage = "";
         _storeRecentProduct(data, state.key);
@@ -3511,6 +3603,7 @@
         state.error = t("err_network");
         state.errorCode = "";
         state.loading = false;
+        state.scanStatusMessage = "";
         render();
       }
     }
