@@ -3123,7 +3123,11 @@
               <div class="sectionTitle" style="margin:0 0 8px 0;">${t("ingredients_grouped")}</div>
               ${groupOrder.length ? groupOrder.map(cls => `
                 <div class="groupTitle">${localizedIngredientGroup(cls)}</div>
-                ${groups[cls].map(ing => {
+                ${groups[cls].filter(ing => {
+                  const groupKey = _ingredientLookupKey(localizedIngredientGroup(cls));
+                  const itemKey = _ingredientLookupKey(ing?._display?.primary || "");
+                  return itemKey !== groupKey;
+                }).map(ing => {
                   translationStats.total += 1;
                   if (ing?._display?.translated) translationStats.translated += 1;
                   const note = localizeIngredientNote(ing?.note || "");
