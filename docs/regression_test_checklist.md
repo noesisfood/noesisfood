@@ -12,22 +12,24 @@ Use it after changes to:
 Reference data lives in [app/frontend/regression_test_products.json](/C:/Users/pflem/noesisfood/app/frontend/regression_test_products.json).
 
 ## High-Priority Smoke Tests
-Run these first after any glossary or localization change:
+Run the first five products in `regression_test_products.json` first after any deploy. These are the mandatory smoke tests:
 
 1. `Coca-Cola Original Taste`
 2. `Red Bull Energy Drink`
 3. `Fanta Orange`
-4. `Volvic Touch Citron`
+4. `Sprite`
+5. `Schweppes Indian Tonic`
 
 These cover:
 - DE source ingredient text
 - PL source ingredient text
-- FR source ingredient text
 - additive flags
 - caffeine flag
 - E-number cards
 - grouped ingredient translation
 - language switching across `EL`, `EN`, `DE`, `FR`
+
+The JSON pack marks these entries with `"smoke_test": true`.
 
 ## Manual Test Flow
 For each product:
@@ -119,6 +121,7 @@ When adding a new regression product:
    - `P3`: broader confidence coverage
 
 ## Suggested Regression Cadence
+- After any deploy: run the five smoke tests first.
 - After glossary changes: run all `P0` and `P1`.
 - After localization changes: run all `P0` and switch all four UI languages on at least two products.
 - Before deploys that touch ingredient intelligence: run the full pack if time allows.
