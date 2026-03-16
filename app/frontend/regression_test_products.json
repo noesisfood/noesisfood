@@ -75,6 +75,22 @@
     "smoke_test": true
   },
   {
+    "product_name": "Natural mineral water sparkling",
+    "brand": "",
+    "barcode": "",
+    "expected_source_language": "DE",
+    "category": "plain water",
+    "notes": "Natural mineral water or sparkling water with no additives should remain in a near-perfect final score band even if some non-critical metadata is incomplete.",
+    "key_expected_matches": [
+      { "source": "Wasser", "canonical": "water", "expected_en": "Water" },
+      { "source": "Kohlensäure", "canonical": "carbon dioxide", "expected_en": "Carbon dioxide" }
+    ],
+    "expected_flags": [],
+    "expected_e_numbers": [],
+    "priority": "P1",
+    "smoke_test": false
+  },
+  {
     "product_name": "Schweppes Indian Tonic",
     "brand": "Schweppes",
     "barcode": "5202174000071",

@@ -500,6 +500,13 @@ _CONFECTIONERY_MARKERS = [
     "σοκολάτα", "γκοφρέτα", "μπισκότο",
 ]
 
+_CLEAN_WATER_MARKERS = [
+    "water", "mineral water", "natural mineral water", "sparkling water", "carbonated water",
+    "wasser", "mineralwasser", "mineral water with carbonation", "mit kohlensäure",
+    "eau", "eau minérale", "eau minerale", "eau gazeuse",
+    "νερό", "μεταλλικό νερό", "ανθρακούχο νερό",
+]
+
 _CHEESE_EXCLUSION_MARKERS = [
     "processed cheese", "cheese spread", "spreadable cheese", "analogue cheese", "processed cheese product",
     "cream cheese spread", "fromage fondu", "fromage à tartiner", "schmelzkäse", "schmelzkase",
@@ -2276,6 +2283,58 @@ def _analysis_mode(
     return "limited_estimate", "low"
 
 
+def _clean_water_score_floor(
+    normalized: Dict[str, Any],
+    per100: Dict[str, Optional[float]],
+    ingredients: List[Dict[str, Any]],
+    ingredients_intelligence: Dict[str, Any],
+    *,
+    is_beverage: bool,
+    analysis_state: str,
+    confidence: str,
+) -> Optional[int]:
+    if not is_beverage:
+        return None
+
+    markers = ingredients_intelligence.get("markers") if isinstance(ingredients_intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    if any(int(markers.get(key) or 0) > 0 for key in ("sweeteners", "flavourings", "colorants", "preservatives", "emulsifiers_stabilizers", "caffeine", "e_numbers")):
+        return None
+
+    product_text = _normalized_product_text(normalized)
+    if not _contains_any(product_text, _CLEAN_WATER_MARKERS):
+        return None
+
+    sugar = _to_float(per100.get("sugar_g"))
+    salt = _to_float(per100.get("salt_g"))
+    satfat = _to_float(per100.get("saturated_fat_g"))
+    energy = _to_float(per100.get("energy_kcal"))
+    if sugar is not None and sugar > 0.5:
+        return None
+    if salt is not None and salt > 0.1:
+        return None
+    if satfat is not None and satfat > 0.1:
+        return None
+    if energy is not None and energy > 5:
+        return None
+
+    allowed_ingredient_terms = ("water", "wasser", "eau", "νερό", "mineral", "carbon", "kohlensäure", "gaz", "διοξείδιο", "ανθρακ")
+    cleaned_ingredients = [str(item.get("name") or "").strip().lower() for item in _as_list(ingredients) if isinstance(item, dict) and str(item.get("name") or "").strip()]
+    if cleaned_ingredients and any(not any(term in item for term in allowed_ingredient_terms) for item in cleaned_ingredients):
+        return None
+
+    state = str(analysis_state or "").lower()
+    tier = str(confidence or "").lower()
+    if state == "full_analysis":
+        return 99
+    if tier == "high":
+        return 97
+    if tier == "medium":
+        return 95
+    return 93
+
+
 def _conservative_partial_score(score: int, confidence: str) -> int:
     if confidence == "low":
         return int(round(_clamp(score, 25.0, 72.0)))
@@ -2361,6 +2420,17 @@ def _fallback_assessment_response(
         per100 = {"energy_kcal": None, "sugar_g": None, "salt_g": None, "saturated_fat_g": None, "fiber_g": None, "protein_g": None, "fruits_veg_percent": None}
     ingredients_intelligence = _recalibrate_processing_intelligence(norm, per100, ingredients, ingredients_intelligence)
     score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
+    clean_water_floor = _clean_water_score_floor(
+        norm,
+        per100,
+        ingredients,
+        ingredients_intelligence,
+        is_beverage=is_bev,
+        analysis_state="limited_estimate",
+        confidence="low",
+    )
+    if isinstance(clean_water_floor, int):
+        score = max(score, clean_water_floor)
     balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
     score += int(balance_adjustments.get("total_delta", 0) or 0)
     floor_adjustments = _whole_food_floor_adjustments(
@@ -2534,10 +2604,24 @@ def _analyze_normalized_product(
         if isinstance(score_cap, int):
             score = min(score, score_cap)
         score = int(round(_clamp(score, 1.0, 100.0)))
+        clean_water_floor = _clean_water_score_floor(
+            norm,
+            per100,
+            ingredients,
+            ingredients_intelligence,
+            is_beverage=is_bev,
+            analysis_state=analysis_state,
+            confidence=analysis_confidence,
+        )
         if analysis_state == "partial_analysis":
-            score = _conservative_partial_score(score, analysis_confidence)
+            if isinstance(clean_water_floor, int):
+                score = max(score, clean_water_floor)
+            else:
+                score = _conservative_partial_score(score, analysis_confidence)
         elif analysis_state == "limited_estimate":
             score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
+            if isinstance(clean_water_floor, int):
+                score = max(score, clean_water_floor)
 
         breakdown["who_baseline"] = who_breakdown
         breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
