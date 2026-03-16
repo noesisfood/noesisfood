@@ -1,6 +1,7 @@
 # app/api/routes/scan.py
 
 import logging
+import time
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
@@ -31,9 +32,20 @@ def _error_status(data: dict) -> int:
 
 @router.get("/scan/{key}")
 async def scan_endpoint(key: str, lang: str = Query("en")):
+    started_at = time.perf_counter()
     try:
         lang = lang if lang in {"el", "en", "de", "fr"} else "en"
         data = await scan_product(key, lang=lang)
+        if isinstance(data, dict):
+            meta = data.get("meta")
+            if not isinstance(meta, dict):
+                meta = {}
+                data["meta"] = meta
+            perf = meta.get("performance")
+            if not isinstance(perf, dict):
+                perf = {}
+                meta["performance"] = perf
+            perf["route_total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
         # if service returns {"error": "..."} keep it as JSON with 404-ish semantics
         if isinstance(data, dict) and data.get("error"):
             return JSONResponse(status_code=_error_status(data), content=data)

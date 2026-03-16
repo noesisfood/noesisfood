@@ -1208,7 +1208,7 @@
     }
 
     async function fetchStableScanResult(key, requestId){
-      const delays = [0, 1200, 1800, 2600];
+      const delays = [0, 350, 700];
       let lastRes = null;
       let lastData = null;
       for (let attempt = 0; attempt < delays.length; attempt += 1){
@@ -1225,6 +1225,26 @@
         if (!res.ok || data?.error || !isPlaceholderScanResult(data)) break;
       }
       return { res: lastRes, data: lastData };
+    }
+
+    function logScanPerformance(data, startedAt){
+      const totalMs = Math.round(performance.now() - Number(startedAt || performance.now()));
+      const perfMeta = data?.meta?.performance || {};
+      const summary = {
+        barcode: state.key,
+        total_frontend_ms: totalMs,
+        route_total_ms: Number(perfMeta?.route_total_ms || 0),
+        scan_total_ms: Number(perfMeta?.total_ms || 0),
+        local_data_load_ms: Number(perfMeta?.local_data_load_ms || 0),
+        openfoodfacts_fetch_ms: Number(perfMeta?.openfoodfacts_fetch_ms || 0),
+        normalize_ms: Number(perfMeta?.normalize_ms || 0),
+        analysis_ms: Number(perfMeta?.analysis_ms || 0),
+        cache_hit: !!perfMeta?.cache_hit,
+        lookup_source: String(perfMeta?.lookup_source || ""),
+      };
+      try{
+        console.info("[scan-perf]", summary);
+      }catch(_e){}
     }
 
     function isSupportedLookupKey(value){
@@ -3530,6 +3550,7 @@
     async function doScan(key){
       const nextKey = normalizeLookupKey(key);
       const requestId = beginAnalysisRequest();
+      const startedAt = performance.now();
       state.key = nextKey;
       if (!state.key){
         state.error = t("err_enter_key");
@@ -3598,6 +3619,7 @@
         state.loading = false;
         step = 2;
         render();
+        requestAnimationFrame(() => logScanPerformance(data, startedAt));
       }catch(e){
         if (!isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
         state.error = t("err_network");

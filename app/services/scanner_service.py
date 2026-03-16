@@ -12,6 +12,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import copy
+import logging
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -21,6 +24,7 @@ import httpx
 from app.services.openfoodfacts_service import fetch_off_product
 from app.services.product_normalizer import normalize_product
 
+logger = logging.getLogger("noesisfood.scan")
 
 # -------------------------
 # Paths / local data
@@ -30,6 +34,10 @@ DATA_DIR = APP_DIR.parent / "data"         # app/data/
 
 PRODUCTS_FILE = DATA_DIR / "products.json"
 RASFF_FILE = DATA_DIR / "rasff.json"
+
+_JSON_CACHE: Dict[str, Dict[str, Any]] = {}
+_SCAN_RESULT_CACHE: Dict[str, Dict[str, Any]] = {}
+_SCAN_RESULT_CACHE_TTL_SEC = 10 * 60
 
 
 # -------------------------
@@ -160,11 +168,59 @@ def t(lang: str, key: str, **kwargs: Any) -> str:
 # -----------------------------
 def _load_json(path: Path, default: Any) -> Any:
     try:
+        path_str = str(path)
         if path.exists():
-            return json.loads(path.read_text(encoding="utf-8"))
+            stat = path.stat()
+            cache_entry = _JSON_CACHE.get(path_str)
+            mtime_ns = int(getattr(stat, "st_mtime_ns", 0))
+            size = int(getattr(stat, "st_size", 0))
+            if cache_entry and cache_entry.get("mtime_ns") == mtime_ns and cache_entry.get("size") == size:
+                return copy.deepcopy(cache_entry.get("data"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            _JSON_CACHE[path_str] = {
+                "mtime_ns": mtime_ns,
+                "size": size,
+                "data": data,
+            }
+            return copy.deepcopy(data)
     except Exception:
         pass
     return default
+
+
+def _cache_key_scan_result(key: str, lang: str) -> str:
+    return f"{str(lang or 'en').strip().lower()}::{str(key or '').strip()}"
+
+
+def _scan_result_cache_get(key: str, lang: str) -> Optional[Dict[str, Any]]:
+    cache_key = _cache_key_scan_result(key, lang)
+    item = _SCAN_RESULT_CACHE.get(cache_key)
+    if not item:
+        return None
+    if (time.perf_counter() - float(item.get("ts") or 0.0)) > _SCAN_RESULT_CACHE_TTL_SEC:
+        _SCAN_RESULT_CACHE.pop(cache_key, None)
+        return None
+    return copy.deepcopy(item.get("data"))
+
+
+def _scan_result_cache_set(key: str, lang: str, data: Dict[str, Any]) -> None:
+    if not isinstance(data, dict):
+        return
+    cache_key = _cache_key_scan_result(key, lang)
+    _SCAN_RESULT_CACHE[cache_key] = {
+        "ts": time.perf_counter(),
+        "data": copy.deepcopy(data),
+    }
+
+
+def _attach_scan_timing(data: Dict[str, Any], timing: Dict[str, Any]) -> Dict[str, Any]:
+    payload = copy.deepcopy(data) if isinstance(data, dict) else {}
+    meta = payload.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        payload["meta"] = meta
+    meta["performance"] = timing
+    return payload
 
 
 def _to_float(x: Any) -> Optional[float]:
@@ -2770,6 +2826,11 @@ def _analyze_normalized_product(
 
 
 async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
+    started_at = time.perf_counter()
+    timing: Dict[str, Any] = {
+        "source": "scan_product",
+        "key": str(key or "").strip(),
+    }
     lang = lang if lang in SUPPORTED_LANGS else "en"
     key = (key or "").strip()
     if not key:
@@ -2777,20 +2838,35 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         err.update(_lookup_state_payload("invalid_barcode"))
         err["analysis_state"] = "insufficient_data"
         err["analysis_confidence"] = "low"
-        return err
+        timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+        return _attach_scan_timing(err, timing)
     if not _is_supported_lookup_key(key):
         err = _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
         err.update(_lookup_state_payload("invalid_barcode"))
         err["analysis_state"] = "insufficient_data"
         err["analysis_confidence"] = "low"
-        return err
+        timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+        return _attach_scan_timing(err, timing)
 
+    cached_result = _scan_result_cache_get(key, lang)
+    if isinstance(cached_result, dict):
+        cached_timing = dict(cached_result.get("meta", {}).get("performance") or {})
+        cached_timing.update({
+            "cache_hit": True,
+            "cache_layer": "scan_result",
+            "total_ms": int(round((time.perf_counter() - started_at) * 1000.0)),
+        })
+        logger.info("scan timing key=%s cache=scan_result total_ms=%s", key, cached_timing["total_ms"])
+        return _attach_scan_timing(cached_result, cached_timing)
+
+    local_load_started = time.perf_counter()
     products = _load_json(PRODUCTS_FILE, [])
     if isinstance(products, dict) and isinstance(products.get("products"), list):
         products = products["products"]
     elif not isinstance(products, list):
         products = []
     rasff = _load_json(RASFF_FILE, [])
+    timing["local_data_load_ms"] = int(round((time.perf_counter() - local_load_started) * 1000.0))
 
     matched_by = None
     raw: Optional[Dict[str, Any]] = None
@@ -2804,6 +2880,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         raw = local
         source = "local"
         matched_by = "local_db"
+        timing["lookup_source"] = "local"
         local_serving_unit = str(_get_path(local, "serving_size", "unit") or "").strip().lower()
         local_nutrition_unit = str(_get_path(local, "nutrition_per_100", "unit") or "").strip().lower()
         if local_serving_unit == "ml" or local_nutrition_unit == "ml":
@@ -2811,25 +2888,30 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             curated_beverage_signal = "curated"
 
     if raw is None:
+        off_fetch_started = time.perf_counter()
         try:
             off_result = await fetch_off_product(key)
+            timing["openfoodfacts_fetch_ms"] = int(round((time.perf_counter() - off_fetch_started) * 1000.0))
             if off_result.ok and isinstance(off_result.payload, dict):
                 raw = off_result.payload
                 source = "openfoodfacts"
                 matched_by = "barcode_or_key"
+                timing["lookup_source"] = "openfoodfacts"
             else:
                 off_error = {
                     "status": int(off_result.status or 0),
                     "error": str(off_result.error or "").strip(),
                 }
+                timing["openfoodfacts_status"] = int(off_result.status or 0)
         except Exception:
+            timing["openfoodfacts_fetch_ms"] = int(round((time.perf_counter() - off_fetch_started) * 1000.0))
             raw = None
             off_error = {"status": 502, "error": "OpenFoodFacts request failed"}
 
     if raw is None:
         status = int((off_error or {}).get("status") or 0)
         if status == 404:
-            return _fallback_assessment_response(
+            result = _fallback_assessment_response(
                 key=key,
                 norm={"name": "Unknown product", "barcode": key},
                 raw=None,
@@ -2838,13 +2920,17 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
                 lang=lang,
                 lookup_state="not_found",
             )
+            timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+            logger.info("scan timing key=%s source=openfoodfacts status=404 total_ms=%s", key, timing["total_ms"])
+            return _attach_scan_timing(result, timing)
         if status == 400:
             err = _scan_error("INVALID_BARCODE", "Invalid barcode.", 400)
             err.update(_lookup_state_payload("invalid_barcode"))
             err["analysis_state"] = "insufficient_data"
             err["analysis_confidence"] = "low"
-            return err
-        return _fallback_assessment_response(
+            timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+            return _attach_scan_timing(err, timing)
+        result = _fallback_assessment_response(
             key=key,
             norm={"name": "Unknown product", "barcode": key},
             raw=None,
@@ -2853,11 +2939,15 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             lang=lang,
             lookup_state="found_but_incomplete",
         )
+        timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+        logger.info("scan timing key=%s fallback=incomplete total_ms=%s", key, timing["total_ms"])
+        return _attach_scan_timing(result, timing)
 
+    normalize_started = time.perf_counter()
     try:
         norm = _normalize(raw, source=source)
     except Exception:
-        return _fallback_assessment_response(
+        result = _fallback_assessment_response(
             key=key,
             norm={"name": "Unknown product", "barcode": key},
             raw=raw if isinstance(raw, dict) else None,
@@ -2866,8 +2956,13 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             lang=lang,
             lookup_state="found_but_incomplete",
         )
+        timing["normalize_ms"] = int(round((time.perf_counter() - normalize_started) * 1000.0))
+        timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+        logger.info("scan timing key=%s normalize_error total_ms=%s", key, timing["total_ms"])
+        return _attach_scan_timing(result, timing)
+    timing["normalize_ms"] = int(round((time.perf_counter() - normalize_started) * 1000.0))
     if not isinstance(norm, dict) or not norm:
-        return _fallback_assessment_response(
+        result = _fallback_assessment_response(
             key=key,
             norm={"name": "Unknown product", "barcode": key},
             raw=raw if isinstance(raw, dict) else None,
@@ -2876,8 +2971,10 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             lang=lang,
             lookup_state="found_but_incomplete",
         )
+        timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+        return _attach_scan_timing(result, timing)
     if not _has_minimum_product_data(norm):
-        return _fallback_assessment_response(
+        result = _fallback_assessment_response(
             key=key,
             norm=norm,
             raw=raw if isinstance(raw, dict) else None,
@@ -2886,6 +2983,9 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             lang=lang,
             lookup_state="found_but_incomplete",
         )
+        timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+        logger.info("scan timing key=%s min_data_incomplete total_ms=%s", key, timing["total_ms"])
+        return _attach_scan_timing(result, timing)
     if source == "local":
         curated = raw if isinstance(raw, dict) else {}
 
@@ -2947,7 +3047,8 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
                     )
             norm["ingredients"] = parsed_ingredients
 
-    return _analyze_normalized_product(
+    analyze_started = time.perf_counter()
+    result = _analyze_normalized_product(
         key=key,
         norm=norm,
         raw=raw if isinstance(raw, dict) else None,
@@ -2958,6 +3059,23 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         curated_is_beverage=curated_is_beverage,
         curated_beverage_signal=curated_beverage_signal,
     )
+    timing["analysis_ms"] = int(round((time.perf_counter() - analyze_started) * 1000.0))
+    timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+    timing["cache_hit"] = False
+    logger.info(
+        "scan timing key=%s source=%s total_ms=%s fetch_ms=%s normalize_ms=%s analysis_ms=%s local_ms=%s",
+        key,
+        str(source or "unknown"),
+        timing.get("total_ms"),
+        timing.get("openfoodfacts_fetch_ms"),
+        timing.get("normalize_ms"),
+        timing.get("analysis_ms"),
+        timing.get("local_data_load_ms"),
+    )
+    final_result = _attach_scan_timing(result, timing)
+    if isinstance(final_result, dict) and not final_result.get("error"):
+        _scan_result_cache_set(key, lang, final_result)
+    return final_result
 
 
 async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> Dict[str, Any]:
