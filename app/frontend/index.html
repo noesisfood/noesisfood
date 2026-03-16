@@ -2256,6 +2256,22 @@
       return entry.translations?.[lang] || entry.translations?.en || entry.translations?.el || fallback || raw;
     }
 
+    function localizeCanonicalIngredientFallback(value){
+      const key = _ingredientLookupKey(value);
+      const map = {
+        cultures: { el: "Καλλιέργειες", en: "Cultures", de: "Kulturen", fr: "Cultures" },
+        "lactic cultures": { el: "Γαλακτικές καλλιέργειες", en: "Lactic cultures", de: "Milchsäurekulturen", fr: "Ferments lactiques" },
+        "starter cultures": { el: "Καλλιέργειες εκκίνησης", en: "Starter cultures", de: "Starterkulturen", fr: "Cultures de départ" },
+        rennet: { el: "Πυτιά", en: "Rennet", de: "Lab", fr: "Présure" },
+        "dairy ingredient": { el: "Γαλακτοκομικό συστατικό", en: "Dairy ingredient", de: "Milchbestandteil", fr: "Ingrédient laitier" },
+        "milk product": { el: "Γαλακτοκομικό συστατικό", en: "Milk product", de: "Milcherzeugnis", fr: "Produit laitier" },
+        "milk products": { el: "Γαλακτοκομικό συστατικό", en: "Milk products", de: "Milcherzeugnis", fr: "Produit laitier" }
+      };
+      const entry = map[key];
+      if (!entry) return "";
+      return entry[lang] || entry.en || "";
+    }
+
     function localizeProcessingLabel(value){
       const raw = String(value || "").trim();
       if (!raw) return "";
@@ -2396,7 +2412,7 @@
         return { primary: _escapeHtml(original), secondary: "", translated: false, visible: true };
       }
 
-      const translated = localizeGlossaryValue(original, "", captureContext);
+      const translated = localizeGlossaryValue(original, "", captureContext) || localizeCanonicalIngredientFallback(original);
       if (!translated) {
         return { primary: "", secondary: "", translated: false, visible: false };
       }

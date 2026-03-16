@@ -652,6 +652,48 @@ def _sanitize_ingredients_minimal(ingredients: List[Dict[str, Any]]) -> List[Dic
         out.append(item)
     return out
 
+
+def _complete_simple_cheese_ingredients(normalized: Dict[str, Any], ingredients: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    product_text = _normalized_product_text(normalized)
+    if not _contains_any(product_text, _CHEESE_MARKERS):
+        return ingredients
+    if _contains_any(product_text, _CHEESE_EXCLUSION_MARKERS):
+        return ingredients
+
+    existing = _sanitize_ingredients_minimal(ingredients)
+    existing_keys = {_ingredient_confidence_text(item.get("name")) for item in existing if isinstance(item, dict)}
+    simple_existing = len(existing_keys)
+    has_milk = any(key and any(term in key for term in ("milk", "milch", "lait", "γάλα", "γαλα")) for key in existing_keys)
+    has_salt = any(
+        key and (
+            "salt" in key
+            or key == "salz"
+            or key == "sel"
+            or "αλάτι" in key
+            or "αλατι" in key
+        )
+        for key in existing_keys
+    )
+    has_culture = any(key and ("culture" in key or "kultur" in key or "ferment" in key) for key in existing_keys)
+    has_rennet = any(key and ("rennet" in key or "lab" in key or "présure" in key or "presure" in key or "πυτιά" in key or "πυτια" in key) for key in existing_keys)
+
+    if simple_existing >= 3 and has_milk:
+        return existing
+
+    additions: List[Dict[str, Any]] = []
+    if not has_milk:
+        additions.append({"name": "milk", "class": "U", "note": ""})
+    if not has_salt:
+        additions.append({"name": "salt", "class": "U", "note": ""})
+    if not has_culture:
+        additions.append({"name": "cultures", "class": "U", "note": ""})
+    if not has_rennet:
+        additions.append({"name": "rennet", "class": "U", "note": ""})
+
+    if not existing and not additions:
+        return existing
+    return existing + additions
+
 def _normalized_product_text(normalized: Dict[str, Any]) -> str:
     parts: List[str] = []
     for value in [
@@ -2393,6 +2435,7 @@ def _fallback_assessment_response(
     if isinstance(product_categories, str):
       product_categories = [c.strip() for c in product_categories.split(",") if c.strip()]
     ingredients_raw = _as_list(norm.get("ingredients"))
+    ingredients_raw = _complete_simple_cheese_ingredients(norm, ingredients_raw)
     try:
         is_bev, _bev_meta = _guess_is_beverage(norm)
     except Exception:
@@ -2539,7 +2582,7 @@ def _analyze_normalized_product(
     lookup_missing = _lookup_missing_fields(norm, raw)
     lookup_state = "found_but_incomplete" if lookup_missing else "found_and_analyzable"
     alerts = _collect_alerts(_as_list(rasff), norm)
-    ingredients_raw = norm.get("ingredients") or []
+    ingredients_raw = _complete_simple_cheese_ingredients(norm, _as_list(norm.get("ingredients")))
 
     try:
         is_bev, bev_meta = _guess_is_beverage(norm)
