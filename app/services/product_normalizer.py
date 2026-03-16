@@ -5,6 +5,32 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 
+_GENERIC_INGREDIENT_IDS = {
+    "ingredient",
+    "ingredients",
+    "allergen",
+    "allergens",
+    "additive",
+    "additives",
+    "emulsifier",
+    "emulsifiers",
+    "stabilizer",
+    "stabilizers",
+    "flavouring",
+    "flavourings",
+    "flavoring",
+    "flavorings",
+    "colorant",
+    "colorants",
+    "preservative",
+    "preservatives",
+    "milk product",
+    "milk products",
+    "milk ingredient",
+    "milk ingredients",
+}
+
+
 def _to_float(x: Any) -> Optional[float]:
     try:
         if x is None:
@@ -212,19 +238,48 @@ def _ingredient_name_from_obj(ing: Dict[str, Any]) -> str:
     if not isinstance(ing, dict):
         return str(ing or "").strip()
 
-    raw_id = str(ing.get("id") or "").strip()
-    if raw_id:
-        canonical = re.sub(r"^[a-z]{2}:", "", raw_id, flags=re.I)
+    def _clean_candidate(value: Any) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        text = re.sub(r"\s+", " ", text)
+        return text
+
+    def _normalized_id(value: str) -> str:
+        canonical = re.sub(r"^[a-z]{2}:", "", value, flags=re.I)
         canonical = canonical.replace("_", " ").replace("-", " ").strip()
         canonical = re.sub(r"\s+", " ", canonical)
+        return canonical
+
+    def _is_useful_text(value: str) -> bool:
+        tl = value.lower().strip()
+        if not tl:
+            return False
+        if len(tl) <= 2:
+            return False
+        if re.search(r"(https?://|www\.|\.com\b|\.org\b|ra\.org\b)", tl):
+            return False
+        if any(marker in tl for marker in ("zutaten", "ingredients", "ingrédients", "more at", "mehr unter", "rainforest")):
+            return False
+        if len(tl.split()) >= 8 and not any(ch in tl for ch in (",", ";", "%")):
+            return False
+        return bool(re.search(r"[a-zà-ÿäöüßα-ω]", tl, flags=re.I))
+
+    raw_id = str(ing.get("id") or "").strip()
+    text_candidates = [_clean_candidate(ing.get("text_en")), _clean_candidate(ing.get("text"))]
+    text_candidates = [candidate for candidate in text_candidates if _is_useful_text(candidate)]
+    if raw_id:
+        canonical = _normalized_id(raw_id)
         if canonical:
+            if canonical.lower() in _GENERIC_INGREDIENT_IDS:
+                for candidate in text_candidates:
+                    if candidate and candidate.lower() not in _GENERIC_INGREDIENT_IDS:
+                        return candidate
             return canonical
 
-    for k in ("text_en", "text"):
-        v = ing.get(k)
-        s = str(v or "").strip()
-        if s:
-            return s
+    for candidate in text_candidates:
+        if candidate:
+            return candidate
     return ""
 
 

@@ -2272,6 +2272,15 @@
       return raw;
     }
 
+    function localizeAllergenItems(value){
+      return String(value || "")
+        .split(",")
+        .map(part => String(part || "").trim())
+        .filter(Boolean)
+        .map(part => localizeGlossaryValue(part, part, false).toUpperCase())
+        .join(", ");
+    }
+
     function localizeIntelFlag(flag){
       const raw = String(flag || "").trim();
       if (!raw) return "";
@@ -2303,6 +2312,74 @@
 
       if (raw === "Contains caffeine") return t("flag_caffeine");
       if (raw.startsWith("Allergens: ")) return fill("flag_allergens", { items: raw.slice("Allergens: ".length) });
+
+      return raw;
+    }
+
+    function localizeIntelFlag(flag){
+      const raw = String(flag || "").trim();
+      if (!raw) return "";
+      const fill = (key, replacements = {}) => {
+        let text = t(key);
+        for (const [name, value] of Object.entries(replacements)){
+          text = text.replace(`{${name}}`, value);
+        }
+        return text;
+      };
+      const countMatcher = (patterns) => patterns.map(pattern => raw.match(pattern)).find(Boolean) || null;
+
+      let match = countMatcher([
+        /^Sweeteners present \((\d+)\)$/i,
+        /^Παρουσία γλυκαντικών \((\d+)\)$/i,
+        /^Süßstoffe vorhanden \((\d+)\)$/i,
+        /^Édulcorants présents \((\d+)\)$/i,
+      ]);
+      if (match) return fill("flag_sweeteners", { count: match[1] });
+
+      match = countMatcher([
+        /^Additives \/ E-numbers detected \((\d+)\)$/i,
+        /^Εντοπίστηκαν πρόσθετα \/ E-numbers \((\d+)\)$/i,
+        /^Zusatzstoffe \/ E-Nummern erkannt \((\d+)\)$/i,
+        /^Additifs \/ E-numbers détectés \((\d+)\)$/i,
+      ]);
+      if (match) return fill("flag_additives", { count: match[1] });
+
+      match = countMatcher([
+        /^Preservatives present \((\d+)\)$/i,
+        /^Παρουσία συντηρητικών \((\d+)\)$/i,
+        /^Konservierungsstoffe vorhanden \((\d+)\)$/i,
+        /^Conservateurs présents \((\d+)\)$/i,
+      ]);
+      if (match) return fill("flag_preservatives", { count: match[1] });
+
+      match = countMatcher([
+        /^Emulsifiers\/Stabilizers present \((\d+)\)$/i,
+        /^Παρουσία γαλακτωματοποιητών\/σταθεροποιητών \((\d+)\)$/i,
+        /^Emulgatoren\/Stabilisatoren vorhanden \((\d+)\)$/i,
+        /^Émulsifiants\/Stabilisants présents \((\d+)\)$/i,
+      ]);
+      if (match) return fill("flag_emulsifiers", { count: match[1] });
+
+      match = countMatcher([
+        /^Flavourings present \((\d+)\)$/i,
+        /^Παρουσία αρωμάτων \((\d+)\)$/i,
+        /^Παρουσία αρωματικών \((\d+)\)$/i,
+        /^Aromen vorhanden \((\d+)\)$/i,
+        /^Arômes présents \((\d+)\)$/i,
+      ]);
+      if (match) return fill("flag_flavourings", { count: match[1] });
+
+      match = countMatcher([
+        /^Colorants present \((\d+)\)$/i,
+        /^Παρουσία χρωστικών \((\d+)\)$/i,
+        /^Farbstoffe vorhanden \((\d+)\)$/i,
+        /^Colorants présents \((\d+)\)$/i,
+      ]);
+      if (match) return fill("flag_colorants", { count: match[1] });
+
+      if (/^(Contains caffeine|Περιέχει καφεΐνη|Enthält Koffein|Contient de la caféine)$/i.test(raw)) return t("flag_caffeine");
+      const allergenMatch = raw.match(/^(?:Allergens|Αλλεργιογόνα|Allergene|Allergènes)\s*:\s*(.+)$/i);
+      if (allergenMatch) return fill("flag_allergens", { items: localizeAllergenItems(allergenMatch[1]) });
 
       return raw;
     }
@@ -2894,11 +2971,16 @@
       const nutritionInsights = evaluateNutritionInsights(data);
 
       const groups = {};
+      const seenGroupDisplay = {};
       for (const ing of ings){
         const nm = ingredientDisplayName(ing?.name || "-", unmatchedCaptureContext);
         if (!nm.visible) continue;
         const cls = (ing?.class || "Other");
         if (!groups[cls]) groups[cls] = [];
+        if (!seenGroupDisplay[cls]) seenGroupDisplay[cls] = new Set();
+        const displayKey = String(nm.primary || "").trim().toLowerCase();
+        if (displayKey && seenGroupDisplay[cls].has(displayKey)) continue;
+        if (displayKey) seenGroupDisplay[cls].add(displayKey);
         groups[cls].push({ ...ing, _display: nm });
       }
       const groupOrder = Object.keys(groups).sort((a,b)=> a.localeCompare(b));

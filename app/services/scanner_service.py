@@ -494,6 +494,12 @@ _WHOLE_FOOD_EXCLUSION_MARKERS = [
     "sauce tomate", "σάλτσα", "σνακ",
 ]
 
+_CONFECTIONERY_MARKERS = [
+    "chocolate", "milk chocolate", "white chocolate", "wafer", "waffel", "biscuit", "cookie", "cream filling",
+    "filled chocolate", "strawberry filling", "hazelnut cream", "candy", "confectionery",
+    "σοκολάτα", "γκοφρέτα", "μπισκότο",
+]
+
 _CHEESE_EXCLUSION_MARKERS = [
     "processed cheese", "cheese spread", "spreadable cheese", "analogue cheese", "processed cheese product",
     "cream cheese spread", "fromage fondu", "fromage à tartiner", "schmelzkäse", "schmelzkase",
@@ -1514,6 +1520,52 @@ def _ingredients_intelligence(
     return enriched, intelligence
 
 
+def _recalibrate_processing_intelligence(
+    normalized: Dict[str, Any],
+    per100: Dict[str, Optional[float]],
+    ingredients: List[Dict[str, Any]],
+    intelligence: Dict[str, Any],
+) -> Dict[str, Any]:
+    if not isinstance(intelligence, dict):
+        return intelligence
+
+    updated = dict(intelligence)
+    markers = dict(updated.get("markers") or {})
+    product_text = _normalized_product_text(normalized)
+    ingredient_count = len(ingredients or [])
+    sugar = _to_float(per100.get("sugar_g"))
+    energy = _to_float(per100.get("energy_kcal"))
+    base_score = int(_to_float(updated.get("processing_score")) or 0)
+    additive_complexity = sum(
+        int(markers.get(key) or 0)
+        for key in ("flavourings", "emulsifiers_stabilizers", "colorants", "preservatives", "sweeteners", "e_numbers")
+    )
+
+    score = float(base_score)
+    if sugar is not None and sugar >= 20 and additive_complexity >= 2:
+        score += 1.5
+    if sugar is not None and sugar >= 35 and additive_complexity >= 3:
+        score += 1.5
+    if ingredient_count >= 8 and additive_complexity >= 2:
+        score += 1.0
+    if _contains_any(product_text, _CONFECTIONERY_MARKERS) and additive_complexity >= 2:
+        score += 1.5
+    if energy is not None and energy >= 450 and sugar is not None and sugar >= 30 and additive_complexity >= 2:
+        score += 0.5
+
+    score_i = int(round(_clamp(score, 0.0, 10.0)))
+    if score_i <= 2:
+        proc_label = "Minimally processed"
+    elif score_i <= 5:
+        proc_label = "Processed"
+    else:
+        proc_label = "Highly processed"
+
+    updated["processing_score"] = score_i
+    updated["processing_label"] = proc_label
+    return updated
+
+
 # -----------------------------
 # VitaScore v3_hybrid_pro
 # -----------------------------
@@ -2307,6 +2359,7 @@ def _fallback_assessment_response(
         per100 = _nutrients_per_100(norm)
     except Exception:
         per100 = {"energy_kcal": None, "sugar_g": None, "salt_g": None, "saturated_fat_g": None, "fiber_g": None, "protein_g": None, "fruits_veg_percent": None}
+    ingredients_intelligence = _recalibrate_processing_intelligence(norm, per100, ingredients, ingredients_intelligence)
     score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
     balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
     score += int(balance_adjustments.get("total_delta", 0) or 0)
@@ -2445,6 +2498,7 @@ def _analyze_normalized_product(
         )
 
         per100 = _nutrients_per_100(norm)
+        ingredients_intelligence = _recalibrate_processing_intelligence(norm, per100, ingredients, ingredients_intelligence)
         product_categories = norm.get("categories") or norm.get("categories_tags") or []
         analysis_state, analysis_confidence = _analysis_mode(
             lookup_state=lookup_state,
