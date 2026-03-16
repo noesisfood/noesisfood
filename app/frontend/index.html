@@ -406,6 +406,8 @@
         safety_title: "Safety and Trust",
         alerts: "Alerts",
         no_alerts: "No alerts found.",
+        safety_limited: "External recall databases were not checked.",
+        safety_limited_note: "Safety alert coverage is limited. Check official recall sources for critical safety issues.",
         data_quality: "Data quality",
         confidence: "Confidence",
         missing_fields: "Missing fields",
@@ -613,6 +615,8 @@
         safety_title: "Ασφάλεια και εμπιστοσύνη",
         alerts: "Προειδοποιήσεις",
         no_alerts: "Δεν βρέθηκαν προειδοποιήσεις.",
+        safety_limited: "Δεν έγινε έλεγχος ανακλήσεων από εξωτερικές βάσεις.",
+        safety_limited_note: "Η κάλυψη προειδοποιήσεων ασφάλειας είναι περιορισμένη. Ελέγξτε και επίσημες πηγές ανακλήσεων για κρίσιμα θέματα ασφάλειας.",
         data_quality: "Ποιότητα δεδομένων",
         confidence: "Εμπιστοσύνη",
         missing_fields: "Πεδία που λείπουν",
@@ -820,6 +824,8 @@
         safety_title: "Sicherheit und Vertrauen",
         alerts: "Warnungen",
         no_alerts: "Keine Warnungen gefunden.",
+        safety_limited: "Externe Rückrufdatenbanken wurden nicht geprüft.",
+        safety_limited_note: "Die Abdeckung von Sicherheitswarnungen ist begrenzt. Prüfen Sie bei kritischen Sicherheitsthemen auch offizielle Rückrufquellen.",
         data_quality: "Datenqualität",
         confidence: "Konfidenz",
         missing_fields: "Fehlende Felder",
@@ -1027,6 +1033,8 @@
         safety_title: "Sécurité et confiance",
         alerts: "Alertes",
         no_alerts: "Aucune alerte trouvée.",
+        safety_limited: "Les bases externes de rappels n'ont pas été vérifiées.",
+        safety_limited_note: "La couverture des alertes de sécurité est limitée. Vérifiez aussi les sources officielles de rappel pour les sujets de sécurité critiques.",
         data_quality: "Qualité des données",
         confidence: "Confiance",
         missing_fields: "Champs manquants",
@@ -3526,10 +3534,15 @@
         const d = state.data || {};
         const alerts = Array.isArray(d?.alerts) ? d.alerts : [];
         const dq = d?.data_quality || {};
+        const safetyAlertsChecked = d?.meta?.safety_alerts_checked === true;
         app.innerHTML = `
           <div class="section">
             <div class="sectionTitle">${t("safety_title")}</div>
-            ${alerts.length ? `<div class="err"><b>${t("alerts")}:</b><br/>${alerts.map(a => `- ${a}`).join("<br/>")}</div>` : `<div class="ok"><b>${t("no_alerts")}</b></div>`}
+            ${alerts.length
+              ? `<div class="err"><b>${t("alerts")}:</b><br/>${alerts.map(a => `- ${a}`).join("<br/>")}</div>`
+              : (safetyAlertsChecked
+                ? `<div class="ok"><b>${t("no_alerts")}</b></div>`
+                : `<div class="ok"><b>${t("safety_limited")}</b><br/>${t("safety_limited_note")}</div>`)}
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">${t("data_quality")}</div>
               <div class="mini">

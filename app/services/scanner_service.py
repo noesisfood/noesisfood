@@ -2619,6 +2619,8 @@ def _fallback_assessment_response(
             "lookup_missing_fields": lookup_missing,
             "analysis_state": "limited_estimate",
             "analysis_confidence": "low",
+            "safety_alerts_checked": False,
+            "safety_alerts_source": "local_rasff_only",
         },
     }
 
@@ -2821,6 +2823,8 @@ def _analyze_normalized_product(
             "lookup_missing_fields": lookup_missing,
             "analysis_state": analysis_state,
             "analysis_confidence": analysis_confidence,
+            "safety_alerts_checked": False,
+            "safety_alerts_source": "local_rasff_only",
         },
     }
 
