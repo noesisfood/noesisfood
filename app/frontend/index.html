@@ -374,6 +374,7 @@
         limited_estimate: "Estimate based on limited data",
         limited_estimate_note: "Estimate based on limited data",
         quick_verdict_title: "Quick verdict",
+        quick_verdict_excellent: "Excellent choice",
         quick_verdict_better: "Better choice",
         quick_verdict_moderate: "Moderate choice",
         quick_verdict_burdened: "More burdened choice",
@@ -580,6 +581,7 @@
         limited_estimate: "Εκτίμηση με περιορισμένα στοιχεία",
         limited_estimate_note: "Εκτίμηση με περιορισμένα στοιχεία",
         quick_verdict_title: "Συνοπτική αξιολόγηση",
+        quick_verdict_excellent: "Εξαιρετική επιλογή",
         quick_verdict_better: "Καλή επιλογή",
         quick_verdict_moderate: "Μέτρια επιλογή",
         quick_verdict_burdened: "Πιο επιβαρυμένη επιλογή",
@@ -786,6 +788,7 @@
         limited_estimate: "Schätzung auf Basis begrenzter Daten",
         limited_estimate_note: "Schätzung auf Basis begrenzter Daten",
         quick_verdict_title: "Schnellbewertung",
+        quick_verdict_excellent: "Ausgezeichnete Wahl",
         quick_verdict_better: "Bessere Wahl",
         quick_verdict_moderate: "Mittlere Wahl",
         quick_verdict_burdened: "Stärker belastete Wahl",
@@ -992,6 +995,7 @@
         limited_estimate: "Estimation basée sur des données limitées",
         limited_estimate_note: "Estimation basée sur des données limitées",
         quick_verdict_title: "Verdict rapide",
+        quick_verdict_excellent: "Excellent choix",
         quick_verdict_better: "Meilleur choix",
         quick_verdict_moderate: "Choix moyen",
         quick_verdict_burdened: "Choix plus chargé",
@@ -2933,6 +2937,7 @@
     function quickVerdictLabel(score){
       const n = Number(score);
       if (Number.isNaN(n)) return t("quick_verdict_moderate");
+      if (n >= 95) return t("quick_verdict_excellent");
       if (n >= 60) return t("quick_verdict_better");
       if (n >= 40) return t("quick_verdict_moderate");
       return t("quick_verdict_burdened");
