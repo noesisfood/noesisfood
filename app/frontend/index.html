@@ -1839,6 +1839,22 @@
       return _readRecentProducts().filter(item => String(item?.key || "") && String(item.key) !== String(currentKey || ""));
     }
 
+    function _isUsableCachedScan(data){
+      if (!data || typeof data !== "object" || data?.error) return false;
+      if (isPlaceholderScanResult(data)) return false;
+      if (!hasRenderableProductIdentity(data)) return false;
+      return Number.isFinite(Number(data?.vitascore));
+    }
+
+    function _findCachedScanResult(key){
+      const normalizedKey = String(key || "").trim();
+      if (!normalizedKey) return null;
+      const historyMatch = _readAnalysisHistory().find(item => String(item?.key || "").trim() === normalizedKey && _isUsableCachedScan(item?.data));
+      if (historyMatch?.data) return historyMatch.data;
+      const recentMatch = _readRecentProducts().find(item => String(item?.key || "").trim() === normalizedKey && _isUsableCachedScan(item?.data));
+      return recentMatch?.data || null;
+    }
+
     function _analysisSnapshot(data, key){
       const product = data?.product || {};
       const intel = data?.ingredients_intelligence || {};
@@ -3551,6 +3567,7 @@
       const nextKey = normalizeLookupKey(key);
       const requestId = beginAnalysisRequest();
       const startedAt = performance.now();
+      const cachedResult = _findCachedScanResult(nextKey);
       state.key = nextKey;
       if (!state.key){
         state.error = t("err_enter_key");
@@ -3570,6 +3587,38 @@
         state.compareTargetKey = "";
         state.recoveryOpen = false;
         render();
+        return;
+      }
+      if (_isUsableCachedScan(cachedResult)){
+        state.loading = false;
+        state.scanStatusMessage = "";
+        state.error = "";
+        state.errorCode = "";
+        state.data = cachedResult;
+        state.recoveryOpen = false;
+        state.refreshNotice = null;
+        state.recoveryPhotoMessage = "";
+        if (!state.compareTargetKey){
+          const nextCompare = _getComparisonCandidates(nextKey)[0] || null;
+          state.compareTargetKey = String(nextCompare?.key || "");
+        }
+        step = 2;
+        render();
+        requestAnimationFrame(() => logScanPerformance(cachedResult, startedAt));
+        void (async () => {
+          try{
+            const { res, data, stale } = await fetchStableScanResult(nextKey, requestId);
+            if (stale || !isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
+            if (!res?.ok || data?.error || isPlaceholderScanResult(data)) return;
+            state.data = data;
+            state.error = "";
+            state.errorCode = "";
+            _storeRecentProduct(data, nextKey);
+            _storeAnalysisHistory(data, nextKey);
+            render();
+            requestAnimationFrame(() => logScanPerformance(data, startedAt));
+          }catch(_e){}
+        })();
         return;
       }
       state.loading = true;
