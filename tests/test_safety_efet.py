@@ -39,6 +39,26 @@ class EfetSafetyIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(bool(entry["batch"]) or bool(entry["lot"]) or bool(entry["best_before"]))
         self.assertEqual(entry["best_before"], "10/12/2026")
         self.assertIn("5201234567890", entry["barcodes"])
+        self.assertIn("::", str(entry.get("overlap_key") or ""))
+
+    def test_normalize_efet_entry_extracts_reference_and_company_boundary(self) -> None:
+        html = """
+        <html>
+          <head>
+            <title>Ανάκληση προϊόντος Ζελεδάκια Φρούτων</title>
+          </head>
+          <body>
+            Η εταιρεία SWEET GOODS A.E. ανακαλεί το προϊόν Ζελεδάκια Φρούτων 250 g
+            λόγω παρουσίας μη εγκεκριμένου πρόσθετου. Η ενημέρωση έγινε μέσω RASFF 2026.4321.
+          </body>
+        </html>
+        """
+
+        entry = ss._normalize_efet_entry("https://www.efet.gr/example-ref", html)
+
+        self.assertEqual(entry["reference"], "2026.4321")
+        self.assertIn("SWEET GOODS A", entry["company"] or "")
+        self.assertEqual(entry["packaging"], "250 g")
 
     async def test_lookup_efet_alerts_returns_medium_match_conservatively(self) -> None:
         entry = {
@@ -176,6 +196,58 @@ class EfetSafetyIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(alert["batch_specific"])
         self.assertEqual(alert["scope"], "batch")
         self.assertEqual(alert["confidence"], "conditional")
+
+    def test_efet_rasff_overlap_dedupes_to_one_visible_alert(self) -> None:
+        rasff_lookup = {
+            "checked": True,
+            "source": "rasff_dg_sante_api",
+            "has_matches": True,
+            "alerts": [
+                {
+                    "title": "Fruit gummies",
+                    "summary": "RASFF alert",
+                    "url": "https://webgate.ec.europa.eu/rasff-window/screen/search",
+                    "scope": "product",
+                    "batch_specific": False,
+                    "source": "rasff_dg_sante_api",
+                    "reference": "2026.4321",
+                    "product_name": "Fruit gummies",
+                    "overlap_key": "fruit gummies::2026 4321",
+                    "match_score": 98,
+                    "confidence": "high",
+                    "severity": "high",
+                }
+            ],
+            "observability": ss._new_safety_observability(),
+        }
+        efet_lookup = {
+            "checked": True,
+            "source": "efet_gr",
+            "has_matches": True,
+            "alerts": [
+                {
+                    "title": "Ανάκληση προϊόντος Fruit gummies",
+                    "summary": "EFET notice",
+                    "url": "https://www.efet.gr/example-overlap",
+                    "scope": "product",
+                    "batch_specific": False,
+                    "source": "efet_gr",
+                    "reference": "2026.4321",
+                    "product_name": "Fruit gummies",
+                    "overlap_key": "fruit gummies::2026 4321",
+                    "match_score": 88,
+                    "confidence": "medium",
+                    "severity": "medium",
+                }
+            ],
+            "observability": ss._new_safety_observability(),
+        }
+
+        merged = ss._merge_safety_lookup_payloads(rasff_lookup, efet_lookup)
+
+        self.assertEqual(len(merged["alerts"]), 1)
+        self.assertEqual(set(merged["alerts"][0]["sources"]), {"rasff_dg_sante_api", "efet_gr"})
+        self.assertEqual(merged["observability"]["duplicate_collapsed"], 1)
 
 
 if __name__ == "__main__":

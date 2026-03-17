@@ -991,18 +991,32 @@ def _extract_efet_product_name(title: str, text_blob: str) -> str:
     return raw_title
 
 
-def _extract_efet_company(text_blob: str) -> Optional[str]:
+def _extract_efet_reference(text_blob: str) -> Optional[str]:
     normalized = _normalize_safety_text(text_blob)
     for pattern in (
-        r"(?i)(?:εταιρείας|εταιρίας|company|distributor|producer|παραγωγός|διανομέας)\s+([A-ZΑ-Ω0-9][^.,;\n]{2,80}?)(?=\s+(?:ανακαλεί|recalls|withdraws|που)\b|[.,;]|$)",
+        r"(?i)\bRASFF\b[^0-9]{0,12}([0-9]{4}\.[0-9]{3,5})",
+        r"(?i)\breference\b\s*[:#]?\s*([0-9]{4}\.[0-9]{3,5})",
+    ):
+        match = re.search(pattern, normalized)
+        if match:
+            return _normalize_safety_text(match.group(1))
+    return None
+
+
+def _extract_efet_company(text_blob: str) -> Optional[str]:
+    normalized = _normalize_safety_text(text_blob)
+    best_candidate: Optional[str] = None
+    for pattern in (
+        r"(?i)(?:εταιρείας|εταιρίας|company|distributor|producer|παραγωγός|διανομέας)\s+([A-ZΑ-Ω0-9][^,;\n]{2,80}?)(?=\s+(?:ανακαλεί|recalls|withdraws|που)\b|[,;]|$)",
         r"(?i)(?:με την εμπορική επωνυμία|sold by|marketed by)\s+([A-ZΑ-Ω0-9][^.,;\n]{2,80})",
+        r"(?i)(?:εταιρεία|επιχείρηση|company)\s+([A-ZΑ-Ω0-9][A-ZΑ-Ω0-9&.,'’`\-\s]{2,80}?)(?=\s+(?:ανακαλεί|recalls|withdraws)\b|[.,;]|$)",
     ):
         match = re.search(pattern, normalized)
         if match:
             candidate = _normalize_safety_text(match.group(1)).strip(" -:/")
-            if candidate:
-                return candidate
-    return None
+            if candidate and (best_candidate is None or len(candidate) > len(best_candidate)):
+                best_candidate = candidate
+    return best_candidate
 
 
 def _extract_efet_packaging(text_blob: str) -> Optional[str]:
@@ -1016,6 +1030,7 @@ def _extract_efet_hazard_reason(text_blob: str) -> Optional[str]:
     for pattern in (
         r"(?i)(?:λόγω|due to|because of)\s+([^.;]{6,160})",
         r"(?i)(?:μη ασφαλές|hazard|risk|κίνδυνος|reason)\s*[:\-]?\s*([^.;]{6,160})",
+        r"(?i)(?:παρουσίας|presence of)\s+([^.;]{6,160})",
     ):
         match = re.search(pattern, normalized)
         if match:
@@ -1023,6 +1038,47 @@ def _extract_efet_hazard_reason(text_blob: str) -> Optional[str]:
             if candidate:
                 return candidate
     return None
+
+
+def _normalize_official_overlap_key(
+    source: str,
+    product_name: Any,
+    batch: Any = None,
+    lot: Any = None,
+    best_before: Any = None,
+    packaging: Any = None,
+    reference: Any = None,
+) -> Optional[str]:
+    source_key = str(source or "").strip().lower()
+    if source_key not in {"rasff_dg_sante_api", EFET_SOURCE_KEY}:
+        return None
+    variants = _product_name_variants(product_name)
+    product_key = max(variants, key=len) if variants else _normalize_match_text(product_name)
+    if not product_key:
+        return None
+    scope_key = next((
+        item for item in [
+            _normalize_match_text(reference).replace(".", " "),
+            _normalize_match_text(batch),
+            _normalize_match_text(lot),
+            _normalize_match_text(best_before),
+            _normalize_match_text(packaging),
+        ]
+        if item
+    ), "")
+    return f"{product_key}::{scope_key}"
+
+
+def _alerts_likely_same_official_event(existing: Dict[str, Any], candidate: Dict[str, Any]) -> bool:
+    existing_key = _normalize_safety_text(existing.get("overlap_key")).lower()
+    candidate_key = _normalize_safety_text(candidate.get("overlap_key")).lower()
+    if not existing_key or not candidate_key:
+        return False
+    if existing_key != candidate_key:
+        return False
+    if existing_key.endswith("::"):
+        return False
+    return True
 
 
 def _normalize_efet_entry(url: str, html_text: str) -> Optional[Dict[str, Any]]:
@@ -1047,6 +1103,7 @@ def _normalize_efet_entry(url: str, html_text: str) -> Optional[Dict[str, Any]]:
     hazard = _extract_efet_hazard_reason(text_blob)
     company = _extract_efet_company(text_blob)
     packaging = _extract_efet_packaging(text_blob)
+    reference = _extract_efet_reference(text_blob)
     summary_parts = [
         company or "",
         packaging or "",
@@ -1064,12 +1121,22 @@ def _normalize_efet_entry(url: str, html_text: str) -> Optional[Dict[str, Any]]:
         "company": company,
         "packaging": packaging,
         "hazard": hazard,
+        "reference": reference,
         "batch_specific": bool(scope_details.get("batch_specific")),
         "batch": scope_details.get("batch"),
         "lot": scope_details.get("lot"),
         "best_before": scope_details.get("best_before"),
         "barcodes": _extract_alert_barcodes(text_blob),
         "text_blob": text_blob,
+        "overlap_key": _normalize_official_overlap_key(
+            EFET_SOURCE_KEY,
+            product_name,
+            scope_details.get("batch"),
+            scope_details.get("lot"),
+            scope_details.get("best_before"),
+            packaging,
+            reference,
+        ),
         "source": EFET_SOURCE_KEY,
         "source_label": EFET_SOURCE_LABEL,
     }
@@ -1419,6 +1486,7 @@ def _normalize_rasff_public_entries(raw_entries: Any) -> List[Dict[str, Any]]:
             "published_at": published_at or None,
             "url": RASFF_PUBLIC_SEARCH_URL,
             "text_blob": text_blob,
+            "overlap_key": _normalize_official_overlap_key("rasff_dg_sante_api", product_name or title, reference=reference),
             "source": "rasff_dg_sante_api",
             "source_label": "RASFF (DG SANTE API)",
         })
@@ -1717,6 +1785,11 @@ def _merge_safety_alerts(alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         key = (title, batch, lot, url, reference)
         existing = merged.get(key)
         if not existing:
+            for candidate in merged.values():
+                if _alerts_likely_same_official_event(candidate, alert):
+                    existing = candidate
+                    break
+        if not existing:
             merged[key] = dict(alert)
             sources = [str(alert.get("source") or "").strip()] if str(alert.get("source") or "").strip() else []
             merged[key]["sources"] = sources
@@ -1733,6 +1806,12 @@ def _merge_safety_alerts(alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             existing["best_before"] = alert.get("best_before")
         if not existing.get("reference") and alert.get("reference"):
             existing["reference"] = alert.get("reference")
+        if not existing.get("product_name") and alert.get("product_name"):
+            existing["product_name"] = alert.get("product_name")
+        if not existing.get("packaging") and alert.get("packaging"):
+            existing["packaging"] = alert.get("packaging")
+        if not existing.get("overlap_key") and alert.get("overlap_key"):
+            existing["overlap_key"] = alert.get("overlap_key")
         if str(alert.get("severity") or "") == "high":
             existing["severity"] = "high"
         if int(alert.get("match_score") or 0) > int(existing.get("match_score") or 0):
@@ -1853,6 +1932,8 @@ async def _lookup_rasff_public_alerts(norm: Dict[str, Any]) -> Dict[str, Any]:
             "match_score": int(score),
             "confidence": confidence or "low",
             "published_at": entry.get("published_at"),
+            "product_name": entry.get("product_name"),
+            "overlap_key": entry.get("overlap_key"),
             "reference": entry.get("reference"),
         })
 
@@ -1922,6 +2003,9 @@ async def _lookup_efet_alerts(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
             "confidence": confidence or "low",
             "published_at": entry.get("published_at"),
             "product_name": entry.get("product_name"),
+            "packaging": entry.get("packaging"),
+            "overlap_key": entry.get("overlap_key"),
+            "reference": entry.get("reference"),
         })
 
     if alerts:
