@@ -415,6 +415,7 @@
         safety_source: "Checked source",
         safety_source_local_index: "Local RASFF alert index",
         safety_source_rasff_dg_sante_api: "RASFF (DG SANTE API)",
+        safety_source_efet_gr: "EFET",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
         safety_source_multi_source_safety: "Combined safety sources",
         safety_severity: "Severity",
@@ -647,6 +648,7 @@
         safety_source: "Ελεγμένη πηγή",
         safety_source_local_index: "Τοπικό ευρετήριο ειδοποιήσεων RASFF",
         safety_source_rasff_dg_sante_api: "RASFF (API DG SANTE)",
+        safety_source_efet_gr: "EFET",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
         safety_source_multi_source_safety: "Συνδυασμένες πηγές ασφάλειας",
         safety_severity: "Σοβαρότητα",
@@ -879,6 +881,7 @@
         safety_source: "Geprüfte Quelle",
         safety_source_local_index: "Lokaler RASFF-Warnindex",
         safety_source_rasff_dg_sante_api: "RASFF (DG SANTE API)",
+        safety_source_efet_gr: "EFET",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
         safety_source_multi_source_safety: "Kombinierte Sicherheitsquellen",
         safety_severity: "Schweregrad",
@@ -1111,6 +1114,7 @@
         safety_source: "Source vérifiée",
         safety_source_local_index: "Index local d'alertes RASFF",
         safety_source_rasff_dg_sante_api: "RASFF (API DG SANTE)",
+        safety_source_efet_gr: "EFET",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
         safety_source_multi_source_safety: "Sources de sécurité combinées",
         safety_severity: "Gravité",
@@ -1628,6 +1632,7 @@
       const key = String(value || "").toLowerCase();
       if (key === "local_rasff_alert_index") return t("safety_source_local_index");
       if (key === "rasff_dg_sante_api") return t("safety_source_rasff_dg_sante_api");
+      if (key === "efet_gr") return t("safety_source_efet_gr");
       if (key === "lebensmittelwarnung_de") return t("safety_source_lebensmittelwarnung_de");
       if (key === "multi_source_safety") return t("safety_source_multi_source_safety");
       return String(value || "");

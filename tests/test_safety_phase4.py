@@ -295,6 +295,7 @@ class SafetyLocalizationMatrixTests(unittest.TestCase):
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
         self.assertEqual(content.count("safety_source_local_index:"), 4)
         self.assertEqual(content.count("safety_source_rasff_dg_sante_api:"), 4)
+        self.assertEqual(content.count("safety_source_efet_gr:"), 4)
         self.assertEqual(content.count("safety_source_lebensmittelwarnung_de:"), 4)
         self.assertEqual(content.count("safety_source_multi_source_safety:"), 4)
         self.assertEqual(content.count("safety_match_batch:"), 4)

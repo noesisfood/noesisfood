@@ -53,6 +53,16 @@ RASFF_PUBLIC_SEARCH_URL = "https://webgate.ec.europa.eu/rasff-window/screen/sear
 RASFF_PUBLIC_API_VERSION = "v1.1"
 RASFF_LOOKBACK_DAYS = 240
 RASFF_MAX_PAGES = 3
+EFET_SOURCE_KEY = "efet_gr"
+EFET_SOURCE_LABEL = "EFET"
+EFET_BASE_URL = "https://www.efet.gr/"
+EFET_RECALL_LISTING_URLS = [
+    EFET_BASE_URL,
+    "https://www.efet.gr/index.php/el/enimerosi/deltia-typou/anakleiseis-cat",
+]
+EFET_LOOKBACK_DAYS = 240
+EFET_MAX_DISCOVERY_PAGES = 2
+EFET_MAX_DETAIL_PAGES = 10
 
 
 # -------------------------
@@ -907,6 +917,164 @@ def _strip_html_to_text(value: str) -> str:
     return text.strip()
 
 
+def _extract_html_tag_text(html_text: str, tag: str) -> str:
+    match = re.search(rf"(?is)<{tag}\b[^>]*>(.*?)</{tag}>", str(html_text or ""))
+    return _strip_html_to_text(match.group(1)) if match else ""
+
+
+def _extract_html_meta_content(html_text: str, attr_name: str, attr_value: str) -> str:
+    pattern = rf'(?is)<meta\b[^>]*{attr_name}\s*=\s*["\']{re.escape(attr_value)}["\'][^>]*content\s*=\s*["\']([^"\']+)["\']'
+    match = re.search(pattern, str(html_text or ""))
+    if match:
+        return _normalize_safety_text(html.unescape(match.group(1)))
+    pattern = rf'(?is)<meta\b[^>]*content\s*=\s*["\']([^"\']+)["\'][^>]*{attr_name}\s*=\s*["\']{re.escape(attr_value)}["\']'
+    match = re.search(pattern, str(html_text or ""))
+    if match:
+        return _normalize_safety_text(html.unescape(match.group(1)))
+    return ""
+
+
+def _extract_efet_listing_links(html_text: str) -> List[str]:
+    source = str(html_text or "")
+    hits: List[str] = []
+    for match in re.findall(r'(?is)href\s*=\s*["\']([^"\']*anakleiseis-cat/item/[^"\']+)["\']', source):
+        absolute = urljoin(EFET_BASE_URL, html.unescape(match))
+        if absolute not in hits:
+            hits.append(absolute)
+    return hits
+
+
+def _parse_safety_published_ts(value: str) -> Optional[float]:
+    normalized = _normalize_safety_text(value)
+    if not normalized:
+        return None
+    candidates = [
+        normalized,
+        normalized.rstrip("Z"),
+        normalized[:19] if "T" in normalized and len(normalized) >= 19 else normalized,
+    ]
+    for candidate in candidates:
+        for fmt in (
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%d",
+            "%d/%m/%Y",
+            "%d-%m-%Y",
+            "%d.%m.%Y",
+            "%a, %d %b %Y %H:%M:%S %z",
+        ):
+            try:
+                return time.mktime(time.strptime(candidate, fmt))
+            except Exception:
+                continue
+    return None
+
+
+def _extract_efet_product_name(title: str, text_blob: str) -> str:
+    raw_title = _normalize_safety_text(title)
+    body = _normalize_safety_text(text_blob)
+    cleaned_title = re.sub(
+        r"(?i)^\s*(?:δελτίο τύπου\s*[-:|]?\s*)?(?:ανάκληση(?:\s+προϊόν(?:τος|των)?)?|recall of products?|product recall)\s*[-:|]?\s*",
+        "",
+        raw_title,
+    ).strip(" -:/")
+    if cleaned_title and cleaned_title != raw_title:
+        return cleaned_title
+    for pattern in (
+        r"(?i)(?:ανάκληση|recall of)\s+(?:του|της|των|the)?\s*προϊόν(?:τος|των)?\s+([A-ZΑ-Ω0-9][^.,;\n]{4,120})",
+        r"(?i)(?:προϊόν|product)\s+([A-ZΑ-Ω0-9][^.,;\n]{4,120})",
+    ):
+        match = re.search(pattern, body)
+        if match:
+            candidate = _normalize_safety_text(match.group(1)).strip(" -:/")
+            if candidate:
+                return candidate
+    return raw_title
+
+
+def _extract_efet_company(text_blob: str) -> Optional[str]:
+    normalized = _normalize_safety_text(text_blob)
+    for pattern in (
+        r"(?i)(?:εταιρείας|εταιρίας|company|distributor|producer|παραγωγός|διανομέας)\s+([A-ZΑ-Ω0-9][^.,;\n]{2,80}?)(?=\s+(?:ανακαλεί|recalls|withdraws|που)\b|[.,;]|$)",
+        r"(?i)(?:με την εμπορική επωνυμία|sold by|marketed by)\s+([A-ZΑ-Ω0-9][^.,;\n]{2,80})",
+    ):
+        match = re.search(pattern, normalized)
+        if match:
+            candidate = _normalize_safety_text(match.group(1)).strip(" -:/")
+            if candidate:
+                return candidate
+    return None
+
+
+def _extract_efet_packaging(text_blob: str) -> Optional[str]:
+    normalized = _normalize_safety_text(text_blob)
+    match = re.search(r"(?i)\b\d+(?:[.,]\d+)?\s*(?:g|gr|kg|ml|l|lt|τεμ(?:άχια)?|τμχ)\b", normalized)
+    return _normalize_safety_text(match.group(0)) if match else None
+
+
+def _extract_efet_hazard_reason(text_blob: str) -> Optional[str]:
+    normalized = _normalize_safety_text(text_blob)
+    for pattern in (
+        r"(?i)(?:λόγω|due to|because of)\s+([^.;]{6,160})",
+        r"(?i)(?:μη ασφαλές|hazard|risk|κίνδυνος|reason)\s*[:\-]?\s*([^.;]{6,160})",
+    ):
+        match = re.search(pattern, normalized)
+        if match:
+            candidate = _normalize_safety_text(match.group(1)).strip(" -:/")
+            if candidate:
+                return candidate
+    return None
+
+
+def _normalize_efet_entry(url: str, html_text: str) -> Optional[Dict[str, Any]]:
+    title = (
+        _extract_html_meta_content(html_text, "property", "og:title")
+        or _extract_html_tag_text(html_text, "h1")
+        or _extract_html_tag_text(html_text, "title")
+    )
+    text_blob = _strip_html_to_text(html_text)
+    if not title and not text_blob:
+        return None
+    published_at = (
+        _extract_html_meta_content(html_text, "property", "article:published_time")
+        or _extract_html_meta_content(html_text, "name", "publish-date")
+    )
+    if not published_at:
+        date_match = re.search(r"\b(\d{2}[/-]\d{2}[/-]\d{4}|\d{4}-\d{2}-\d{2})\b", text_blob)
+        if date_match:
+            published_at = date_match.group(1)
+    product_name = _extract_efet_product_name(title, text_blob)
+    scope_details = _extract_safety_scope_details(text_blob)
+    hazard = _extract_efet_hazard_reason(text_blob)
+    company = _extract_efet_company(text_blob)
+    packaging = _extract_efet_packaging(text_blob)
+    summary_parts = [
+        company or "",
+        packaging or "",
+        hazard or "",
+        f"Best before: {scope_details.get('best_before')}" if scope_details.get("best_before") else "",
+    ]
+    summary = " | ".join([part for part in summary_parts if part])
+    return {
+        "title": _normalize_safety_text(title or product_name or "EFET recall"),
+        "summary": _normalize_safety_text(summary or hazard or text_blob[:320]),
+        "url": url,
+        "published_at": _normalize_safety_text(published_at) or None,
+        "product_name": _normalize_safety_text(product_name),
+        "product_variants": _product_name_variants(product_name or title),
+        "company": company,
+        "packaging": packaging,
+        "hazard": hazard,
+        "batch_specific": bool(scope_details.get("batch_specific")),
+        "batch": scope_details.get("batch"),
+        "lot": scope_details.get("lot"),
+        "best_before": scope_details.get("best_before"),
+        "barcodes": _extract_alert_barcodes(text_blob),
+        "text_blob": text_blob,
+        "source": EFET_SOURCE_KEY,
+        "source_label": EFET_SOURCE_LABEL,
+    }
+
+
 def _normalize_safety_alert_entries(raw: Any) -> List[Dict[str, Any]]:
     entries: List[Dict[str, Any]] = []
     if isinstance(raw, dict):
@@ -1296,6 +1464,47 @@ async def _fetch_rasff_public_entries() -> Dict[str, Any]:
     return {"checked": checked, "entries": entries, "observability": observability}
 
 
+async def _fetch_efet_entries() -> Dict[str, Any]:
+    entries: List[Dict[str, Any]] = []
+    checked = False
+    observability = _new_safety_observability()
+    candidate_urls: List[str] = []
+    for url in EFET_RECALL_LISTING_URLS[:EFET_MAX_DISCOVERY_PAGES]:
+        _bump_observability_bucket(observability, "fetch_count", EFET_SOURCE_KEY, 1)
+        _bump_observability_bucket(observability, "page_count", EFET_SOURCE_KEY, 1)
+        listing_html = await _fetch_safety_url_text(url, timeout_sec=5.0)
+        if not listing_html:
+            continue
+        checked = True
+        for detail_url in _extract_efet_listing_links(listing_html):
+            if detail_url not in candidate_urls:
+                candidate_urls.append(detail_url)
+
+    cutoff_ts = time.time() - (max(1, int(EFET_LOOKBACK_DAYS)) * 86400)
+    for detail_url in candidate_urls[:EFET_MAX_DETAIL_PAGES]:
+        _bump_observability_bucket(observability, "fetch_count", EFET_SOURCE_KEY, 1)
+        _bump_observability_bucket(observability, "page_count", EFET_SOURCE_KEY, 1)
+        detail_html = await _fetch_safety_url_text(detail_url, timeout_sec=4.5)
+        if not detail_html:
+            continue
+        checked = True
+        entry = _normalize_efet_entry(detail_url, detail_html)
+        if not isinstance(entry, dict):
+            continue
+        published_ts = _parse_safety_published_ts(str(entry.get("published_at") or ""))
+        if published_ts is not None and published_ts < cutoff_ts:
+            continue
+        entries.append(entry)
+
+    if checked:
+        _bump_observability_bucket(observability, "source_checked", EFET_SOURCE_KEY, 1)
+        if not entries:
+            _set_no_match_reason(observability, EFET_SOURCE_KEY, "no_recent_entries")
+    else:
+        _set_no_match_reason(observability, EFET_SOURCE_KEY, "source_unavailable")
+    return {"checked": checked, "entries": entries, "observability": observability}
+
+
 def _score_external_alert_candidate(entry: Dict[str, Any], barcode: str, product_name: str, brand: str, category: str) -> Tuple[int, str]:
     score = 0
     confidence = ""
@@ -1407,6 +1616,87 @@ def _score_rasff_public_alert_candidate(entry: Dict[str, Any], product_name: str
         or (overlap_ratio >= 0.9 and len(product_tokens) >= 2)
     )
 
+    if score >= 96 and strong_high_match:
+        confidence = "high"
+    elif score >= 76:
+        confidence = "medium"
+    elif score >= 58:
+        confidence = "low"
+    return score, confidence
+
+
+def _score_efet_alert_candidate(entry: Dict[str, Any], barcode: str, product_name: str, brand: str, category: str) -> Tuple[int, str]:
+    score = 0
+    confidence = ""
+    barcode = str(barcode or "").strip()
+    product_norm = _normalize_match_text(product_name)
+    brand_norm = _normalize_match_text(brand)
+    category_norm = _normalize_match_text(category)
+    product_variants = _product_name_variants(product_name)
+    product_tokens = _match_tokens(product_name)
+    brand_tokens = _match_tokens(brand)
+    category_tokens = _match_tokens(category)
+    text_blob = _normalize_match_text(entry.get("text_blob"))
+    if not text_blob:
+        return 0, confidence
+
+    entry_barcodes = {str(code or "").strip() for code in entry.get("barcodes") or [] if str(code or "").strip()}
+    if barcode and barcode in entry_barcodes:
+        return 100, "high"
+
+    entry_product = _normalize_match_text(entry.get("product_name") or entry.get("title"))
+    entry_company = _normalize_match_text(entry.get("company"))
+    entry_variants = _as_list(entry.get("product_variants"))
+    entry_tokens = _match_tokens(text_blob)
+    overlap = len(set(product_tokens).intersection(set(entry_tokens)))
+    overlap_ratio = _token_overlap_ratio(product_tokens, entry_tokens)
+    brand_overlap = len(set(brand_tokens).intersection(set(entry_tokens)))
+    category_overlap = len(set(category_tokens).intersection(set(entry_tokens)))
+    exact_variant_match = any(variant and variant in entry_variants for variant in product_variants)
+    strong_variant_containment = any(
+        variant and ((entry_product and variant in entry_product) or variant in text_blob)
+        for variant in product_variants
+    )
+
+    if exact_variant_match:
+        score += 80
+    elif strong_variant_containment:
+        score += 66
+    elif product_norm and entry_product and (product_norm == entry_product or product_norm in entry_product or entry_product in product_norm):
+        score += 70
+
+    if overlap >= 4:
+        score += 22
+    elif overlap == 3:
+        score += 16
+    elif overlap == 2:
+        score += 10
+
+    if overlap_ratio >= 0.9:
+        score += 10
+    elif overlap_ratio >= 0.66:
+        score += 6
+
+    if brand_norm and (brand_norm in text_blob or (entry_company and brand_norm in entry_company)):
+        score += 12
+    elif brand_overlap >= 1:
+        score += 8
+
+    if category_norm and category_norm in text_blob:
+        score += 6
+    elif category_overlap >= 1:
+        score += 4
+
+    if entry.get("hazard"):
+        score += 2
+    if entry.get("packaging"):
+        score += 2
+
+    strong_high_match = bool(
+        exact_variant_match
+        or (strong_variant_containment and len(product_tokens) >= 2)
+        or (product_norm and entry_product and product_norm == entry_product)
+    )
     if score >= 96 and strong_high_match:
         confidence = "high"
     elif score >= 76:
@@ -1581,6 +1871,74 @@ async def _lookup_rasff_public_alerts(norm: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+async def _lookup_efet_alerts(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
+    barcode = str(key or "").strip()
+    product_name = str(norm.get("name") or "").strip()
+    brand = str(norm.get("brand") or "").strip()
+    category = " ".join([str(item).strip() for item in _as_list(norm.get("categories")) if str(item).strip()])
+    feed_result = await _fetch_efet_entries()
+    observability = _merge_safety_observability(feed_result.get("observability"))
+    if not feed_result.get("checked"):
+        return {
+            "checked": False,
+            "source": None,
+            "source_label": None,
+            "has_matches": False,
+            "alerts": [],
+            "observability": observability,
+        }
+
+    alerts: List[Dict[str, Any]] = []
+    for entry in feed_result.get("entries") or []:
+        score, confidence = _score_efet_alert_candidate(entry, barcode, product_name, brand, category)
+        if score < 76:
+            continue
+        full_text = " ".join([
+            str(entry.get("title") or ""),
+            str(entry.get("summary") or ""),
+            str(entry.get("text_blob") or ""),
+        ]).strip()
+        scope_details = {
+            "batch_specific": bool(entry.get("batch_specific")),
+            "batch": entry.get("batch"),
+            "lot": entry.get("lot"),
+            "best_before": entry.get("best_before"),
+        }
+        if scope_details.get("batch_specific"):
+            confidence = "conditional"
+        alerts.append({
+            "title": _normalize_safety_text(entry.get("title") or "EFET recall"),
+            "summary": _normalize_safety_text(entry.get("summary")),
+            "url": entry.get("url"),
+            "severity": _severity_from_text(full_text),
+            "scope": "batch" if scope_details.get("batch_specific") else "product",
+            "batch_specific": bool(scope_details.get("batch_specific")),
+            "batch": scope_details.get("batch"),
+            "lot": scope_details.get("lot"),
+            "best_before": scope_details.get("best_before"),
+            "source": EFET_SOURCE_KEY,
+            "source_label": EFET_SOURCE_LABEL,
+            "match_score": int(score),
+            "confidence": confidence or "low",
+            "published_at": entry.get("published_at"),
+            "product_name": entry.get("product_name"),
+        })
+
+    if alerts:
+        _bump_observability_bucket(observability, "source_matched", EFET_SOURCE_KEY, len(alerts))
+    elif feed_result.get("entries"):
+        _set_no_match_reason(observability, EFET_SOURCE_KEY, "no_candidate_above_threshold")
+
+    return {
+        "checked": True,
+        "source": EFET_SOURCE_KEY,
+        "source_label": EFET_SOURCE_LABEL,
+        "has_matches": len(alerts) > 0,
+        "alerts": _merge_safety_alerts(alerts),
+        "observability": observability,
+    }
+
+
 async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
     barcode = str(key or "").strip()
     product_name = str(norm.get("name") or "").strip()
@@ -1683,7 +2041,8 @@ async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict
         }
 
     rasff_lookup = await _lookup_rasff_public_alerts(norm)
-    result = _merge_safety_lookup_payloads(lebensmittelwarnung_lookup, rasff_lookup)
+    efet_lookup = await _lookup_efet_alerts(key, norm)
+    result = _merge_safety_lookup_payloads(lebensmittelwarnung_lookup, rasff_lookup, efet_lookup)
     _safety_lookup_cache_set(cache_key, result)
     return result
 
