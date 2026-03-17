@@ -414,7 +414,9 @@
         safety_match_batch: "There is a related safety alert for this product, but it does not necessarily apply to every item with this barcode. It applies only to specific batches. Check the lot / best-before date.",
         safety_source: "Checked source",
         safety_source_local_index: "Local RASFF alert index",
+        safety_source_rasff_dg_sante_api: "RASFF (DG SANTE API)",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
+        safety_source_multi_source_safety: "Combined safety sources",
         safety_severity: "Severity",
         safety_confidence: "Match confidence",
         safety_batch: "Batch",
@@ -644,7 +646,9 @@
         safety_match_batch: "Υπάρχει σχετική προειδοποίηση ασφάλειας για αυτό το προϊόν, αλλά δεν αφορά απαραίτητα όλα τα τεμάχια με αυτό το barcode. Αφορά μόνο συγκεκριμένες παρτίδες. Ελέγξτε lot / ημερομηνία λήξης.",
         safety_source: "Ελεγμένη πηγή",
         safety_source_local_index: "Τοπικό ευρετήριο ειδοποιήσεων RASFF",
+        safety_source_rasff_dg_sante_api: "RASFF (API DG SANTE)",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
+        safety_source_multi_source_safety: "Συνδυασμένες πηγές ασφάλειας",
         safety_severity: "Σοβαρότητα",
         safety_confidence: "Βεβαιότητα αντιστοίχισης",
         safety_batch: "Παρτίδα",
@@ -874,7 +878,9 @@
         safety_match_batch: "Für dieses Produkt gibt es eine relevante Sicherheitswarnung, sie betrifft jedoch nicht unbedingt alle Artikel mit diesem Barcode. Sie gilt nur für bestimmte Chargen. Bitte Charge / Mindesthaltbarkeitsdatum prüfen.",
         safety_source: "Geprüfte Quelle",
         safety_source_local_index: "Lokaler RASFF-Warnindex",
+        safety_source_rasff_dg_sante_api: "RASFF (DG SANTE API)",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
+        safety_source_multi_source_safety: "Kombinierte Sicherheitsquellen",
         safety_severity: "Schweregrad",
         safety_confidence: "Treffersicherheit",
         safety_batch: "Charge",
@@ -1104,7 +1110,9 @@
         safety_match_batch: "Une alerte de sécurité concerne ce produit, mais elle ne s’applique pas nécessairement à tous les articles portant ce code-barres. Elle concerne uniquement certains lots. Vérifiez le lot / la date de durabilité minimale.",
         safety_source: "Source vérifiée",
         safety_source_local_index: "Index local d'alertes RASFF",
+        safety_source_rasff_dg_sante_api: "RASFF (API DG SANTE)",
         safety_source_lebensmittelwarnung_de: "lebensmittelwarnung.de",
+        safety_source_multi_source_safety: "Sources de sécurité combinées",
         safety_severity: "Gravité",
         safety_confidence: "Confiance de correspondance",
         safety_batch: "Lot de fabrication",
@@ -1618,7 +1626,9 @@
     function localizedSafetySource(value){
       const key = String(value || "").toLowerCase();
       if (key === "local_rasff_alert_index") return t("safety_source_local_index");
+      if (key === "rasff_dg_sante_api") return t("safety_source_rasff_dg_sante_api");
       if (key === "lebensmittelwarnung_de") return t("safety_source_lebensmittelwarnung_de");
+      if (key === "multi_source_safety") return t("safety_source_multi_source_safety");
       return String(value || "");
     }
 
