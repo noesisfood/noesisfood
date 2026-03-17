@@ -51,8 +51,8 @@ LEBENSMITTELWARNUNG_FEED_URL = "https://www.lebensmittelwarnung.de/___LMW-Redakt
 RASFF_PUBLIC_API_URL = "https://api.datalake.sante.service.ec.europa.eu/rasff/irasff-general-info-view"
 RASFF_PUBLIC_SEARCH_URL = "https://webgate.ec.europa.eu/rasff-window/screen/search"
 RASFF_PUBLIC_API_VERSION = "v1.1"
-RASFF_LOOKBACK_DAYS = 450
-RASFF_MAX_PAGES = 4
+RASFF_LOOKBACK_DAYS = 240
+RASFF_MAX_PAGES = 3
 
 
 # -------------------------
@@ -787,6 +787,47 @@ def _match_tokens(value: Any) -> List[str]:
     return tokens
 
 
+def _dedupe_tokens(tokens: List[str]) -> List[str]:
+    seen: List[str] = []
+    for token in tokens:
+        token = str(token or "").strip()
+        if token and token not in seen:
+            seen.append(token)
+    return seen
+
+
+def _product_name_variants(value: Any) -> List[str]:
+    raw = _normalize_safety_text(value)
+    if not raw:
+        return []
+    variants = [raw]
+    simplified = re.sub(r"(?i)\b(?:unofficial translation|translation)\b.*$", "", raw).strip(" -:/")
+    if simplified and simplified not in variants:
+        variants.append(simplified)
+    for part in re.split(r"\s*(?:/|///|\|\||\*\*\*)\s*", simplified or raw):
+        part = _normalize_safety_text(part)
+        if part and part not in variants:
+            variants.append(part)
+    no_parens = re.sub(r"\([^)]*\)", " ", simplified or raw)
+    no_parens = _normalize_safety_text(no_parens)
+    if no_parens and no_parens not in variants:
+        variants.append(no_parens)
+    normalized_variants: List[str] = []
+    for item in variants:
+        norm = _normalize_match_text(item)
+        if norm:
+            normalized_variants.append(norm)
+    return _dedupe_tokens(normalized_variants)
+
+
+def _token_overlap_ratio(left: List[str], right: List[str]) -> float:
+    left_set = set([token for token in left if token])
+    right_set = set([token for token in right if token])
+    if not left_set or not right_set:
+        return 0.0
+    return float(len(left_set.intersection(right_set))) / float(max(1, min(len(left_set), len(right_set))))
+
+
 def _strip_html_to_text(value: str) -> str:
     text = html.unescape(str(value or ""))
     text = re.sub(r"(?is)<script.*?</script>", " ", text)
@@ -1090,11 +1131,15 @@ def _normalize_rasff_public_entries(raw_entries: Any) -> List[Dict[str, Any]]:
         published_at = _normalize_safety_text(item.get("NOTIF_DATE"))
         status = _normalize_safety_text(item.get("NOTIFICATION_STATUS_DESC"))
         classification = _normalize_safety_text(item.get("NOTIFICATION_CLASSIFICAT_DESC"))
+        basis = _normalize_safety_text(item.get("NOTIFICATION_BASIS_DESC"))
+        distribution_status = _normalize_safety_text(item.get("DISTRIBUTION_STATUS_DESC"))
+        notifying_country = _normalize_safety_text(item.get("NOTIFYNG_COUNTRY_DESC"))
         title = product_name or subject or reference or "RASFF notification"
         summary_parts = [
             subject,
             hazard,
             f"Risk: {risk}" if risk else "",
+            f"Category: {category}" if category else "",
             f"Origin: {origin}" if origin else "",
             f"Distribution: {distribution}" if distribution else "",
             f"Reference: {reference}" if reference else "",
@@ -1111,6 +1156,9 @@ def _normalize_rasff_public_entries(raw_entries: Any) -> List[Dict[str, Any]]:
             reference,
             classification,
             status,
+            basis,
+            distribution_status,
+            notifying_country,
         ]).strip()
         entries.append({
             "notif_id": item.get("NOTIF_ID"),
@@ -1118,8 +1166,18 @@ def _normalize_rasff_public_entries(raw_entries: Any) -> List[Dict[str, Any]]:
             "title": title,
             "summary": summary,
             "product_name": product_name,
+            "product_variants": _product_name_variants(product_name or subject),
+            "subject": subject,
             "category": category,
+            "hazard": hazard,
             "risk": risk,
+            "status": status or None,
+            "classification": classification or None,
+            "basis": basis or None,
+            "distribution_status": distribution_status or None,
+            "notifying_country": notifying_country or None,
+            "origin_country": origin or None,
+            "distribution_country": distribution or None,
             "published_at": published_at or None,
             "url": RASFF_PUBLIC_SEARCH_URL,
             "text_blob": text_blob,
@@ -1133,14 +1191,28 @@ async def _fetch_rasff_public_entries() -> Dict[str, Any]:
     entries: List[Dict[str, Any]] = []
     next_link: Optional[str] = None
     checked = False
+    oldest_seen_ts: Optional[float] = None
+    cutoff_ts = time.time() - (max(1, int(RASFF_LOOKBACK_DAYS)) * 86400)
     for _ in range(RASFF_MAX_PAGES):
         payload = await _fetch_safety_url_json(_build_rasff_public_api_url(next_link), timeout_sec=8.0)
         if not isinstance(payload, dict):
             break
         checked = True
-        entries.extend(_normalize_rasff_public_entries(payload.get("value")))
+        normalized_entries = _normalize_rasff_public_entries(payload.get("value"))
+        entries.extend(normalized_entries)
+        for entry in normalized_entries:
+            published_at = str(entry.get("published_at") or "").strip()
+            if not published_at:
+                continue
+            try:
+                published_ts = time.mktime(time.strptime(published_at[:19], "%Y-%m-%dT%H:%M:%S"))
+            except Exception:
+                continue
+            oldest_seen_ts = published_ts if oldest_seen_ts is None else min(oldest_seen_ts, published_ts)
         next_link = _normalize_safety_text(payload.get("nextLink")) or None
         if not next_link:
+            break
+        if oldest_seen_ts is not None and oldest_seen_ts < cutoff_ts:
             break
     return {"checked": checked, "entries": entries}
 
@@ -1185,52 +1257,95 @@ def _score_rasff_public_alert_candidate(entry: Dict[str, Any], product_name: str
     product_norm = _normalize_match_text(product_name)
     brand_norm = _normalize_match_text(brand)
     category_norm = _normalize_match_text(category)
-    product_tokens = set(_match_tokens(product_name))
-    brand_tokens = set(_match_tokens(brand))
-    category_tokens = set(_match_tokens(category))
-    if not product_tokens:
+    product_variants = _product_name_variants(product_name)
+    product_tokens = _match_tokens(product_name)
+    brand_tokens = _match_tokens(brand)
+    category_tokens = _match_tokens(category)
+    if not product_tokens and not product_variants:
         return 0, confidence
 
     entry_product = _normalize_match_text(entry.get("product_name") or entry.get("title"))
+    entry_subject = _normalize_match_text(entry.get("subject"))
     entry_category = _normalize_match_text(entry.get("category"))
+    entry_hazard = _normalize_match_text(entry.get("hazard"))
+    entry_risk = _normalize_match_text(entry.get("risk"))
+    entry_reference = _normalize_match_text(entry.get("reference"))
+    entry_variants = _as_list(entry.get("product_variants"))
     text_blob = _normalize_match_text(entry.get("text_blob"))
-    entry_tokens = set(_match_tokens(text_blob))
-    overlap = len(product_tokens.intersection(entry_tokens))
-    brand_overlap = len(brand_tokens.intersection(entry_tokens))
-    category_overlap = len(category_tokens.intersection(set(_match_tokens(entry_category or text_blob))))
+    entry_tokens = _match_tokens(text_blob)
+    overlap = len(set(product_tokens).intersection(set(entry_tokens)))
+    overlap_ratio = _token_overlap_ratio(product_tokens, entry_tokens)
+    brand_overlap = len(set(brand_tokens).intersection(set(entry_tokens)))
+    category_overlap = len(set(category_tokens).intersection(set(_match_tokens(entry_category or text_blob))))
 
-    if product_norm and entry_product and (product_norm == entry_product or product_norm in entry_product or entry_product in product_norm):
-        score += 70
+    exact_variant_match = any(variant and variant in entry_variants for variant in product_variants)
+    strong_variant_containment = any(
+        variant and (
+            (entry_product and variant in entry_product)
+            or (entry_subject and variant in entry_subject)
+        )
+        for variant in product_variants
+    )
+    if exact_variant_match:
+        score += 82
+    elif strong_variant_containment:
+        score += 68
+    elif product_norm and entry_product and (product_norm == entry_product or product_norm in entry_product or entry_product in product_norm):
+        score += 72
+
     if overlap >= 4:
-        score += 30
-    elif overlap == 3:
         score += 22
+    elif overlap == 3:
+        score += 16
     elif overlap == 2:
-        score += 12
-    if brand_norm and brand_norm in text_blob:
-        score += 20
-    elif brand_overlap >= 1:
         score += 10
+
+    if overlap_ratio >= 0.9:
+        score += 12
+    elif overlap_ratio >= 0.66:
+        score += 8
+
+    if brand_norm and brand_norm in text_blob:
+        score += 12
+    elif brand_overlap >= 1:
+        score += 8
+
     if category_norm and entry_category and (category_norm in entry_category or entry_category in category_norm):
         score += 10
     elif category_overlap >= 1:
-        score += 5
+        score += 6
 
-    if score >= 90:
+    if entry_hazard:
+        score += 2
+    if entry_reference:
+        score += 2
+    if entry_risk in {"serious", "potentially serious", "potential risk"}:
+        score += 2
+
+    strong_high_match = bool(
+        exact_variant_match
+        or (strong_variant_containment and len(product_tokens) >= 2)
+        or (overlap_ratio >= 0.9 and len(product_tokens) >= 2)
+    )
+
+    if score >= 96 and strong_high_match:
+        confidence = "high"
+    elif score >= 76:
         confidence = "medium"
-    elif score >= 78:
+    elif score >= 58:
         confidence = "low"
     return score, confidence
 
 
 def _merge_safety_alerts(alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    merged: Dict[Tuple[str, str, str, str], Dict[str, Any]] = {}
+    merged: Dict[Tuple[str, str, str, str, str], Dict[str, Any]] = {}
     for alert in alerts:
         title = _normalize_safety_text(alert.get("title")).lower()
         batch = _normalize_safety_text(alert.get("batch")).lower()
         lot = _normalize_safety_text(alert.get("lot")).lower()
         url = _normalize_safety_text(alert.get("url")).lower()
-        key = (title, batch, lot, url)
+        reference = _normalize_safety_text(alert.get("reference")).lower()
+        key = (title, batch, lot, url, reference)
         existing = merged.get(key)
         if not existing:
             merged[key] = dict(alert)
@@ -1247,6 +1362,8 @@ def _merge_safety_alerts(alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             existing["lot"] = alert.get("lot")
         if not existing.get("best_before") and alert.get("best_before"):
             existing["best_before"] = alert.get("best_before")
+        if not existing.get("reference") and alert.get("reference"):
+            existing["reference"] = alert.get("reference")
         if str(alert.get("severity") or "") == "high":
             existing["severity"] = "high"
         if int(alert.get("match_score") or 0) > int(existing.get("match_score") or 0):
@@ -1270,19 +1387,24 @@ def _merge_safety_alerts(alerts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _merged_safety_source_key(lookups: List[Dict[str, Any]], alerts: List[Dict[str, Any]]) -> Optional[str]:
-    source_keys: List[str] = []
+    matched_source_keys: List[str] = []
+    checked_source_keys: List[str] = []
     for lookup in lookups:
         if not isinstance(lookup, dict):
             continue
         source = str(lookup.get("source") or "").strip().lower()
-        if source and source not in source_keys:
-            source_keys.append(source)
+        if source and bool(lookup.get("checked")) and source not in checked_source_keys:
+            checked_source_keys.append(source)
+        if source and bool(lookup.get("has_matches")) and source not in matched_source_keys:
+            matched_source_keys.append(source)
     for alert in alerts:
         if not isinstance(alert, dict):
             continue
         source = str(alert.get("source") or "").strip().lower()
-        if source and source not in source_keys:
-            source_keys.append(source)
+        if source and source not in matched_source_keys:
+            matched_source_keys.append(source)
+
+    source_keys = matched_source_keys or checked_source_keys
     if not source_keys:
         return None
     if len(source_keys) == 1:

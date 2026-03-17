@@ -1619,6 +1619,7 @@
     function localizedSafetyConfidence(value){
       const key = String(value || "").toLowerCase();
       if (key === "high") return t("safety_confidence_high");
+      if (key === "low") return t("safety_severity_low");
       if (key === "conditional") return t("safety_confidence_conditional");
       return t("safety_confidence_medium");
     }
