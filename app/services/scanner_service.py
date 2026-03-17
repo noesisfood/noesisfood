@@ -262,6 +262,76 @@ def _safety_http_cache_set(cache_key: str, text: str) -> None:
     }
 
 
+def _new_safety_observability() -> Dict[str, Any]:
+    return {
+        "source_checked": {},
+        "source_matched": {},
+        "confidence_assigned": {},
+        "batch_scope_explicit": 0,
+        "duplicate_collapsed": 0,
+        "fallback_used": False,
+        "fetch_count": {},
+        "page_count": {},
+        "no_match_reason": {},
+    }
+
+
+def _bump_observability_bucket(observability: Dict[str, Any], field: str, key: str, amount: int = 1) -> None:
+    if not isinstance(observability, dict):
+        return
+    bucket = observability.get(field)
+    if not isinstance(bucket, dict):
+        bucket = {}
+        observability[field] = bucket
+    norm_key = str(key or "").strip()
+    if not norm_key:
+        return
+    bucket[norm_key] = int(bucket.get(norm_key) or 0) + int(amount)
+
+
+def _set_no_match_reason(observability: Dict[str, Any], source: str, reason: str) -> None:
+    if not isinstance(observability, dict):
+        return
+    bucket = observability.get("no_match_reason")
+    if not isinstance(bucket, dict):
+        bucket = {}
+        observability["no_match_reason"] = bucket
+    source_key = str(source or "").strip()
+    reason_key = str(reason or "").strip()
+    if source_key and reason_key and source_key not in bucket:
+        bucket[source_key] = reason_key
+
+
+def _merge_safety_observability(*items: Any) -> Dict[str, Any]:
+    merged = _new_safety_observability()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        for field in ("source_checked", "source_matched", "confidence_assigned", "fetch_count", "page_count", "no_match_reason"):
+            bucket = item.get(field)
+            if not isinstance(bucket, dict):
+                continue
+            target = merged.get(field)
+            if not isinstance(target, dict):
+                target = {}
+                merged[field] = target
+            if field == "no_match_reason":
+                for key, value in bucket.items():
+                    key_str = str(key or "").strip()
+                    if key_str and key_str not in target:
+                        target[key_str] = str(value or "").strip()
+                continue
+            for key, value in bucket.items():
+                key_str = str(key or "").strip()
+                if not key_str:
+                    continue
+                target[key_str] = int(target.get(key_str) or 0) + int(value or 0)
+        merged["batch_scope_explicit"] += int(item.get("batch_scope_explicit") or 0)
+        merged["duplicate_collapsed"] += int(item.get("duplicate_collapsed") or 0)
+        merged["fallback_used"] = bool(merged.get("fallback_used")) or bool(item.get("fallback_used"))
+    return merged
+
+
 def _attach_scan_timing(data: Dict[str, Any], timing: Dict[str, Any]) -> Dict[str, Any]:
     payload = copy.deepcopy(data) if isinstance(data, dict) else {}
     meta = payload.get("meta")
@@ -1193,9 +1263,14 @@ async def _fetch_rasff_public_entries() -> Dict[str, Any]:
     checked = False
     oldest_seen_ts: Optional[float] = None
     cutoff_ts = time.time() - (max(1, int(RASFF_LOOKBACK_DAYS)) * 86400)
+    observability = _new_safety_observability()
     for _ in range(RASFF_MAX_PAGES):
+        _bump_observability_bucket(observability, "fetch_count", "rasff_dg_sante_api", 1)
+        _bump_observability_bucket(observability, "page_count", "rasff_dg_sante_api", 1)
         payload = await _fetch_safety_url_json(_build_rasff_public_api_url(next_link), timeout_sec=8.0)
         if not isinstance(payload, dict):
+            if not checked:
+                _set_no_match_reason(observability, "rasff_dg_sante_api", "source_unavailable")
             break
         checked = True
         normalized_entries = _normalize_rasff_public_entries(payload.get("value"))
@@ -1214,7 +1289,11 @@ async def _fetch_rasff_public_entries() -> Dict[str, Any]:
             break
         if oldest_seen_ts is not None and oldest_seen_ts < cutoff_ts:
             break
-    return {"checked": checked, "entries": entries}
+    if checked:
+        _bump_observability_bucket(observability, "source_checked", "rasff_dg_sante_api", 1)
+        if not entries:
+            _set_no_match_reason(observability, "rasff_dg_sante_api", "no_recent_entries")
+    return {"checked": checked, "entries": entries, "observability": observability}
 
 
 def _score_external_alert_candidate(entry: Dict[str, Any], barcode: str, product_name: str, brand: str, category: str) -> Tuple[int, str]:
@@ -1416,16 +1495,30 @@ def _merge_safety_lookup_payloads(*lookups: Dict[str, Any]) -> Dict[str, Any]:
     valid = [lookup for lookup in lookups if isinstance(lookup, dict)]
     alerts: List[Dict[str, Any]] = []
     checked = False
+    raw_alert_count = 0
     for lookup in valid:
         checked = checked or bool(lookup.get("checked"))
-        alerts.extend(_as_list(lookup.get("alerts")))
+        lookup_alerts = _as_list(lookup.get("alerts"))
+        raw_alert_count += len(lookup_alerts)
+        alerts.extend(lookup_alerts)
     merged_alerts = _merge_safety_alerts(alerts)
+    observability = _merge_safety_observability(*[lookup.get("observability") for lookup in valid])
+    observability["duplicate_collapsed"] = int(observability.get("duplicate_collapsed") or 0) + max(0, raw_alert_count - len(merged_alerts))
+    observability["batch_scope_explicit"] = int(observability.get("batch_scope_explicit") or 0) + len([
+        alert for alert in merged_alerts
+        if bool(alert.get("batch_specific")) or str(alert.get("scope") or "").strip().lower() == "batch"
+    ])
+    for alert in merged_alerts:
+        confidence = str(alert.get("confidence") or "").strip().lower()
+        if confidence:
+            _bump_observability_bucket(observability, "confidence_assigned", confidence, 1)
     return {
         "checked": checked,
         "source": _merged_safety_source_key(valid, merged_alerts),
         "source_label": None,
         "has_matches": len(merged_alerts) > 0,
         "alerts": merged_alerts,
+        "observability": observability,
     }
 
 
@@ -1434,6 +1527,7 @@ async def _lookup_rasff_public_alerts(norm: Dict[str, Any]) -> Dict[str, Any]:
     brand = str(norm.get("brand") or "").strip()
     category = " ".join([str(item).strip() for item in _as_list(norm.get("categories")) if str(item).strip()])
     feed_result = await _fetch_rasff_public_entries()
+    observability = _merge_safety_observability(feed_result.get("observability"))
     if not feed_result.get("checked"):
         return {
             "checked": False,
@@ -1441,6 +1535,7 @@ async def _lookup_rasff_public_alerts(norm: Dict[str, Any]) -> Dict[str, Any]:
             "source_label": None,
             "has_matches": False,
             "alerts": [],
+            "observability": observability,
         }
 
     alerts: List[Dict[str, Any]] = []
@@ -1471,12 +1566,18 @@ async def _lookup_rasff_public_alerts(norm: Dict[str, Any]) -> Dict[str, Any]:
             "reference": entry.get("reference"),
         })
 
+    if alerts:
+        _bump_observability_bucket(observability, "source_matched", "rasff_dg_sante_api", len(alerts))
+    elif feed_result.get("entries"):
+        _set_no_match_reason(observability, "rasff_dg_sante_api", "no_candidate_above_threshold")
+
     return {
         "checked": True,
         "source": "rasff_dg_sante_api",
         "source_label": "RASFF (DG SANTE API)",
         "has_matches": len(alerts) > 0,
         "alerts": _merge_safety_alerts(alerts),
+        "observability": observability,
     }
 
 
@@ -1492,15 +1593,21 @@ async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict
 
     feed_result = await _fetch_lebensmittelwarnung_entries()
     lebensmittelwarnung_lookup: Dict[str, Any]
+    lebensmittelwarnung_observability = _new_safety_observability()
+    _bump_observability_bucket(lebensmittelwarnung_observability, "fetch_count", "lebensmittelwarnung_de", 1)
+    _bump_observability_bucket(lebensmittelwarnung_observability, "page_count", "lebensmittelwarnung_de", 1)
     if not feed_result.get("checked"):
+        _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "source_unavailable")
         lebensmittelwarnung_lookup = {
             "checked": False,
             "source": None,
             "source_label": None,
             "has_matches": False,
             "alerts": [],
+            "observability": lebensmittelwarnung_observability,
         }
     else:
+        _bump_observability_bucket(lebensmittelwarnung_observability, "source_checked", "lebensmittelwarnung_de", 1)
         entries = await _enrich_lebensmittelwarnung_recent_entries(feed_result.get("entries") or [])
         candidate_entries: List[Dict[str, Any]] = []
         for entry in entries:
@@ -1560,12 +1667,19 @@ async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict
                 "published_at": entry.get("published_at"),
             })
 
+        if alerts:
+            _bump_observability_bucket(lebensmittelwarnung_observability, "source_matched", "lebensmittelwarnung_de", len(alerts))
+        elif entries:
+            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "no_candidate_above_threshold")
+        else:
+            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "no_feed_entries")
         lebensmittelwarnung_lookup = {
             "checked": True,
             "source": "lebensmittelwarnung_de",
             "source_label": "lebensmittelwarnung.de",
             "has_matches": len(alerts) > 0,
             "alerts": _merge_safety_alerts(alerts),
+            "observability": lebensmittelwarnung_observability,
         }
 
     rasff_lookup = await _lookup_rasff_public_alerts(norm)
@@ -1582,6 +1696,7 @@ def _apply_safety_lookup_to_result(result: Dict[str, Any], safety_lookup: Dict[s
     payload["safety_alerts_source"] = safety_lookup.get("source")
     payload["safety_alerts_has_matches"] = bool(safety_lookup.get("has_matches"))
     payload["safety_alerts"] = alerts
+    payload["safety_observability"] = copy.deepcopy(safety_lookup.get("observability") or _new_safety_observability())
     meta = payload.get("meta")
     if not isinstance(meta, dict):
         meta = {}
@@ -1589,6 +1704,7 @@ def _apply_safety_lookup_to_result(result: Dict[str, Any], safety_lookup: Dict[s
     meta["safety_alerts_checked"] = bool(safety_lookup.get("checked"))
     meta["safety_alerts_source"] = safety_lookup.get("source")
     meta["safety_alerts_has_matches"] = bool(safety_lookup.get("has_matches"))
+    meta["safety_observability"] = copy.deepcopy(payload.get("safety_observability") or _new_safety_observability())
     return payload
 
 
@@ -1602,8 +1718,15 @@ async def _finalize_scan_result_with_safety(result: Dict[str, Any], key: str, no
         "source": result.get("safety_alerts_source") or _get_path(result, "meta", "safety_alerts_source"),
         "has_matches": bool(result.get("safety_alerts_has_matches") or _get_path(result, "meta", "safety_alerts_has_matches")),
         "alerts": _as_list(result.get("safety_alerts")),
+        "observability": result.get("safety_observability") or _get_path(result, "meta", "safety_observability"),
     }
     merged_lookup = _merge_safety_lookup_payloads(existing_lookup, safety_lookup)
+    merged_observability = _merge_safety_observability(merged_lookup.get("observability"))
+    merged_observability["fallback_used"] = bool(
+        str(result.get("analysis_state") or _get_path(result, "meta", "analysis_state") or "").strip().lower() == "limited_estimate"
+        or str(result.get("lookup_state") or _get_path(result, "meta", "lookup_state") or "").strip().lower() in {"found_but_incomplete", "not_found"}
+    )
+    merged_lookup["observability"] = merged_observability
     if isinstance(timing, dict):
         timing["safety_lookup_ms"] = int(round((time.perf_counter() - lookup_started) * 1000.0))
         timing["safety_alerts_checked"] = bool(merged_lookup.get("checked"))
