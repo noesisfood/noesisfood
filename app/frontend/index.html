@@ -215,6 +215,258 @@
       color: rgba(232,238,247,.92);
       opacity:.92;
     }
+    .step.hidden{display:none}
+    .homeLayout{display:flex; flex-direction:column; gap:14px}
+    .scanHero{
+      padding:18px;
+      background:
+        linear-gradient(180deg, rgba(123,212,255,.10), rgba(255,255,255,.02)),
+        rgba(0,0,0,.18);
+      border:1px solid rgba(123,212,255,.16);
+      border-radius: 18px;
+    }
+    .homeTitle{
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .homeSubtitle{
+      margin-top: 8px;
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .homeActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+    .actionButton{
+      min-height: 48px;
+      padding: 12px 16px;
+      border-radius: 14px;
+    }
+    .actionButton.primary{
+      min-width: 210px;
+    }
+    .homeInputBlock{
+      margin-top:16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .inputLabel{
+      font-size:12px;
+      font-weight:800;
+      color:rgba(232,238,247,.92);
+    }
+    .homeInputRow{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap:10px;
+    }
+    .homeInputRow input{
+      min-height:50px;
+      font-size:16px;
+    }
+    .helperText{
+      font-size:12px;
+      line-height:1.45;
+      color:var(--muted);
+    }
+    .secondaryZone{
+      display:grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap:12px;
+    }
+    .secondarySection{
+      background: rgba(0,0,0,.12);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding:14px;
+    }
+    .secondarySection .sectionTitle{
+      margin-bottom:8px;
+    }
+    .secondarySection.full{
+      grid-column: 1 / -1;
+    }
+    .historyStack{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .historyEntry{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px;
+      border-radius:14px;
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.07);
+    }
+    .historyEntryMeta{
+      min-width:0;
+    }
+    .historyEntryMeta b,
+    .historyEntryMeta small{
+      display:block;
+    }
+    .historyEntryMeta b{
+      font-size:13px;
+      line-height:1.35;
+    }
+    .historyEntryMeta small{
+      margin-top:3px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .historyAction{
+      white-space:nowrap;
+      align-self:center;
+    }
+    details.homeHow{
+      padding:0;
+    }
+    details.homeHow summary{
+      list-style:none;
+      cursor:pointer;
+      font-weight:800;
+    }
+    details.homeHow summary::-webkit-details-marker{display:none}
+    details.homeHow[open] summary{
+      margin-bottom:10px;
+    }
+    .howBullets{
+      margin:0;
+      padding-left:18px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .scannerOverlay{
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      background: rgba(4, 8, 14, .86);
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      padding:12px;
+      backdrop-filter: blur(10px);
+    }
+    .scannerSheet{
+      width:min(100%, 680px);
+      background: linear-gradient(180deg, rgba(16,23,35,.98), rgba(10,15,24,.98));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .scannerSheetInner{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .scannerSheetHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+    }
+    .scannerViewport{
+      position:relative;
+      min-height:280px;
+      border-radius:18px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at top, rgba(123,212,255,.14), transparent 55%),
+        rgba(0,0,0,.40);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .scannerViewport video{
+      width:100%;
+      height:100%;
+      min-height:280px;
+      object-fit:cover;
+      display:block;
+      background:#05080d;
+    }
+    .scannerFrame{
+      position:absolute;
+      inset:16% 10%;
+      border:2px solid rgba(123,212,255,.95);
+      border-radius:18px;
+      box-shadow: 0 0 0 999px rgba(0,0,0,.28);
+      pointer-events:none;
+    }
+    .scannerFrame::after{
+      content:"";
+      position:absolute;
+      inset:10px;
+      border:1px dashed rgba(255,255,255,.55);
+      border-radius:12px;
+    }
+    .scannerStatus{
+      position:absolute;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(3,8,14,.74);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:13px;
+      line-height:1.4;
+    }
+    .scannerStatus.error{
+      color: rgba(255,210,210,.95);
+      border-color: rgba(255,60,60,.24);
+      background: rgba(90,10,18,.68);
+    }
+    .scannerStatus.success{
+      color: rgba(210,255,235,.96);
+      border-color: rgba(110,255,190,.30);
+      background: rgba(10,62,42,.68);
+    }
+    .scannerActions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .scannerActions button{
+      flex:1 1 180px;
+      min-height:46px;
+    }
+    @media (min-width: 720px){
+      .homeInputRow{
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+      .secondaryZone{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 720px){
+      .wrap{padding:16px 12px 40px;}
+      .top{margin-bottom:12px;}
+      .title b{font-size:17px}
+      .scanHero{padding:16px}
+      .homeTitle{font-size:24px}
+      .scannerOverlay{padding:0}
+      .scannerSheet{
+        width:100%;
+        border-radius:22px 22px 0 0;
+      }
+      .scannerSheetInner{padding:14px}
+      .scannerViewport,
+      .scannerViewport video{min-height:340px}
+    }
   </style>
 </head>
 
@@ -259,6 +511,13 @@
       refreshNotice:null,
       translateIngredients:false,
       compareTargetKey:"",
+      scanner:{
+        open:false,
+        opening:false,
+        error:"",
+        success:false,
+        detectedCode:""
+      },
       recoveryOpen:false,
       recoveryPhotoMessage:"",
       photoForm:{
@@ -278,6 +537,7 @@
         unit:"g",
       }
     };
+
     let latestAnalysisRequestId = 0;
     const supportedLangs = ["el", "en", "de", "fr"];
     const languageOptionLabels = { el: "EL", en: "EN", de: "DE", fr: "FR" };
@@ -1223,6 +1483,91 @@
       }
     };
 
+    Object.assign(i18n.en, {
+      home_title: "Scan a product",
+      home_subtitle: "Scan the barcode with your camera or enter it manually.",
+      home_camera_cta: "Scan with camera",
+      home_manual_cta: "Enter manually",
+      home_input_label: "Barcode or product id",
+      home_input_placeholder: "Enter barcode or product id",
+      home_analyze: "Analyze product",
+      home_helper: "Packaged product barcodes are supported. If scanning fails, enter the code manually.",
+      scanner_title: "Scan barcode",
+      scanner_helper: "Center the barcode inside the frame.",
+      scanner_close: "Close",
+      scanner_manual_fallback: "Enter manually instead",
+      scanner_permission_error: "Camera access could not be enabled. Enter the barcode manually.",
+      scanner_loading: "Opening camera...",
+      scanner_success: "Barcode detected.",
+      how_title: "How it works",
+      how_l1: "OpenFoodFacts retrieval and data normalization",
+      how_l2: "Core nutrition scoring with hybrid adjustment",
+      how_l3: "Ingredient intelligence and E-number explanation"
+    });
+    Object.assign(i18n.el, {
+      home_title: "Σάρωση προϊόντος",
+      home_subtitle: "Σκάναρε το barcode με την κάμερα ή πληκτρολόγησέ το χειροκίνητα.",
+      home_camera_cta: "Σάρωση με κάμερα",
+      home_manual_cta: "Χειροκίνητη εισαγωγή",
+      home_input_label: "Barcode ή product id",
+      home_input_placeholder: "Πληκτρολόγησε barcode ή product id",
+      home_analyze: "Ανάλυση προϊόντος",
+      home_helper: "Υποστηρίζονται barcodes συσκευασμένων προϊόντων. Αν η σάρωση αποτύχει, πληκτρολόγησε τον κωδικό χειροκίνητα.",
+      scanner_title: "Σάρωση barcode",
+      scanner_helper: "Κεντράρισε το barcode μέσα στο πλαίσιο.",
+      scanner_close: "Κλείσιμο",
+      scanner_manual_fallback: "Χειροκίνητη εισαγωγή αντί για κάμερα",
+      scanner_permission_error: "Δεν ήταν δυνατή η πρόσβαση στην κάμερα. Πληκτρολόγησε το barcode χειροκίνητα.",
+      scanner_loading: "Άνοιγμα κάμερας...",
+      scanner_success: "Το barcode εντοπίστηκε.",
+      how_title: "Πώς λειτουργεί",
+      how_l1: "Ανάκτηση OpenFoodFacts και κανονικοποίηση δεδομένων",
+      how_l2: "Βασική διατροφική αξιολόγηση και υβριδική προσαρμογή",
+      how_l3: "Νοημοσύνη συστατικών και επεξήγηση αριθμών E"
+    });
+    Object.assign(i18n.de, {
+      home_title: "Produkt scannen",
+      home_subtitle: "Scanne den Barcode mit der Kamera oder gib ihn manuell ein.",
+      home_camera_cta: "Mit Kamera scannen",
+      home_manual_cta: "Manuell eingeben",
+      home_input_label: "Barcode oder Produkt-ID",
+      home_input_placeholder: "Barcode oder Produkt-ID eingeben",
+      home_analyze: "Produkt analysieren",
+      home_helper: "Barcodes von verpackten Produkten werden unterstützt. Falls das Scannen fehlschlägt, gib den Code manuell ein.",
+      scanner_title: "Barcode scannen",
+      scanner_helper: "Platziere den Barcode mittig im Rahmen.",
+      scanner_close: "Schließen",
+      scanner_manual_fallback: "Stattdessen manuell eingeben",
+      scanner_permission_error: "Kein Zugriff auf die Kamera möglich. Gib den Barcode manuell ein.",
+      scanner_loading: "Kamera wird geöffnet...",
+      scanner_success: "Barcode erkannt.",
+      how_title: "So funktioniert es",
+      how_l1: "Abruf von OpenFoodFacts und Datennormalisierung",
+      how_l2: "Grundbewertung der Nährwerte mit hybrider Anpassung",
+      how_l3: "Zutaten-Intelligenz und Erklärung von E-Nummern"
+    });
+    Object.assign(i18n.fr, {
+      home_title: "Scanner un produit",
+      home_subtitle: "Scannez le code-barres avec la caméra ou saisissez-le manuellement.",
+      home_camera_cta: "Scanner avec la caméra",
+      home_manual_cta: "Saisie manuelle",
+      home_input_label: "Code-barres ou identifiant produit",
+      home_input_placeholder: "Saisissez le code-barres ou l’identifiant produit",
+      home_analyze: "Analyser le produit",
+      home_helper: "Les codes-barres des produits emballés sont pris en charge. Si le scan échoue, saisissez le code manuellement.",
+      scanner_title: "Scanner le code-barres",
+      scanner_helper: "Centrez le code-barres dans le cadre.",
+      scanner_close: "Fermer",
+      scanner_manual_fallback: "Saisir manuellement à la place",
+      scanner_permission_error: "Impossible d’accéder à la caméra. Saisissez le code-barres manuellement.",
+      scanner_loading: "Ouverture de la caméra...",
+      scanner_success: "Code-barres détecté.",
+      how_title: "Comment ça fonctionne",
+      how_l1: "Récupération OpenFoodFacts et normalisation des données",
+      how_l2: "Évaluation nutritionnelle de base avec ajustement hybride",
+      how_l3: "Intelligence des ingrédients et explication des numéros E"
+    });
+
     function pickInitialLang(){
       const saved = localStorage.getItem("nf_lang");
       if (saved && supportedLangs.includes(saved)) return saved;
@@ -1241,9 +1586,162 @@
     const stepTxt = document.getElementById("stepTxt");
     const barFill = document.getElementById("barFill");
     const langSel = document.getElementById("langSel");
+    const titleMeta = document.querySelector(".title span");
+    const stepEl = document.querySelector(".step");
+    const scannerRuntime = {
+      stream: null,
+      detector: null,
+      rafId: 0,
+      sessionId: 0
+    };
 
     function t(key){
       return i18n[lang]?.[key] || i18n.en[key] || key;
+    }
+
+    function updateScannerState(next){
+      state.scanner = Object.assign({}, state.scanner || {}, next || {});
+    }
+
+    function _stopScannerLoop(){
+      if (scannerRuntime.rafId){
+        cancelAnimationFrame(scannerRuntime.rafId);
+        scannerRuntime.rafId = 0;
+      }
+    }
+
+    function _stopScannerStream(){
+      if (scannerRuntime.stream){
+        Array.from(scannerRuntime.stream.getTracks?.() || []).forEach(track => track.stop());
+        scannerRuntime.stream = null;
+      }
+    }
+
+    function closeScanner(opts = {}){
+      scannerRuntime.sessionId += 1;
+      _stopScannerLoop();
+      _stopScannerStream();
+      scannerRuntime.detector = null;
+      updateScannerState({
+        open:false,
+        opening:false,
+        error:"",
+        success:false,
+        detectedCode:""
+      });
+      if (!opts.skipRender) render();
+      if (opts.focusInput){
+        requestAnimationFrame(() => {
+          const input = document.getElementById("keyInput");
+          if (input){
+            input.focus();
+            input.select?.();
+          }
+        });
+      }
+    }
+
+    function focusManualEntry(){
+      if (state.scanner?.open){
+        closeScanner({ focusInput:true });
+        return;
+      }
+      requestAnimationFrame(() => {
+        const input = document.getElementById("keyInput");
+        if (input){
+          input.focus();
+          input.select?.();
+        }
+      });
+    }
+
+    async function _attachScannerStream(sessionId){
+      const video = document.getElementById("scannerVideo");
+      if (!video || sessionId !== scannerRuntime.sessionId || !scannerRuntime.stream) return;
+      try{
+        video.srcObject = scannerRuntime.stream;
+        await video.play?.();
+      }catch(_e){}
+    }
+
+    function _scannerStatusClass(){
+      if (state.scanner?.error) return "scannerStatus error";
+      if (state.scanner?.success) return "scannerStatus success";
+      return "scannerStatus";
+    }
+
+    function _scannerStatusText(){
+      if (state.scanner?.error) return state.scanner.error;
+      if (state.scanner?.success) return t("scanner_success");
+      if (state.scanner?.opening) return t("scanner_loading");
+      return t("scanner_helper");
+    }
+
+    async function _scanFrameLoop(sessionId){
+      if (sessionId !== scannerRuntime.sessionId || !state.scanner?.open || !scannerRuntime.detector) return;
+      const video = document.getElementById("scannerVideo");
+      if (video && video.readyState >= 2){
+        try{
+          const detections = await scannerRuntime.detector.detect(video);
+          const raw = normalizeLookupKey(detections?.[0]?.rawValue || "");
+          if (raw){
+            updateScannerState({ success:true, error:"", opening:false, detectedCode:raw });
+            state.key = raw;
+            render();
+            window.setTimeout(() => {
+              if (sessionId !== scannerRuntime.sessionId) return;
+              closeScanner({ skipRender:true });
+              doScan(raw);
+            }, 260);
+            return;
+          }
+        }catch(_e){}
+      }
+      scannerRuntime.rafId = requestAnimationFrame(() => _scanFrameLoop(sessionId));
+    }
+
+    async function openScanner(){
+      closeScanner({ skipRender:true });
+      updateScannerState({ open:true, opening:true, error:"", success:false, detectedCode:"" });
+      render();
+      const sessionId = scannerRuntime.sessionId;
+      if (!navigator.mediaDevices?.getUserMedia || typeof window.BarcodeDetector === "undefined"){
+        updateScannerState({ opening:false, error:t("scanner_permission_error") });
+        render();
+        return;
+      }
+      try{
+        const supportedFormats = typeof window.BarcodeDetector.getSupportedFormats === "function"
+          ? await window.BarcodeDetector.getSupportedFormats()
+          : [];
+        const preferredFormats = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"];
+        const usableFormats = preferredFormats.filter(format => supportedFormats.includes(format));
+        scannerRuntime.detector = usableFormats.length
+          ? new window.BarcodeDetector({ formats: usableFormats })
+          : new window.BarcodeDetector();
+        scannerRuntime.stream = await navigator.mediaDevices.getUserMedia({
+          audio:false,
+          video:{
+            facingMode:{ ideal:"environment" },
+            width:{ ideal:1280 },
+            height:{ ideal:720 }
+          }
+        });
+        if (sessionId !== scannerRuntime.sessionId || !state.scanner?.open){
+          closeScanner({ skipRender:true });
+          return;
+        }
+        updateScannerState({ opening:false, error:"", success:false });
+        render();
+        await _attachScannerStream(sessionId);
+        _scanFrameLoop(sessionId);
+      }catch(_e){
+        _stopScannerStream();
+        scannerRuntime.detector = null;
+        if (sessionId !== scannerRuntime.sessionId) return;
+        updateScannerState({ opening:false, error:t("scanner_permission_error"), success:false });
+        render();
+      }
     }
 
     function scanLoadingTitle(){
@@ -2149,6 +2647,87 @@
                   <button class="ghost historyComparisonBtn" data-pair-key="${_escapeHtml(String(item?.pair_key || ""))}">${t("history_open_comparison")}</button>
                 </div>
               `).join("") : `<div class="mini">${t("history_empty_comparisons")}</div>`}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHomeList(kind){
+      const items = kind === "analyses" ? _readAnalysisHistory() : _readComparisonHistory();
+      const title = kind === "analyses" ? t("history_analyses") : t("history_comparisons");
+      const empty = kind === "analyses" ? t("history_empty_analyses") : t("history_empty_comparisons");
+      const buttonLabel = kind === "analyses" ? t("history_open_analysis") : t("history_open_comparison");
+      const dataAttr = kind === "analyses" ? "data-key" : "data-pair-key";
+      const buttonClass = kind === "analyses" ? "historyAnalysisBtn" : "historyComparisonBtn";
+      const body = items.length ? items.map(item => {
+        if (kind === "analyses"){
+          return `
+            <div class="historyEntry">
+              <div class="historyEntryMeta">
+                <b>${_escapeHtml(String(item?.product_name || t("unknown_product")))}</b>
+                <small>${_escapeHtml(String(item?.brand || ""))}</small>
+                <small>${t("history_at")}: ${_escapeHtml(_historyTimeLabel(item?.timestamp))}</small>
+              </div>
+              <button class="ghost historyAction ${buttonClass}" ${dataAttr}="${_escapeHtml(String(item?.key || ""))}">${buttonLabel}</button>
+            </div>
+          `;
+        }
+        return `
+          <div class="historyEntry">
+            <div class="historyEntryMeta">
+              <b>${_escapeHtml(String(item?.product_a?.product_name || t("unknown_product")))} vs ${_escapeHtml(String(item?.product_b?.product_name || t("unknown_product")))}</b>
+              <small>${t("history_at")}: ${_escapeHtml(_historyTimeLabel(item?.timestamp))}</small>
+              <small>${t("history_verdict")}: ${_escapeHtml(String(item?.verdict_label || ""))}</small>
+            </div>
+            <button class="ghost historyAction ${buttonClass}" ${dataAttr}="${_escapeHtml(String(item?.pair_key || ""))}">${buttonLabel}</button>
+          </div>
+        `;
+      }).join("") : `<div class="mini">${empty}</div>`;
+      return `
+        <div class="secondarySection">
+          <div class="sectionTitle">${title}</div>
+          <div class="historyStack">${body}</div>
+        </div>
+      `;
+    }
+
+    function renderHomeHowSection(){
+      return `
+        <div class="secondarySection full">
+          <details class="homeHow">
+            <summary>${t("how_title")}</summary>
+            <ul class="howBullets">
+              <li>${t("how_l1")}</li>
+              <li>${t("how_l2")}</li>
+              <li>${t("how_l3")}</li>
+            </ul>
+          </details>
+        </div>
+      `;
+    }
+
+    function renderScannerOverlay(){
+      if (!state.scanner?.open) return "";
+      return `
+        <div class="scannerOverlay" id="scannerOverlay" role="dialog" aria-modal="true" aria-label="${_escapeHtml(t("scanner_title"))}">
+          <div class="scannerSheet">
+            <div class="scannerSheetInner">
+              <div class="scannerSheetHead">
+                <div>
+                  <div class="sectionTitle" style="margin-bottom:4px;">${t("scanner_title")}</div>
+                  <div class="mini">${t("scanner_helper")}</div>
+                </div>
+                <button class="ghost" id="scannerCloseBtn">${t("scanner_close")}</button>
+              </div>
+              <div class="scannerViewport">
+                <video id="scannerVideo" autoplay playsinline muted></video>
+                <div class="scannerFrame"></div>
+                <div class="${_scannerStatusClass()}">${_escapeHtml(_scannerStatusText())}</div>
+              </div>
+              <div class="scannerActions">
+                <button class="ghost" id="scannerManualBtn">${t("scanner_manual_fallback")}</button>
+              </div>
             </div>
           </div>
         </div>
@@ -3480,42 +4059,60 @@
     function render(){
       stepTxt.textContent = `${step}/4`;
       barFill.style.width = `${(step/4)*100}%`;
-      document.querySelector(".title span").textContent = t("tagline");
+      if (titleMeta) titleMeta.textContent = t("tagline");
+      if (stepEl) stepEl.classList.toggle("hidden", step === 1);
       document.documentElement.lang = lang;
       syncLanguageSelector();
+      if (step !== 1 && state.scanner?.open){
+        closeScanner({ skipRender:true });
+      }
 
       if (step === 1){
         app.innerHTML = `
-          <div class="row">
-            <div class="col">
-              <div class="section">
-                <div class="sectionTitle">${t("scan_title")}</div>
-                <div class="mini">${t("scan_hint")}</div>
-                ${state.error ? `<div class="err">${state.error}</div>` : ``}
-                ${(state.loading || state.scanStatusMessage) ? `<div class="ok"><b>${_escapeHtml(scanLoadingTitle())}</b><br/>${_escapeHtml(state.scanStatusMessage || scanLoadingHint(false))}</div>` : ``}
-                <div style="margin-top:10px;">
-                  <input id="keyInput" placeholder="${t("scan_placeholder")}" value="${state.key || ""}"/>
-                </div>
-                <div class="btns">
-                  <button class="primary" id="scanBtn">${state.loading ? t("scanning_btn") : t("scan_btn")}</button>
-                </div>
-                ${renderRecoveryBlock()}
+          <div class="homeLayout">
+            <div class="scanHero">
+              <h1 class="homeTitle">${t("home_title")}</h1>
+              <div class="homeSubtitle">${t("home_subtitle")}</div>
+              ${state.error ? `<div class="err">${state.error}</div>` : ``}
+              ${(state.loading || state.scanStatusMessage) ? `<div class="ok"><b>${_escapeHtml(scanLoadingTitle())}</b><br/>${_escapeHtml(state.scanStatusMessage || scanLoadingHint(false))}</div>` : ``}
+              <div class="homeActions">
+                <button class="primary actionButton" id="scanCameraBtn">${t("home_camera_cta")}</button>
+                <button class="ghost actionButton" id="manualFocusBtn">${t("home_manual_cta")}</button>
               </div>
+              <div class="homeInputBlock">
+                <label class="inputLabel" for="keyInput">${t("home_input_label")}</label>
+                <div class="homeInputRow">
+                  <input id="keyInput" inputmode="numeric" enterkeyhint="search" autocapitalize="off" spellcheck="false" placeholder="${t("home_input_placeholder")}" value="${_escapeHtml(state.key || "")}"/>
+                  <button class="primary actionButton" id="scanBtn">${state.loading ? t("scanning_btn") : t("home_analyze")}</button>
+                </div>
+                <div class="helperText">${t("home_helper")}</div>
+              </div>
+              ${renderRecoveryBlock()}
             </div>
-            <div class="col">
-              <div class="section">
-                <div class="sectionTitle">${t("how_title")}</div>
-                <div class="mini">- ${t("how_l1")}<br/>- ${t("how_l2")}<br/>- ${t("how_l3")}</div>
-              </div>
-              ${renderHistoryPanel()}
+            <div class="secondaryZone">
+              ${renderHomeList("analyses")}
+              ${renderHomeList("comparisons")}
+              ${renderHomeHowSection()}
             </div>
           </div>
+          ${renderScannerOverlay()}
         `;
         const scanBtn = document.getElementById("scanBtn");
         const keyInput = document.getElementById("keyInput");
+        const scanCameraBtn = document.getElementById("scanCameraBtn");
+        const manualFocusBtn = document.getElementById("manualFocusBtn");
+        const scannerCloseBtn = document.getElementById("scannerCloseBtn");
+        const scannerManualBtn = document.getElementById("scannerManualBtn");
         if (scanBtn && keyInput){
           scanBtn.onclick = () => doScan(keyInput.value);
           keyInput.onkeydown = (e) => { if (e.key === "Enter") doScan(keyInput.value); };
+        }
+        if (scanCameraBtn) scanCameraBtn.onclick = () => openScanner();
+        if (manualFocusBtn) manualFocusBtn.onclick = () => focusManualEntry();
+        if (scannerCloseBtn) scannerCloseBtn.onclick = () => closeScanner();
+        if (scannerManualBtn) scannerManualBtn.onclick = () => focusManualEntry();
+        if (state.scanner?.open){
+          requestAnimationFrame(() => _attachScannerStream(scannerRuntime.sessionId));
         }
         bindEnrichmentActions();
         Array.from(document.querySelectorAll(".historyAnalysisBtn")).forEach(btn => {
