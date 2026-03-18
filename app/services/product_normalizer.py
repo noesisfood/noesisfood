@@ -61,13 +61,46 @@ def _clamp_nonneg(x: Optional[float]) -> float:
     return max(0.0, float(x))
 
 
-def _get_nutriment(nutriments: Dict[str, Any], *keys: str) -> float:
+def _optional_nonneg(x: Optional[float]) -> Optional[float]:
+    if x is None:
+        return None
+    return _clamp_nonneg(x)
+
+
+def _get_nutriment(nutriments: Dict[str, Any], *keys: str) -> Optional[float]:
     for k in keys:
         if k in nutriments:
             v = _to_float(nutriments.get(k))
             if v is not None:
                 return _clamp_nonneg(v)
-    return 0.0
+    return None
+
+
+def _get_energy_kcal(nutriments: Dict[str, Any]) -> Optional[float]:
+    direct_kcal = _get_nutriment(
+        nutriments,
+        "energy-kcal_100g",
+        "energy-kcal_100ml",
+        "energy-kcal",
+        "energy_kcal_100g",
+        "energy_kcal_100ml",
+        "energy_kcal",
+    )
+    if direct_kcal is not None:
+        return direct_kcal
+
+    kj = _get_nutriment(
+        nutriments,
+        "energy-kj_100g",
+        "energy-kj_100ml",
+        "energy-kj",
+        "energy_100g",
+        "energy_100ml",
+        "energy",
+    )
+    if kj is None:
+        return None
+    return round(kj / 4.184, 2)
 
 
 def _parse_serving_size_to_g_or_ml(serving: Any) -> Optional[float]:
@@ -333,6 +366,7 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
         off_product = {}
     nutriments = off_product.get("nutriments") or {}
 
+    energy_kcal = _get_energy_kcal(nutriments)
     sugar = _get_nutriment(nutriments, "sugars_100g", "sugar_100g", "sugars", "sugar")
     salt = _get_nutriment(nutriments, "salt_100g", "salt")
     sat_fat = _get_nutriment(
@@ -398,10 +432,11 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
         "ingredients": _parse_ingredients_as_objects(off_product),
         "nutrition_per_100": {
             "unit": unit,
-            "sugar_g": _clamp_nonneg(sugar),
-            "salt_g": _clamp_nonneg(salt),
-            "sat_fat_g": _clamp_nonneg(sat_fat),
-            "protein_g": _clamp_nonneg(protein),
+            "energy_kcal": _optional_nonneg(energy_kcal),
+            "sugar_g": _optional_nonneg(sugar),
+            "salt_g": _optional_nonneg(salt),
+            "sat_fat_g": _optional_nonneg(sat_fat),
+            "protein_g": _optional_nonneg(protein),
             "serving_size": float(serving),
         },
     }

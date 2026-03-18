@@ -3554,6 +3554,38 @@ def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]]
     }
 
 
+def _core_nutrition_guard(per100: Dict[str, Optional[float]]) -> Dict[str, Any]:
+    required_keys = ["energy_kcal", "sugar_g", "salt_g", "saturated_fat_g"]
+    missing = [key for key in required_keys if per100.get(key) is None]
+    present = len(required_keys) - len(missing)
+    if not missing:
+        return {
+            "required_keys": required_keys,
+            "present_count": present,
+            "missing_keys": [],
+            "base_score_cap": None,
+            "applied": False,
+            "reason": "complete_core_nutrition",
+        }
+    if present <= 1:
+        cap = 72
+        reason = "core_nutrition_mostly_missing"
+    elif present == 2:
+        cap = 82
+        reason = "core_nutrition_partially_missing"
+    else:
+        cap = 92
+        reason = "single_core_nutrition_missing"
+    return {
+        "required_keys": required_keys,
+        "present_count": present,
+        "missing_keys": missing,
+        "base_score_cap": cap,
+        "applied": True,
+        "reason": reason,
+    }
+
+
 
 # -------------------------
 # Public API used by routes
@@ -4276,6 +4308,10 @@ def _analyze_normalized_product(
         w_who = 0.85 if is_bev else 0.75
         w_hyb = 1.0 - w_who
         base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
+        nutrition_guard = _core_nutrition_guard(per100)
+        base_score_cap = nutrition_guard.get("base_score_cap")
+        if isinstance(base_score_cap, int):
+            base_score = min(base_score, base_score_cap)
         pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
         balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
         score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0) + int(balance_adjustments.get("total_delta", 0) or 0)
@@ -4305,6 +4341,7 @@ def _analyze_normalized_product(
         breakdown["who_baseline"] = who_breakdown
         breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
         breakdown["pre_pattern_score"] = base_score
+        breakdown["nutrition_completeness_guard"] = nutrition_guard
         breakdown["pattern_adjustments"] = pattern_adjustments
         breakdown["balance_adjustments"] = balance_adjustments
         floor_adjustments = _whole_food_floor_adjustments(
