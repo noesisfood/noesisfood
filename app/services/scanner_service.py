@@ -19,6 +19,7 @@ import html
 import xml.etree.ElementTree as ET
 from urllib.parse import urljoin
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -38,6 +39,7 @@ DATA_DIR = APP_DIR.parent / "data"         # app/data/
 PRODUCTS_FILE = DATA_DIR / "products.json"
 RASFF_FILE = DATA_DIR / "rasff.json"
 SAFETY_ALERTS_FILE = DATA_DIR / "rasff_alerts.json"
+PRODUCT_ENRICHMENTS_FILE = DATA_DIR / "product_enrichments.json"
 
 _JSON_CACHE: Dict[str, Dict[str, Any]] = {}
 _SCAN_RESULT_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -211,6 +213,19 @@ def _load_json(path: Path, default: Any) -> Any:
     except Exception:
         pass
     return default
+
+
+def _save_json(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    serialized = json.dumps(data, ensure_ascii=False, indent=2)
+    tmp_path = path.with_suffix(f"{path.suffix}.tmp")
+    tmp_path.write_text(serialized, encoding="utf-8")
+    tmp_path.replace(path)
+    _JSON_CACHE[str(path)] = {
+        "mtime_ns": int(path.stat().st_mtime_ns),
+        "size": int(path.stat().st_size),
+        "data": copy.deepcopy(data),
+    }
 
 
 def _cache_key_scan_result(key: str, lang: str) -> str:
@@ -3826,6 +3841,137 @@ def _manual_ingredients_from_text(text: Any, note: str = "From manual") -> List[
     return [{"name": part, "class": "U", "note": note} for part in parts]
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _load_product_enrichments() -> List[Dict[str, Any]]:
+    raw = _load_json(PRODUCT_ENRICHMENTS_FILE, {"enrichments": []})
+    if isinstance(raw, dict) and isinstance(raw.get("enrichments"), list):
+        return raw.get("enrichments") or []
+    if isinstance(raw, list):
+        return raw
+    return []
+
+
+def _save_product_enrichments(items: List[Dict[str, Any]]) -> None:
+    _save_json(PRODUCT_ENRICHMENTS_FILE, {"enrichments": items})
+
+
+def _get_product_enrichment(barcode: str) -> Optional[Dict[str, Any]]:
+    code = str(barcode or "").strip()
+    if not code:
+        return None
+    matches = [
+        item for item in _load_product_enrichments()
+        if isinstance(item, dict) and str(item.get("barcode") or "").strip() == code
+    ]
+    if not matches:
+        return None
+    matches.sort(key=lambda item: str(item.get("updated_at") or item.get("created_at") or ""))
+    return copy.deepcopy(matches[-1])
+
+
+def _persist_product_enrichment(
+    *,
+    barcode: str,
+    product_identity: Dict[str, Any],
+    extracted: Dict[str, Any],
+    merged_payload: Dict[str, Any],
+    used_ingredient_photo: bool,
+    used_nutrition_photo: bool,
+) -> Optional[Dict[str, Any]]:
+    code = str(barcode or "").strip()
+    if not code:
+        return None
+    now_iso = _utc_now_iso()
+    items = _load_product_enrichments()
+    current = next((item for item in items if isinstance(item, dict) and str(item.get("barcode") or "").strip() == code), None)
+    if current is None:
+        current = {
+            "barcode": code,
+            "created_at": now_iso,
+        }
+        items.append(current)
+
+    captured_payload = {
+        "ingredients_text": str(merged_payload.get("ingredients_text") or "").strip() or None,
+        "nutrition_per_100": {
+            "sugar_g": _to_float(merged_payload.get("sugar_g")),
+            "salt_g": _to_float(merged_payload.get("salt_g")),
+            "sat_fat_g": _to_float(merged_payload.get("sat_fat_g")),
+            "protein_g": _to_float(merged_payload.get("protein_g")),
+            "serving_size": _to_float(merged_payload.get("serving_size")),
+            "unit": str(merged_payload.get("unit") or "").strip().lower() or None,
+        },
+        "categories": _as_list(merged_payload.get("categories")),
+    }
+
+    current.update({
+        "barcode": code,
+        "product_identity": {
+            "name": str(product_identity.get("name") or "").strip() or None,
+            "brand": str(product_identity.get("brand") or "").strip() or None,
+            "quantity": str(product_identity.get("quantity") or "").strip() or None,
+        },
+        "captured_payload": captured_payload,
+        "extracted_structured": copy.deepcopy(extracted if isinstance(extracted, dict) else {}),
+        "source": "user_photo_enrichment",
+        "confidence": str((extracted or {}).get("confidence") or "low").strip().lower() or "low",
+        "extracted_fields": _as_list((extracted or {}).get("extracted_fields")),
+        "verification_flags": {
+            "ingredient_photo": bool(used_ingredient_photo),
+            "nutrition_photo": bool(used_nutrition_photo),
+        },
+        "review_status": "unreviewed",
+        "updated_at": now_iso,
+    })
+    _save_product_enrichments(items)
+    return copy.deepcopy(current)
+
+
+def _apply_product_enrichment(norm: Dict[str, Any], enrichment: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(norm, dict) or not isinstance(enrichment, dict):
+        return norm
+    out = copy.deepcopy(norm)
+    captured = enrichment.get("captured_payload") if isinstance(enrichment.get("captured_payload"), dict) else {}
+    nutrition = captured.get("nutrition_per_100") if isinstance(captured.get("nutrition_per_100"), dict) else {}
+    per100 = out.get("nutrition_per_100") if isinstance(out.get("nutrition_per_100"), dict) else {}
+    if not isinstance(per100, dict):
+        per100 = {}
+    for field in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "energy_kcal", "serving_size"):
+        if per100.get(field) is None and nutrition.get(field) is not None:
+            per100[field] = nutrition.get(field)
+    if not per100.get("unit") and nutrition.get("unit"):
+        per100["unit"] = nutrition.get("unit")
+    out["nutrition_per_100"] = per100
+
+    ingredients_text = str(captured.get("ingredients_text") or "").strip()
+    if ingredients_text and not _as_list(out.get("ingredients")):
+        out["ingredients"] = _manual_ingredients_from_text(ingredients_text, note="From enrichment")
+
+    captured_categories = _as_list(captured.get("categories"))
+    if captured_categories and not _as_list(out.get("categories")):
+        out["categories"] = captured_categories
+
+    meta = out.get("meta") if isinstance(out.get("meta"), dict) else {}
+    meta["enrichment_layer"] = {
+        "source": str(enrichment.get("source") or "user_photo_enrichment"),
+        "confidence": str(enrichment.get("confidence") or "low"),
+        "updated_at": str(enrichment.get("updated_at") or ""),
+        "verification_flags": enrichment.get("verification_flags") if isinstance(enrichment.get("verification_flags"), dict) else {},
+        "stored_fields": {
+            "ingredients_text": bool(ingredients_text),
+            "nutrition_per_100": {
+                key: nutrition.get(key) is not None
+                for key in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "serving_size")
+            },
+        },
+    }
+    out["meta"] = meta
+    return out
+
+
 def _merge_ingredient_text(existing_ingredients: Any, extracted_text: Any) -> str:
     parts: List[str] = []
     seen = set()
@@ -4676,6 +4822,12 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         result = await _finalize_scan_result_with_safety(result, key, {"barcode": key}, timing)
         timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
         return _attach_scan_timing(result, timing)
+    enrichment_record = _get_product_enrichment(key)
+    if enrichment_record:
+        norm = _apply_product_enrichment(norm, enrichment_record)
+        timing["enrichment_layer_applied"] = True
+    else:
+        timing["enrichment_layer_applied"] = False
     if not _has_minimum_product_data(norm):
         timing["fallback_generated"] = True
         result = _fallback_assessment_response(
@@ -4855,8 +5007,6 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     existing_meta = existing_analysis.get("meta") if isinstance(existing_analysis.get("meta"), dict) else {}
     existing_serving = existing_meta.get("serving") if isinstance(existing_meta.get("serving"), dict) else {}
     existing_key = str(existing_analysis.get("key") or payload.get("existing_key") or "").strip()
-    existing_lookup_state = str(existing_analysis.get("lookup_state") or existing_meta.get("lookup_state") or "").strip()
-    existing_missing = existing_analysis.get("lookup_missing_fields") if isinstance(existing_analysis.get("lookup_missing_fields"), list) else existing_meta.get("lookup_missing_fields")
     existing_ingredients = existing_analysis.get("ingredients") if isinstance(existing_analysis.get("ingredients"), list) else []
 
     nutrition = extracted.get("nutrition_per_100") if isinstance(extracted.get("nutrition_per_100"), dict) else {}
@@ -4887,13 +5037,21 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
 
     result = await analyze_manual_product(merged_payload, lang=lang)
     if isinstance(result, dict) and not result.get("error"):
+        enrichment_record = _persist_product_enrichment(
+            barcode=existing_key,
+            product_identity={
+                "name": merged_payload.get("name") or existing_product.get("name"),
+                "brand": merged_payload.get("brand") or existing_product.get("brand"),
+                "quantity": merged_payload.get("quantity") or existing_product.get("quantity"),
+            },
+            extracted=extracted if isinstance(extracted, dict) else {},
+            merged_payload=merged_payload,
+            used_ingredient_photo=bool(str(payload.get("ingredient_image_data_url") or "").strip()),
+            used_nutrition_photo=bool(str(payload.get("nutrition_image_data_url") or "").strip()),
+        )
         result["key"] = existing_key or result.get("key")
         result["source"] = existing_analysis.get("source") or "photo"
         result["matched_by"] = "photo_enrichment"
-        if existing_lookup_state:
-            result["lookup_state"] = existing_lookup_state
-        if isinstance(existing_missing, list) and existing_missing:
-            result["lookup_missing_fields"] = list(dict.fromkeys([*existing_missing, *(_as_list(result.get("lookup_missing_fields")))]))
         if isinstance(result.get("product"), dict):
             if existing_product.get("name") and not str(result["product"].get("name") or "").strip():
                 result["product"]["name"] = str(existing_product.get("name"))
@@ -4914,8 +5072,17 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         }
         if isinstance(result.get("meta"), dict):
             result["meta"]["photo_extraction"] = result["photo_extraction"]
-            if existing_lookup_state:
-                result["meta"]["lookup_state"] = existing_lookup_state
+            if enrichment_record:
+                result["meta"]["enrichment_layer"] = {
+                    "source": str(enrichment_record.get("source") or "user_photo_enrichment"),
+                    "confidence": str(enrichment_record.get("confidence") or "low"),
+                    "updated_at": str(enrichment_record.get("updated_at") or ""),
+                    "stored_fields": (
+                        enrichment_record.get("captured_payload")
+                        if isinstance(enrichment_record.get("captured_payload"), dict)
+                        else {}
+                    ),
+                }
             if isinstance(result.get("lookup_missing_fields"), list):
                 result["meta"]["lookup_missing_fields"] = result["lookup_missing_fields"]
     return result
