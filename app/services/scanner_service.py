@@ -4065,6 +4065,14 @@ def _photo_extraction_unavailable() -> Dict[str, Any]:
     return err
 
 
+def _photo_parsing_failed() -> Dict[str, Any]:
+    err = _scan_error("PHOTO_PARSING_FAILED", "The photo was uploaded, but the label data could not be extracted reliably.", 422)
+    err.update(_lookup_state_payload("found_but_incomplete"))
+    err["analysis_state"] = "insufficient_data"
+    err["analysis_confidence"] = "low"
+    return err
+
+
 async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not OPENAI_API_KEY:
         return _photo_extraction_unavailable()
@@ -4126,11 +4134,7 @@ async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, A
 
     parsed = _extract_json_object(_responses_output_text(data))
     if not parsed:
-        err = _scan_error("PHOTO_EXTRACTION_FAILED", "Could not extract enough data from the photo.", 422)
-        err.update(_lookup_state_payload("found_but_incomplete"))
-        err["analysis_state"] = "insufficient_data"
-        err["analysis_confidence"] = "low"
-        return err
+        return _photo_parsing_failed()
     return parsed
 
 

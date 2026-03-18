@@ -723,6 +723,7 @@
         err_missing_data: "Key data required for product assessment is missing.",
         err_found_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
         err_photo_extract: "Could not extract enough data from the photo.",
+        err_photo_parse: "We could not extract the label data reliably from this photo. You can retake it or enter the details manually.",
         err_photo_retry: "Try a clearer photo with better lighting.",
         err_network: "Network error. Is the server running?",
         fallback_title: "Alternative analysis path",
@@ -980,6 +981,7 @@
         err_missing_data: "Λείπουν βασικά στοιχεία για την αξιολόγηση του προϊόντος.",
         err_found_incomplete: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν ακόμη για αξιολόγηση.",
         err_photo_extract: "Δεν ήταν δυνατή η εξαγωγή αρκετών στοιχείων από τη φωτογραφία.",
+        err_photo_parse: "Δεν ήταν δυνατή η αξιόπιστη εξαγωγή των στοιχείων της ετικέτας από αυτή τη φωτογραφία. Μπορείς να τη βγάλεις ξανά ή να εισαγάγεις τα στοιχεία χειροκίνητα.",
         err_photo_retry: "Δοκίμασε μια πιο καθαρή φωτογραφία με καλό φωτισμό.",
         err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
         fallback_title: "Εναλλακτική πορεία ανάλυσης",
@@ -1237,6 +1239,7 @@
         err_missing_data: "Für die Bewertung fehlen wichtige Produktdaten.",
         err_found_incomplete: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen noch nicht für eine Bewertung aus.",
         err_photo_extract: "Aus dem Foto konnten nicht genügend Daten extrahiert werden.",
+        err_photo_parse: "Die Etikettendaten konnten aus diesem Foto nicht zuverlässig extrahiert werden. Du kannst das Foto erneut aufnehmen oder die Angaben manuell eingeben.",
         err_photo_retry: "Versuche es mit einem klareren Foto bei besserem Licht.",
         err_network: "Netzwerkfehler. Läuft der Server?",
         fallback_title: "Alternativer Analyseweg",
@@ -1494,6 +1497,7 @@
         err_missing_data: "Des données essentielles manquent pour évaluer ce produit.",
         err_found_incomplete: "Le produit a été trouvé, mais les données disponibles ne suffisent pas encore pour une évaluation.",
         err_photo_extract: "Impossible d’extraire suffisamment de données à partir de la photo.",
+        err_photo_parse: "Les données de l’étiquette n’ont pas pu être extraites de façon fiable à partir de cette photo. Vous pouvez reprendre la photo ou saisir les détails manuellement.",
         err_photo_retry: "Essayez avec une photo plus nette et mieux éclairée.",
         err_network: "Erreur réseau. Le serveur est-il démarré ?",
         fallback_title: "Parcours d’analyse alternatif",
@@ -1895,6 +1899,18 @@
       return scannerRuntime.unstableMode ? 5 : 3;
     }
 
+    function _scannerNeedsRender(next){
+      const prev = state.scanner || {};
+      return prev.open !== next.open
+        || prev.opening !== next.opening
+        || prev.error !== next.error
+        || prev.success !== next.success
+        || prev.detectedCode !== next.detectedCode
+        || prev.candidateCode !== next.candidateCode
+        || prev.candidateFormat !== next.candidateFormat
+        || prev.unstable !== next.unstable;
+    }
+
     async function _scanFrameLoop(sessionId){
       if (sessionId !== scannerRuntime.sessionId || !state.scanner?.open || !scannerRuntime.detector) return;
       if (scannerRuntime.lockedCode) return;
@@ -1945,7 +1961,7 @@
               scannerRuntime.stableFormat = selected.format;
               scannerRuntime.stableFrames = 1;
             }
-            updateScannerState({
+            const nextScannerState = {
               success:false,
               error:"",
               opening:false,
@@ -1954,7 +1970,9 @@
               candidateFormat: scannerRuntime.stableFormat,
               stableFrames: scannerRuntime.stableFrames,
               unstable: scannerRuntime.unstableMode
-            });
+            };
+            const shouldRender = _scannerNeedsRender(Object.assign({}, state.scanner || {}, nextScannerState));
+            updateScannerState(nextScannerState);
             if (scannerRuntime.stableFrames >= requiredStableFrames){
               const lookupBarcode = scannerRuntime.stableCode;
               scannerRuntime.lockedCode = lookupBarcode;
@@ -1987,14 +2005,14 @@
               }, 260);
               return;
             }
-            render();
+            if (shouldRender) render();
           } else if (scannerRuntime.stableFrames || state.scanner?.candidateCode){
             scannerRuntime.stableCode = "";
             scannerRuntime.stableFormat = "";
             scannerRuntime.stableFrames = 0;
             if (scannerRuntime.instabilityScore > 0) scannerRuntime.instabilityScore -= 1;
             scannerRuntime.unstableMode = scannerRuntime.instabilityScore >= 2;
-            updateScannerState({
+            const nextScannerState = {
               success:false,
               error:"",
               opening:false,
@@ -2003,8 +2021,10 @@
               candidateFormat:"",
               stableFrames:0,
               unstable:scannerRuntime.unstableMode
-            });
-            render();
+            };
+            const shouldRender = _scannerNeedsRender(Object.assign({}, state.scanner || {}, nextScannerState));
+            updateScannerState(nextScannerState);
+            if (shouldRender) render();
           }
         }catch(_e){}
       }
@@ -2012,6 +2032,7 @@
     }
 
     async function openScanner(){
+      if (state.scanner?.open && (state.scanner?.opening || scannerRuntime.stream)) return;
       closeScanner({ skipRender:true });
       updateScannerState({ open:true, opening:true, error:"", success:false, detectedCode:"", candidateCode:"", candidateFormat:"", stableFrames:0, unstable:false });
       render();
@@ -2197,7 +2218,8 @@
       const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (code === "INVALID_BARCODE" || status === 400) return t("err_invalid_barcode");
       if (code === "PRODUCT_NOT_FOUND" || status === 404) return t("err_not_found");
-      if (code === "PHOTO_EXTRACTION_UNAVAILABLE" || code === "PHOTO_EXTRACTION_FAILED") return `${t("err_photo_extract")} ${t("err_photo_retry")}`;
+      if (code === "PHOTO_PARSING_FAILED") return t("err_photo_parse");
+      if (code === "PHOTO_EXTRACTION_UNAVAILABLE" || code === "PHOTO_EXTRACTION_FAILED") return t("err_photo_extract");
       if (code === "MISSING_KEY_DATA" && lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
       if (code === "MISSING_KEY_DATA") return t("err_missing_data");
       if (lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
@@ -2698,7 +2720,7 @@
           state.errorCode = scanErrorCode(data, res.status);
           state.loading = false;
           state.recoveryOpen = true;
-          state.recoveryPhotoMessage = t("err_photo_retry");
+          state.recoveryPhotoMessage = state.error || t("err_photo_extract");
           render();
           return;
         }
@@ -2736,7 +2758,7 @@
         state.error = t("err_network");
         state.loading = false;
         state.recoveryOpen = true;
-        state.recoveryPhotoMessage = t("err_photo_retry");
+        state.recoveryPhotoMessage = t("err_network");
         render();
       }
     }
