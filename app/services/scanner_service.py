@@ -4312,6 +4312,19 @@ def _analyze_normalized_product(
         base_score_cap = nutrition_guard.get("base_score_cap")
         if isinstance(base_score_cap, int):
             base_score = min(base_score, base_score_cap)
+            if isinstance(who_breakdown, dict):
+                raw_who_score = who_breakdown.get("score")
+                who_breakdown["raw_score"] = raw_who_score
+                if isinstance(raw_who_score, (int, float)):
+                    who_breakdown["score"] = min(int(raw_who_score), base_score_cap)
+                who_breakdown["score_guard_applied"] = True
+                who_breakdown["score_guard_reason"] = nutrition_guard.get("reason")
+                who_breakdown["score_guard_cap"] = base_score_cap
+        elif isinstance(who_breakdown, dict):
+            who_breakdown["raw_score"] = who_breakdown.get("score")
+            who_breakdown["score_guard_applied"] = False
+            who_breakdown["score_guard_reason"] = nutrition_guard.get("reason")
+            who_breakdown["score_guard_cap"] = None
         pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
         balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
         score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0) + int(balance_adjustments.get("total_delta", 0) or 0)

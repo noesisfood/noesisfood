@@ -4401,7 +4401,7 @@
         const compareTarget = compareCandidates.find(item => String(item?.key || "") === String(state.compareTargetKey || "")) || compareCandidates[0] || null;
         const compareTargetKey = String(compareTarget?.key || "");
         const score = d?.vitascore;
-        const baselineScore = d?.vitascore_breakdown?.who_baseline?.score;
+        const baselineScore = d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
         const analysisState = String(d?.analysis_state || d?.meta?.analysis_state || "full_analysis").toLowerCase();
         const analysisConfidence = localizedConfidenceTier(d?.analysis_confidence || d?.meta?.analysis_confidence || "high");
         const assessmentLabel = analysisState === "partial_analysis"
