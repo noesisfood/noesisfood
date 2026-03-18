@@ -3537,6 +3537,11 @@ def _data_quality(normalized: Dict[str, Any], per100: Dict[str, Optional[float]]
     if bev_conf is not None:
         confidence += (bev_conf - 0.5) * 0.10
 
+    if present <= 1:
+        confidence = min(confidence, 0.35)
+    elif present == 2:
+        confidence = min(confidence, 0.5)
+
     confidence = float(_clamp(confidence, 0.05, 0.95))
     notes = [
         "Confidence reflects completeness of nutrition facts + serving info.",
@@ -3952,6 +3957,8 @@ def _analysis_mode(
     ingredients_intelligence: Dict[str, Any],
     categories: Any,
 ) -> Tuple[str, str]:
+    core_required = ("energy_kcal", "sugar_g", "salt_g", "saturated_fat_g")
+    core_present = sum(1 for k in core_required if per100.get(k) is not None)
     nutriments_present = sum(
         1 for k in ("energy_kcal", "sugar_g", "salt_g", "saturated_fat_g", "protein_g")
         if per100.get(k) is not None
@@ -3973,6 +3980,8 @@ def _analysis_mode(
         + (1 if signal_present else 0)
     )
 
+    if core_present <= 1:
+        return "limited_estimate", "low"
     if lookup_state == "found_and_analyzable" and nutriments_present >= 3 and ingredients_present:
         return "full_analysis", "high"
     if evidence_points >= 4:
@@ -4309,6 +4318,7 @@ def _analyze_normalized_product(
         w_hyb = 1.0 - w_who
         base_score = int(round((w_who * who_score) + (w_hyb * hybrid_score)))
         nutrition_guard = _core_nutrition_guard(per100)
+        base_score_available = True
         base_score_cap = nutrition_guard.get("base_score_cap")
         if isinstance(base_score_cap, int):
             base_score = min(base_score, base_score_cap)
@@ -4325,6 +4335,10 @@ def _analyze_normalized_product(
             who_breakdown["score_guard_applied"] = False
             who_breakdown["score_guard_reason"] = nutrition_guard.get("reason")
             who_breakdown["score_guard_cap"] = None
+        if int(nutrition_guard.get("present_count") or 0) <= 1:
+            base_score_available = False
+            if isinstance(who_breakdown, dict):
+                who_breakdown["score"] = None
         pattern_adjustments = _pattern_score_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev)
         balance_adjustments = _traditional_balance_adjustments(norm, per100, ingredients_intelligence, is_beverage=is_bev, lang=lang)
         score = base_score + int(pattern_adjustments.get("total_delta", 0) or 0) + int(balance_adjustments.get("total_delta", 0) or 0)
@@ -4353,7 +4367,8 @@ def _analyze_normalized_product(
 
         breakdown["who_baseline"] = who_breakdown
         breakdown["who_weights"] = {"who": w_who, "hybrid": w_hyb}
-        breakdown["pre_pattern_score"] = base_score
+        breakdown["pre_pattern_score"] = base_score if base_score_available else None
+        breakdown["pre_pattern_score_raw"] = base_score
         breakdown["nutrition_completeness_guard"] = nutrition_guard
         breakdown["pattern_adjustments"] = pattern_adjustments
         breakdown["balance_adjustments"] = balance_adjustments

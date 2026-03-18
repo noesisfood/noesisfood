@@ -4402,6 +4402,7 @@
         const compareTargetKey = String(compareTarget?.key || "");
         const score = d?.vitascore;
         const baselineScore = d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
+        const baselineScoreText = Number.isFinite(Number(baselineScore)) ? `${baselineScore}/100` : "-";
         const analysisState = String(d?.analysis_state || d?.meta?.analysis_state || "full_analysis").toLowerCase();
         const analysisConfidence = localizedConfidenceTier(d?.analysis_confidence || d?.meta?.analysis_confidence || "high");
         const assessmentLabel = analysisState === "partial_analysis"
@@ -4443,7 +4444,7 @@
               <div class="ok" style="margin-top:12px;"><b>${quickVerdict}</b></div>
               <div class="grid2">
                 ${(analysisState === "partial_analysis" || analysisState === "limited_estimate") ? `<div class="kv"><small>${t("confidence")}</small><b>${analysisConfidence}</b></div>` : ``}
-                <div class="kv"><small>${t("baseline_assessment")}</small><b>${baselineScore ?? "-"}/100</b></div>
+                <div class="kv"><small>${t("baseline_assessment")}</small><b>${baselineScoreText}</b></div>
                 <div class="kv"><small>${t("sugar")}</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
                 <div class="kv"><small>${t("salt")}</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
                 <div class="kv"><small>${t("sat_fat")}</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
