@@ -699,6 +699,11 @@
         data_quality: "Data quality",
         confidence: "Confidence",
         missing_fields: "Missing fields",
+        missing_now: "Missing now",
+        missing_ingredients: "Ingredients",
+        missing_additives: "Additive details",
+        missing_serving_size: "Serving size",
+        missing_nutriments: "Nutrition table",
         has_serving: "Has serving",
         beverage: "Beverage",
         signal: "Signal",
@@ -945,6 +950,11 @@
         data_quality: "Ποιότητα δεδομένων",
         confidence: "Εμπιστοσύνη",
         missing_fields: "Πεδία που λείπουν",
+        missing_now: "Λείπουν τώρα",
+        missing_ingredients: "Συστατικά",
+        missing_additives: "Λεπτομέρειες προσθέτων",
+        missing_serving_size: "Μέγεθος μερίδας",
+        missing_nutriments: "Διατροφικός πίνακας",
         has_serving: "Υπάρχει μερίδα",
         beverage: "Ρόφημα",
         signal: "Σήμα",
@@ -1191,6 +1201,11 @@
         data_quality: "Datenqualität",
         confidence: "Konfidenz",
         missing_fields: "Fehlende Felder",
+        missing_now: "Fehlt aktuell",
+        missing_ingredients: "Zutaten",
+        missing_additives: "Zusatzstoffdetails",
+        missing_serving_size: "Portionsgröße",
+        missing_nutriments: "Nährwerttabelle",
         has_serving: "Portion vorhanden",
         beverage: "Getränk",
         signal: "Signal",
@@ -1437,6 +1452,11 @@
         data_quality: "Qualité des données",
         confidence: "Confiance",
         missing_fields: "Champs manquants",
+        missing_now: "Manque actuellement",
+        missing_ingredients: "Ingrédients",
+        missing_additives: "Détails sur les additifs",
+        missing_serving_size: "Taille de portion",
+        missing_nutriments: "Tableau nutritionnel",
         has_serving: "Portion disponible",
         beverage: "Boisson",
         signal: "Signal",
@@ -2253,11 +2273,9 @@
       return `
         <div class="section" style="margin-top:12px;">
           <div class="sectionTitle">${t("enrich_title")}</div>
-          <div class="mini">${t("enrich_note")}</div>
           <div class="mini" style="margin-top:6px;">${t("enrich_intro")}</div>
-          <div class="mini" style="margin-top:6px;">${t("enrich_help")}</div>
           <div class="mini" style="margin-top:6px;">${t("enrich_saved_future")}</div>
-          ${reasonItems.length ? `<div class="ok" style="margin-top:10px;"><b>${t("partial_notice_title")}</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+          ${reasonItems.length ? `<div class="ok" style="margin-top:10px;"><b>${t("missing_now")}:</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
           <div class="mini" style="margin-top:10px;"><b>${t("enrich_next_step")}:</b> ${nextStep === "nutrition" ? t("enrich_step_nutrition") : (nextStep === "ingredients" ? t("enrich_step_ingredients") : t("enrich_step_refresh"))}</div>
           <div class="mini" style="margin-top:8px;">1. ${t("enrich_step_nutrition")}</div>
           <div class="mini">2. ${t("enrich_step_ingredients")}</div>
@@ -2279,9 +2297,11 @@
     function renderPartialLookupNotice(data){
       const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
       if (lookupState !== "found_but_incomplete") return "";
+      const missingLabels = summarizedMissingFields(data);
       return `
         <div class="ok" style="margin-top:12px;">
           <b>${t("partial_notice_title")}</b><br/>${t("partial_notice_body")}
+          ${missingLabels.length ? `<br/><span class="mini">${t("missing_now")}: ${_escapeHtml(missingLabels.join(", "))}</span>` : ``}
         </div>
       `;
     }
@@ -2319,20 +2339,41 @@
       return explicit || "low";
     }
 
+    function localizedMissingFieldLabel(value){
+      const key = String(value || "").toLowerCase();
+      if (key === "sugar_g" || key === "sugar") return t("sugar");
+      if (key === "salt_g" || key === "salt") return t("salt");
+      if (key === "saturated_fat_g" || key === "sat_fat_g" || key === "saturated-fat") return t("sat_fat");
+      if (key === "protein_g" || key === "protein") return t("protein");
+      if (key === "ingredients") return t("missing_ingredients");
+      if (key === "additives") return t("missing_additives");
+      if (key === "serving_size") return t("missing_serving_size");
+      if (key === "nutriments") return t("missing_nutriments");
+      return "";
+    }
+
+    function summarizedMissingFields(data){
+      const lookupMissing = Array.isArray(data?.lookup_missing_fields)
+        ? data.lookup_missing_fields
+        : (Array.isArray(data?.meta?.lookup_missing_fields) ? data.meta.lookup_missing_fields : []);
+      const missingCoreFields = Array.isArray(data?.data_quality?.missing_core_fields) ? data.data_quality.missing_core_fields : [];
+      const mapped = [...missingCoreFields, ...lookupMissing]
+        .map(localizedMissingFieldLabel)
+        .filter(Boolean);
+      return Array.from(new Set(mapped));
+    }
+
     function renderAnalysisStateNotice(data){
       const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (analysisState !== "partial_analysis" && analysisState !== "limited_estimate") return "";
       const confidenceTier = localizedConfidenceTier(resolvedAnalysisConfidenceKey(data));
-      const missing = Array.isArray(data?.lookup_missing_fields)
-        ? data.lookup_missing_fields
-        : (Array.isArray(data?.meta?.lookup_missing_fields) ? data.meta.lookup_missing_fields : []);
       const title = analysisState === "limited_estimate" ? t("limited_estimate") : t("partial_assessment");
       const note = analysisState === "limited_estimate" ? t("limited_estimate_note") : t("partial_assessment_note");
       return `
         <div class="ok" style="margin-top:12px;">
           <b>${title}</b><br/>${note}<br/>
           ${t("confidence")}: <b>${_escapeHtml(confidenceTier)}</b><br/>
-          <span class="mini">${t("partial_missing_data")}${missing.length ? ` (${_escapeHtml(missing.join(", "))})` : ``}</span>
+          <span class="mini">${t("partial_missing_data")}</span>
         </div>
       `;
     }
@@ -4549,7 +4590,6 @@
               <div class="whyFoot" style="margin-top:10px;">${t("baseline_helper")} <span class="mini">(${t("baseline_criteria")})</span></div>
               <div class="mini" style="margin-top:8px;">${t("quick_verdict_note")}</div>
             </div>
-            ${renderPartialLookupNotice(d)}
             ${renderAnalysisStateNotice(d)}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
