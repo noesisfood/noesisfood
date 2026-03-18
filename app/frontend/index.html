@@ -2225,10 +2225,26 @@
       return value || "-";
     }
 
+    function resolvedAnalysisConfidenceKey(data){
+      const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
+      const explicit = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
+      const missingCoreFields = Array.isArray(data?.data_quality?.missing_core_fields) ? data.data_quality.missing_core_fields : [];
+      const dqConfidence = Number(data?.data_quality?.confidence);
+      if (analysisState === "limited_estimate") return "low";
+      if (missingCoreFields.length >= 3) return "low";
+      if (explicit === "high" && missingCoreFields.length >= 2) return "medium";
+      if (Number.isFinite(dqConfidence)){
+        if (dqConfidence >= 0.75) return explicit || "high";
+        if (dqConfidence >= 0.45) return explicit === "high" ? "medium" : (explicit || "medium");
+        return "low";
+      }
+      return explicit || "low";
+    }
+
     function renderAnalysisStateNotice(data){
       const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (analysisState !== "partial_analysis" && analysisState !== "limited_estimate") return "";
-      const confidenceTier = localizedConfidenceTier(data?.analysis_confidence || data?.meta?.analysis_confidence || "");
+      const confidenceTier = localizedConfidenceTier(resolvedAnalysisConfidenceKey(data));
       const missing = Array.isArray(data?.lookup_missing_fields)
         ? data.lookup_missing_fields
         : (Array.isArray(data?.meta?.lookup_missing_fields) ? data.meta.lookup_missing_fields : []);
@@ -2496,11 +2512,11 @@
         const currentScore = data?.vitascore;
         const previousState = localizedAnalysisState(previousData?.analysis_state || previousData?.meta?.analysis_state || "");
         const currentState = localizedAnalysisState(data?.analysis_state || data?.meta?.analysis_state || "");
-        const previousConfidence = localizedConfidenceTier(previousData?.analysis_confidence || previousData?.meta?.analysis_confidence || "");
-        const currentConfidence = localizedConfidenceTier(data?.analysis_confidence || data?.meta?.analysis_confidence || "");
+        const previousConfidenceKey = resolvedAnalysisConfidenceKey(previousData || {});
+        const currentConfidenceKey = resolvedAnalysisConfidenceKey(data || {});
+        const previousConfidence = localizedConfidenceTier(previousConfidenceKey);
+        const currentConfidence = localizedConfidenceTier(currentConfidenceKey);
         const confidenceRank = { low: 1, medium: 2, high: 3 };
-        const previousConfidenceKey = String(previousData?.analysis_confidence || previousData?.meta?.analysis_confidence || "").toLowerCase();
-        const currentConfidenceKey = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
         state.refreshNotice = {
           previousScore: previousScore ?? "-",
           currentScore: currentScore ?? "-",
@@ -4404,7 +4420,7 @@
         const baselineScore = d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
         const baselineScoreText = Number.isFinite(Number(baselineScore)) ? `${baselineScore}/100` : "-";
         const analysisState = String(d?.analysis_state || d?.meta?.analysis_state || "full_analysis").toLowerCase();
-        const analysisConfidence = localizedConfidenceTier(d?.analysis_confidence || d?.meta?.analysis_confidence || "high");
+        const analysisConfidence = localizedConfidenceTier(resolvedAnalysisConfidenceKey(d));
         const assessmentLabel = analysisState === "partial_analysis"
           ? t("partial_assessment")
           : (analysisState === "limited_estimate" ? t("limited_estimate") : t("final_assessment"));

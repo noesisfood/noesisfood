@@ -3591,6 +3591,45 @@ def _core_nutrition_guard(per100: Dict[str, Optional[float]]) -> Dict[str, Any]:
     }
 
 
+def _confidence_rank(value: str) -> int:
+    key = str(value or "").strip().lower()
+    if key == "high":
+        return 3
+    if key == "medium":
+        return 2
+    return 1
+
+
+def _confidence_from_data_quality(dq: Dict[str, Any]) -> str:
+    confidence_value = _to_float((dq or {}).get("confidence"))
+    if confidence_value is None:
+        return "low"
+    if confidence_value >= 0.75:
+        return "high"
+    if confidence_value >= 0.45:
+        return "medium"
+    return "low"
+
+
+def _align_analysis_confidence(
+    analysis_state: str,
+    analysis_confidence: str,
+    dq: Dict[str, Any],
+) -> str:
+    state_key = str(analysis_state or "").strip().lower()
+    current = str(analysis_confidence or "").strip().lower() or "low"
+    missing_core_count = len(_as_list((dq or {}).get("missing_core_fields")))
+    dq_tier = _confidence_from_data_quality(dq)
+
+    if state_key == "limited_estimate":
+        return "low"
+    if missing_core_count >= 3:
+        return "low"
+    if missing_core_count >= 2 and current == "high":
+        current = "medium"
+    return dq_tier if _confidence_rank(dq_tier) < _confidence_rank(current) else current
+
+
 
 # -------------------------
 # Public API used by routes
@@ -4403,6 +4442,7 @@ def _analyze_normalized_product(
 
         why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
         dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
+        analysis_confidence = _align_analysis_confidence(analysis_state, analysis_confidence, dq)
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
         return _fallback_assessment_response(
