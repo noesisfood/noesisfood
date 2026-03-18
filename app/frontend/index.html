@@ -2261,10 +2261,13 @@
       const needsIngredients = lookupMissing.includes("ingredients") || lookupMissing.includes("additives") || !Array.isArray(data?.ingredients) || !data.ingredients.length;
       const usedNutritionPhoto = Boolean(photoMeta?.used_nutrition_photo) || Boolean(state.photoForm?.nutrition_image_data_url);
       const usedIngredientPhoto = Boolean(photoMeta?.used_ingredient_photo) || Boolean(state.photoForm?.ingredient_image_data_url);
+      const missingLabels = summarizedMissingFields(data);
       const reasonItems = [];
-      if (needsNutrition) reasonItems.push(t("enrich_reason_nutrition"));
-      if (needsIngredients) reasonItems.push(t("enrich_reason_ingredients"));
-      if (lookupMissing.includes("serving_size")) reasonItems.push(t("enrich_reason_serving"));
+      if (!missingLabels.length){
+        if (needsNutrition) reasonItems.push(t("enrich_reason_nutrition"));
+        if (needsIngredients) reasonItems.push(t("enrich_reason_ingredients"));
+        if (lookupMissing.includes("serving_size")) reasonItems.push(t("enrich_reason_serving"));
+      }
       const nextStep = needsNutrition && !usedNutritionPhoto
         ? "nutrition"
         : (needsIngredients && !usedIngredientPhoto ? "ingredients" : "refresh");
@@ -2275,7 +2278,8 @@
           <div class="sectionTitle">${t("enrich_title")}</div>
           <div class="mini" style="margin-top:6px;">${t("enrich_intro")}</div>
           <div class="mini" style="margin-top:6px;">${t("enrich_saved_future")}</div>
-          ${reasonItems.length ? `<div class="ok" style="margin-top:10px;"><b>${t("missing_now")}:</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+          ${missingLabels.length ? `<div class="ok" style="margin-top:10px;"><b>${t("missing_now")}:</b> ${_escapeHtml(missingLabels.join(", "))}</div>` : ``}
+          ${!missingLabels.length && reasonItems.length ? `<div class="ok" style="margin-top:10px;"><b>${t("missing_now")}:</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
           <div class="mini" style="margin-top:10px;"><b>${t("enrich_next_step")}:</b> ${nextStep === "nutrition" ? t("enrich_step_nutrition") : (nextStep === "ingredients" ? t("enrich_step_ingredients") : t("enrich_step_refresh"))}</div>
           <div class="mini" style="margin-top:8px;">1. ${t("enrich_step_nutrition")}</div>
           <div class="mini">2. ${t("enrich_step_ingredients")}</div>
@@ -2371,9 +2375,9 @@
       const note = analysisState === "limited_estimate" ? t("limited_estimate_note") : t("partial_assessment_note");
       return `
         <div class="ok" style="margin-top:12px;">
-          <b>${title}</b><br/>${note}<br/>
-          ${t("confidence")}: <b>${_escapeHtml(confidenceTier)}</b><br/>
-          <span class="mini">${t("partial_missing_data")}</span>
+          <b>${title}</b><br/>
+          <span class="mini">${note}</span><br/>
+          ${t("confidence")}: <b>${_escapeHtml(confidenceTier)}</b>
         </div>
       `;
     }
