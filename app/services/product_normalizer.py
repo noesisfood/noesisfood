@@ -103,6 +103,58 @@ def _get_energy_kcal(nutriments: Dict[str, Any]) -> Optional[float]:
     return round(kj / 4.184, 2)
 
 
+def _get_sugar_g(nutriments: Dict[str, Any]) -> Optional[float]:
+    return _get_nutriment(
+        nutriments,
+        "sugars_100g",
+        "sugars_100ml",
+        "sugar_100g",
+        "sugar_100ml",
+        "sugars",
+        "sugar",
+        "added-sugars_100g",
+        "added-sugars_100ml",
+        "added-sugars",
+        "added_sugars_100g",
+        "added_sugars_100ml",
+        "added_sugars",
+    )
+
+
+def _get_salt_g(nutriments: Dict[str, Any]) -> Optional[float]:
+    salt = _get_nutriment(nutriments, "salt_100g", "salt_100ml", "salt")
+    if salt is not None:
+        return salt
+    sodium = _get_nutriment(nutriments, "sodium_100g", "sodium_100ml", "sodium")
+    if sodium is None:
+        return None
+    return round(float(sodium) * 2.5, 4)
+
+
+def _get_saturated_fat_g(nutriments: Dict[str, Any]) -> Optional[float]:
+    return _get_nutriment(
+        nutriments,
+        "saturated-fat_100g",
+        "saturated-fat_100ml",
+        "saturated_fat_100g",
+        "saturated_fat_100ml",
+        "saturated-fat",
+        "saturated_fat",
+    )
+
+
+def _get_protein_g(nutriments: Dict[str, Any]) -> Optional[float]:
+    return _get_nutriment(
+        nutriments,
+        "proteins_100g",
+        "proteins_100ml",
+        "protein_100g",
+        "protein_100ml",
+        "proteins",
+        "protein",
+    )
+
+
 def _parse_serving_size_to_g_or_ml(serving: Any) -> Optional[float]:
     """
     Returns numeric value in g/ml (no unit in return).
@@ -367,16 +419,10 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
     nutriments = off_product.get("nutriments") or {}
 
     energy_kcal = _get_energy_kcal(nutriments)
-    sugar = _get_nutriment(nutriments, "sugars_100g", "sugar_100g", "sugars", "sugar")
-    salt = _get_nutriment(nutriments, "salt_100g", "salt")
-    sat_fat = _get_nutriment(
-        nutriments,
-        "saturated-fat_100g",
-        "saturated_fat_100g",
-        "saturated-fat",
-        "saturated_fat",
-    )
-    protein = _get_nutriment(nutriments, "proteins_100g", "protein_100g", "proteins", "protein")
+    sugar = _get_sugar_g(nutriments)
+    salt = _get_salt_g(nutriments)
+    sat_fat = _get_saturated_fat_g(nutriments)
+    protein = _get_protein_g(nutriments)
 
     is_beverage, is_bev_inferred, bev_reason = _infer_is_beverage(off_product)
     unit = "ml" if is_beverage else "g"
