@@ -1499,6 +1499,12 @@
       scanner_permission_error: "Camera access could not be enabled. Enter the barcode manually.",
       scanner_loading: "Opening camera...",
       scanner_success: "Barcode detected.",
+      scan_state_processing_title: "Still processing",
+      scan_state_processing_body: "The product scan is still being finalized. Please wait a moment.",
+      scan_state_unresolved_title: "Scan needs completion",
+      scan_state_unresolved_body: "We could not resolve a complete product result yet. Continue with manual entry or photo enrichment.",
+      scan_state_fallback_title: "Estimate needs enrichment",
+      scan_state_fallback_body: "A fallback estimate was generated, but the product identity or nutrition data is incomplete. Complete the scan before showing a final product page.",
       how_title: "How it works",
       how_l1: "OpenFoodFacts retrieval and data normalization",
       how_l2: "Core nutrition scoring with hybrid adjustment",
@@ -1520,6 +1526,12 @@
       scanner_permission_error: "Δεν ήταν δυνατή η πρόσβαση στην κάμερα. Πληκτρολόγησε το barcode χειροκίνητα.",
       scanner_loading: "Άνοιγμα κάμερας...",
       scanner_success: "Το barcode εντοπίστηκε.",
+      scan_state_processing_title: "Η επεξεργασία συνεχίζεται",
+      scan_state_processing_body: "Η σάρωση του προϊόντος ολοκληρώνεται ακόμη. Περίμενε λίγο ακόμη.",
+      scan_state_unresolved_title: "Η σάρωση χρειάζεται συμπλήρωση",
+      scan_state_unresolved_body: "Δεν ήταν ακόμη δυνατή η πλήρης ταυτοποίηση του προϊόντος. Συνέχισε με χειροκίνητη εισαγωγή ή εμπλουτισμό με φωτογραφία.",
+      scan_state_fallback_title: "Η εκτίμηση χρειάζεται εμπλουτισμό",
+      scan_state_fallback_body: "Παράχθηκε εναλλακτική εκτίμηση, αλλά λείπουν πλήρη στοιχεία ταυτότητας ή διατροφής. Ολοκλήρωσε τη σάρωση πριν εμφανιστεί τελική σελίδα προϊόντος.",
       how_title: "Πώς λειτουργεί",
       how_l1: "Ανάκτηση OpenFoodFacts και κανονικοποίηση δεδομένων",
       how_l2: "Βασική διατροφική αξιολόγηση και υβριδική προσαρμογή",
@@ -1541,6 +1553,12 @@
       scanner_permission_error: "Kein Zugriff auf die Kamera möglich. Gib den Barcode manuell ein.",
       scanner_loading: "Kamera wird geöffnet...",
       scanner_success: "Barcode erkannt.",
+      scan_state_processing_title: "Verarbeitung läuft noch",
+      scan_state_processing_body: "Der Produktscan wird noch fertiggestellt. Bitte kurz warten.",
+      scan_state_unresolved_title: "Scan muss ergänzt werden",
+      scan_state_unresolved_body: "Es konnte noch kein vollständiges Produktergebnis aufgelöst werden. Fahre mit manueller Eingabe oder Foto-Anreicherung fort.",
+      scan_state_fallback_title: "Schätzung braucht Anreicherung",
+      scan_state_fallback_body: "Es wurde nur eine Fallback-Schätzung erzeugt, aber Produktidentität oder Nährwerte sind unvollständig. Vor einer finalen Produktseite muss der Scan ergänzt werden.",
       how_title: "So funktioniert es",
       how_l1: "Abruf von OpenFoodFacts und Datennormalisierung",
       how_l2: "Grundbewertung der Nährwerte mit hybrider Anpassung",
@@ -1562,6 +1580,12 @@
       scanner_permission_error: "Impossible d’accéder à la caméra. Saisissez le code-barres manuellement.",
       scanner_loading: "Ouverture de la caméra...",
       scanner_success: "Code-barres détecté.",
+      scan_state_processing_title: "Traitement en cours",
+      scan_state_processing_body: "Le scan du produit est encore en cours de finalisation. Patientez un instant.",
+      scan_state_unresolved_title: "Le scan doit être complété",
+      scan_state_unresolved_body: "Nous n’avons pas encore pu résoudre un résultat produit complet. Continuez avec une saisie manuelle ou un enrichissement par photo.",
+      scan_state_fallback_title: "L’estimation doit être enrichie",
+      scan_state_fallback_body: "Une estimation de secours a été générée, mais l’identité du produit ou les données nutritionnelles sont incomplètes. Complétez le scan avant d’afficher une page produit finale.",
       how_title: "Comment ça fonctionne",
       how_l1: "Récupération OpenFoodFacts et normalisation des données",
       how_l2: "Évaluation nutritionnelle de base avec ajustement hybride",
@@ -1792,6 +1816,29 @@
       return false;
     }
 
+    function hasRenderableNutrition(data){
+      const nutrition = data?.nutrition_per_100 || {};
+      return ["sugar_g", "salt_g", "sat_fat_g", "protein_g", "energy_kcal"].some(key => Number.isFinite(Number(nutrition?.[key])));
+    }
+
+    function getScanResolutionState(data){
+      const explicit = String(data?.scan_resolution_state || data?.meta?.scan_resolution_state || "").trim().toLowerCase();
+      if (explicit) return explicit;
+      const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
+      const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
+      const hasIdentity = hasRenderableProductIdentity(data);
+      const hasNutrition = hasRenderableNutrition(data);
+      const hasStableResult = lookupState === "found_and_analyzable" || analysisState === "full_analysis" || analysisState === "partial_analysis";
+      if (hasIdentity && (hasNutrition || hasStableResult) && analysisState !== "insufficient_data") return "final_resolved_product";
+      if (analysisState === "limited_estimate" && !hasIdentity && !hasNutrition) return "fallback_estimate_only";
+      if (lookupState === "found_but_incomplete" || lookupState === "not_found" || analysisState === "insufficient_data" || !hasIdentity) return "unresolved_scan";
+      return "fallback_estimate_only";
+    }
+
+    function isFinalResolvedProductData(data){
+      return getScanResolutionState(data) === "final_resolved_product";
+    }
+
     function isPlaceholderScanResult(data){
       if (!data || typeof data !== "object") return false;
       const lookupState = String(data?.lookup_state || data?.meta?.lookup_state || "").toLowerCase();
@@ -1910,6 +1957,24 @@
           ${state.recoveryOpen ? renderManualEntryForm() : ``}
           <input id="ingredientPhotoInput" type="file" accept="image/*" style="display:none;" />
           <input id="nutritionPhotoInput" type="file" accept="image/*" style="display:none;" />
+        </div>
+      `;
+    }
+
+    function renderUnresolvedScanBlock(data){
+      if (!data || typeof data !== "object" || isFinalResolvedProductData(data)) return "";
+      const resolutionState = getScanResolutionState(data);
+      const title = resolutionState === "fallback_estimate_only"
+        ? t("scan_state_fallback_title")
+        : (resolutionState === "loading_processing" ? t("scan_state_processing_title") : t("scan_state_unresolved_title"));
+      const body = resolutionState === "fallback_estimate_only"
+        ? t("scan_state_fallback_body")
+        : (resolutionState === "loading_processing" ? t("scan_state_processing_body") : t("scan_state_unresolved_body"));
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${title}</div>
+          <div class="mini">${body}</div>
+          ${renderEnrichmentBlock(data)}
         </div>
       `;
     }
@@ -2492,7 +2557,7 @@
     }
 
     function _storeRecentProduct(data, key){
-      if (!data || typeof data !== "object") return;
+      if (!data || typeof data !== "object" || !isFinalResolvedProductData(data)) return;
       const identity = _productIdentity(data, key);
       if (!identity.key) return;
       const existing = _readRecentProducts().filter(item => String(item?.key || "") !== identity.key);
@@ -2512,7 +2577,7 @@
     function _isUsableCachedScan(data){
       if (!data || typeof data !== "object" || data?.error) return false;
       if (isPlaceholderScanResult(data)) return false;
-      if (!hasRenderableProductIdentity(data)) return false;
+      if (!isFinalResolvedProductData(data)) return false;
       return Number.isFinite(Number(data?.vitascore));
     }
 
@@ -2554,6 +2619,7 @@
     }
 
     function _storeAnalysisHistory(data, key){
+      if (!isFinalResolvedProductData(data)) return;
       const snapshot = _analysisSnapshot(data, key);
       if (!snapshot.key) return;
       const existing = _readAnalysisHistory().filter(item => String(item?.key || "") !== snapshot.key);
@@ -2593,7 +2659,8 @@
       state.data = entry.data;
       state.error = "";
       state.loading = false;
-      step = 2;
+      step = isFinalResolvedProductData(entry.data) ? 2 : 1;
+      state.recoveryOpen = !isFinalResolvedProductData(entry.data);
       const compareCandidate = _getComparisonCandidates(state.key)[0] || null;
       state.compareTargetKey = String(compareCandidate?.key || "");
       render();
@@ -2609,7 +2676,8 @@
       state.compareTargetKey = String(entry.product_b.key || "");
       state.error = "";
       state.loading = false;
-      step = 2;
+      step = isFinalResolvedProductData(entry.product_a.data) ? 2 : 1;
+      state.recoveryOpen = !isFinalResolvedProductData(entry.product_a.data);
       render();
     }
 
@@ -4066,6 +4134,10 @@
       if (step !== 1 && state.scanner?.open){
         closeScanner({ skipRender:true });
       }
+      if (step > 1 && state.data && !isFinalResolvedProductData(state.data)){
+        step = 1;
+        state.recoveryOpen = true;
+      }
 
       if (step === 1){
         app.innerHTML = `
@@ -4087,6 +4159,7 @@
                 </div>
                 <div class="helperText">${t("home_helper")}</div>
               </div>
+              ${renderUnresolvedScanBlock(state.data)}
               ${renderRecoveryBlock()}
             </div>
             <div class="secondaryZone">
@@ -4378,6 +4451,7 @@
             const { res, data, stale } = await fetchStableScanResult(nextKey, requestId);
             if (stale || !isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
             if (!res?.ok || data?.error || isPlaceholderScanResult(data)) return;
+            if (!isFinalResolvedProductData(data)) return;
             state.data = data;
             state.error = "";
             state.errorCode = "";
@@ -4422,6 +4496,18 @@
           render();
           return;
         }
+        if (!isFinalResolvedProductData(data)){
+          state.data = data;
+          state.error = "";
+          state.errorCode = "";
+          state.loading = false;
+          state.scanStatusMessage = "";
+          state.recoveryOpen = true;
+          step = 1;
+          render();
+          requestAnimationFrame(() => logScanPerformance(data, startedAt));
+          return;
+        }
         state.data = data;
         state.errorCode = "";
         state.scanStatusMessage = "";
@@ -4458,7 +4544,12 @@
         if (!isCurrentAnalysisRequest(requestId) || state.key !== currentKey) return;
         if (!res.ok || data?.error) throw new Error(localizeScanError(data, res.status));
         state.data = data;
-        _storeRecentProduct(data, currentKey);
+        if (isFinalResolvedProductData(data)){
+          _storeRecentProduct(data, currentKey);
+        } else {
+          state.recoveryOpen = true;
+          step = 1;
+        }
       }catch(e){
         if (!isCurrentAnalysisRequest(requestId) || state.key !== currentKey) return;
         console.warn(`[lang-switch] Failed to refresh data for ${lang}: ${e && e.message ? e.message : e}`);

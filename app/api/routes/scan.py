@@ -46,6 +46,14 @@ async def scan_endpoint(key: str, lang: str = Query("en")):
                 perf = {}
                 meta["performance"] = perf
             perf["route_total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
+            logger.info(
+                "scan endpoint key=%s status=%s resolution_state=%s render_allowed=%s reason=%s",
+                key,
+                "error" if data.get("error") else "ok",
+                data.get("scan_resolution_state") or meta.get("scan_resolution_state"),
+                data.get("final_render_allowed") if "final_render_allowed" in data else meta.get("final_render_allowed"),
+                data.get("final_render_reason") or meta.get("final_render_reason"),
+            )
         # if service returns {"error": "..."} keep it as JSON with 404-ish semantics
         if isinstance(data, dict) and data.get("error"):
             return JSONResponse(status_code=_error_status(data), content=data)

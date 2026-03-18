@@ -30,6 +30,16 @@ _GENERIC_INGREDIENT_IDS = {
     "milk ingredients",
 }
 
+_PLACEHOLDER_PRODUCT_NAMES = {
+    "unknown product",
+    "unknown product.",
+}
+
+
+def is_placeholder_product_name(value: Any) -> bool:
+    text = str(value or "").strip().lower()
+    return text in _PLACEHOLDER_PRODUCT_NAMES
+
 
 def _to_float(x: Any) -> Optional[float]:
     try:

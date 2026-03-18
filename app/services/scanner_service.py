@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from app.services.openfoodfacts_service import fetch_off_product
-from app.services.product_normalizer import normalize_product
+from app.services.product_normalizer import is_placeholder_product_name, normalize_product
 
 logger = logging.getLogger("noesisfood.scan")
 
@@ -349,7 +349,7 @@ def _attach_scan_timing(data: Dict[str, Any], timing: Dict[str, Any]) -> Dict[st
         meta = {}
         payload["meta"] = meta
     meta["performance"] = timing
-    return payload
+    return _attach_scan_resolution_metadata(payload, timing)
 
 
 def _to_float(x: Any) -> Optional[float]:
@@ -3601,6 +3601,109 @@ def _has_minimum_product_data(normalized: Dict[str, Any]) -> bool:
     return bool(name or ingredients or has_nutrition)
 
 
+def _has_renderable_product_identity_payload(result: Dict[str, Any]) -> bool:
+    product = result.get("product") if isinstance(result, dict) else {}
+    if not isinstance(product, dict):
+        product = {}
+    name = str(product.get("name") or "").strip()
+    if name and not is_placeholder_product_name(name):
+        return True
+    if str(product.get("brand") or "").strip():
+        return True
+    if str(product.get("image_url") or "").strip():
+        return True
+    return False
+
+
+def _has_renderable_nutrition_payload(result: Dict[str, Any]) -> bool:
+    nutrition = result.get("nutrition_per_100") if isinstance(result, dict) else {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+    return any(
+        _to_float(nutrition.get(key)) is not None
+        for key in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "energy_kcal")
+    )
+
+
+def _scan_resolution_metadata(result: Dict[str, Any]) -> Dict[str, Any]:
+    lookup_state = str(result.get("lookup_state") or _get_path(result, "meta", "lookup_state") or "").strip().lower()
+    analysis_state = str(result.get("analysis_state") or _get_path(result, "meta", "analysis_state") or "").strip().lower()
+    has_identity = _has_renderable_product_identity_payload(result)
+    has_nutrition = _has_renderable_nutrition_payload(result)
+    has_stable_source_result = lookup_state == "found_and_analyzable" or analysis_state in {"full_analysis", "partial_analysis"}
+
+    if has_identity and (has_nutrition or has_stable_source_result) and analysis_state not in {"insufficient_data", ""}:
+        return {
+            "scan_resolution_state": "final_resolved_product",
+            "final_render_allowed": True,
+            "final_render_reason": "resolved_product_payload",
+            "product_identity_missing": False,
+            "nutrition_missing": not has_nutrition,
+        }
+    if analysis_state == "limited_estimate" and not has_identity and not has_nutrition:
+        return {
+            "scan_resolution_state": "fallback_estimate_only",
+            "final_render_allowed": False,
+            "final_render_reason": "missing_identity_and_nutrition",
+            "product_identity_missing": True,
+            "nutrition_missing": True,
+        }
+    if lookup_state in {"found_but_incomplete", "not_found"} or analysis_state == "insufficient_data" or not has_identity:
+        return {
+            "scan_resolution_state": "unresolved_scan",
+            "final_render_allowed": False,
+            "final_render_reason": "incomplete_or_unresolved_scan",
+            "product_identity_missing": not has_identity,
+            "nutrition_missing": not has_nutrition,
+        }
+    return {
+        "scan_resolution_state": "fallback_estimate_only",
+        "final_render_allowed": False,
+        "final_render_reason": "fallback_estimate_requires_enrichment",
+        "product_identity_missing": not has_identity,
+        "nutrition_missing": not has_nutrition,
+    }
+
+
+def _attach_scan_resolution_metadata(result: Dict[str, Any], timing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    if not isinstance(result, dict):
+        return result
+    metadata = _scan_resolution_metadata(result)
+    payload = copy.deepcopy(result)
+    payload.update({
+        "scan_resolution_state": metadata["scan_resolution_state"],
+        "final_render_allowed": metadata["final_render_allowed"],
+        "final_render_reason": metadata["final_render_reason"],
+    })
+    meta = payload.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        payload["meta"] = meta
+    meta["scan_resolution_state"] = metadata["scan_resolution_state"]
+    meta["final_render_allowed"] = metadata["final_render_allowed"]
+    meta["final_render_reason"] = metadata["final_render_reason"]
+    meta["product_identity_missing"] = metadata["product_identity_missing"]
+    meta["nutrition_missing"] = metadata["nutrition_missing"]
+    if isinstance(timing, dict):
+        timing["scan_resolution_state"] = metadata["scan_resolution_state"]
+        timing["final_render_allowed"] = metadata["final_render_allowed"]
+        timing["final_render_reason"] = metadata["final_render_reason"]
+    logger.info(
+        "scan resolution key=%s lookup_source=%s off_ok=%s off_status=%s fallback_generated=%s identity_missing=%s nutrition_missing=%s render_gate_allowed=%s resolution_state=%s reason=%s",
+        str(payload.get("key") or (timing or {}).get("key") or ""),
+        str((timing or {}).get("lookup_source") or payload.get("source") or ""),
+        bool((timing or {}).get("off_fetch_ok")),
+        (timing or {}).get("openfoodfacts_status"),
+        bool((timing or {}).get("fallback_generated")),
+        metadata["product_identity_missing"],
+        metadata["nutrition_missing"],
+        metadata["final_render_allowed"],
+        metadata["scan_resolution_state"],
+        metadata["final_render_reason"],
+    )
+    return payload
+
+
 def _lookup_missing_fields(normalized: Dict[str, Any], raw: Optional[Dict[str, Any]] = None) -> List[str]:
     normalized = normalized if isinstance(normalized, dict) else {}
     nutrition = normalized.get("nutrition_per_100") or {}
@@ -4314,6 +4417,8 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     timing: Dict[str, Any] = {
         "source": "scan_product",
         "key": str(key or "").strip(),
+        "off_fetch_ok": False,
+        "fallback_generated": False,
     }
     lang = lang if lang in SUPPORTED_LANGS else "en"
     key = (key or "").strip()
@@ -4381,6 +4486,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
                 source = "openfoodfacts"
                 matched_by = "barcode_or_key"
                 timing["lookup_source"] = "openfoodfacts"
+                timing["off_fetch_ok"] = True
             else:
                 off_error = {
                     "status": int(off_result.status or 0),
@@ -4395,6 +4501,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     if raw is None:
         status = int((off_error or {}).get("status") or 0)
         if status == 404:
+            timing["fallback_generated"] = True
             result = _fallback_assessment_response(
                 key=key,
                 norm={"name": "Unknown product", "barcode": key},
@@ -4415,6 +4522,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             err["analysis_confidence"] = "low"
             timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
             return _attach_scan_timing(err, timing)
+        timing["fallback_generated"] = True
         result = _fallback_assessment_response(
             key=key,
             norm={"name": "Unknown product", "barcode": key},
@@ -4433,6 +4541,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
     try:
         norm = _normalize(raw, source=source)
     except Exception:
+        timing["fallback_generated"] = True
         result = _fallback_assessment_response(
             key=key,
             norm={"name": "Unknown product", "barcode": key},
@@ -4449,6 +4558,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         return _attach_scan_timing(result, timing)
     timing["normalize_ms"] = int(round((time.perf_counter() - normalize_started) * 1000.0))
     if not isinstance(norm, dict) or not norm:
+        timing["fallback_generated"] = True
         result = _fallback_assessment_response(
             key=key,
             norm={"name": "Unknown product", "barcode": key},
@@ -4462,6 +4572,7 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
         timing["total_ms"] = int(round((time.perf_counter() - started_at) * 1000.0))
         return _attach_scan_timing(result, timing)
     if not _has_minimum_product_data(norm):
+        timing["fallback_generated"] = True
         result = _fallback_assessment_response(
             key=key,
             norm=norm,
