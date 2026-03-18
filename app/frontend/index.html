@@ -1505,6 +1505,7 @@
       scan_state_unresolved_body: "We could not resolve a complete product result yet. Continue with manual entry or photo enrichment.",
       scan_state_fallback_title: "Estimate needs enrichment",
       scan_state_fallback_body: "A fallback estimate was generated, but the product identity or nutrition data is incomplete. Complete the scan before showing a final product page.",
+      scan_state_next_actions: "Continue with one of these options:",
       how_title: "How it works",
       how_l1: "OpenFoodFacts retrieval and data normalization",
       how_l2: "Core nutrition scoring with hybrid adjustment",
@@ -1532,6 +1533,7 @@
       scan_state_unresolved_body: "Δεν ήταν ακόμη δυνατή η πλήρης ταυτοποίηση του προϊόντος. Συνέχισε με χειροκίνητη εισαγωγή ή εμπλουτισμό με φωτογραφία.",
       scan_state_fallback_title: "Η εκτίμηση χρειάζεται εμπλουτισμό",
       scan_state_fallback_body: "Παράχθηκε εναλλακτική εκτίμηση, αλλά λείπουν πλήρη στοιχεία ταυτότητας ή διατροφής. Ολοκλήρωσε τη σάρωση πριν εμφανιστεί τελική σελίδα προϊόντος.",
+      scan_state_next_actions: "Συνέχισε με μία από αυτές τις επιλογές:",
       how_title: "Πώς λειτουργεί",
       how_l1: "Ανάκτηση OpenFoodFacts και κανονικοποίηση δεδομένων",
       how_l2: "Βασική διατροφική αξιολόγηση και υβριδική προσαρμογή",
@@ -1559,6 +1561,7 @@
       scan_state_unresolved_body: "Es konnte noch kein vollständiges Produktergebnis aufgelöst werden. Fahre mit manueller Eingabe oder Foto-Anreicherung fort.",
       scan_state_fallback_title: "Schätzung braucht Anreicherung",
       scan_state_fallback_body: "Es wurde nur eine Fallback-Schätzung erzeugt, aber Produktidentität oder Nährwerte sind unvollständig. Vor einer finalen Produktseite muss der Scan ergänzt werden.",
+      scan_state_next_actions: "Mit einer dieser Optionen fortfahren:",
       how_title: "So funktioniert es",
       how_l1: "Abruf von OpenFoodFacts und Datennormalisierung",
       how_l2: "Grundbewertung der Nährwerte mit hybrider Anpassung",
@@ -1586,6 +1589,7 @@
       scan_state_unresolved_body: "Nous n’avons pas encore pu résoudre un résultat produit complet. Continuez avec une saisie manuelle ou un enrichissement par photo.",
       scan_state_fallback_title: "L’estimation doit être enrichie",
       scan_state_fallback_body: "Une estimation de secours a été générée, mais l’identité du produit ou les données nutritionnelles sont incomplètes. Complétez le scan avant d’afficher une page produit finale.",
+      scan_state_next_actions: "Continuez avec l’une de ces options :",
       how_title: "Comment ça fonctionne",
       how_l1: "Récupération OpenFoodFacts et normalisation des données",
       how_l2: "Évaluation nutritionnelle de base avec ajustement hybride",
@@ -1970,11 +1974,23 @@
       const body = resolutionState === "fallback_estimate_only"
         ? t("scan_state_fallback_body")
         : (resolutionState === "loading_processing" ? t("scan_state_processing_body") : t("scan_state_unresolved_body"));
+      const actions = resolutionState === "loading_processing" ? "" : `
+        <div class="mini" style="margin-top:10px;">${t("scan_state_next_actions")}</div>
+        ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
+        <div class="btns" style="margin-top:8px;">
+          <button class="ghost" id="ingredientPhotoBtn">${t("fallback_ingredient_photo")}</button>
+          <button class="ghost" id="nutritionPhotoBtn">${t("fallback_nutrition_photo")}</button>
+          <button class="primary" id="manualEntryBtn">${t("fallback_manual_entry")}</button>
+        </div>
+        ${state.recoveryOpen ? renderManualEntryForm() : ``}
+        <input id="ingredientPhotoInput" type="file" accept="image/*" style="display:none;" />
+        <input id="nutritionPhotoInput" type="file" accept="image/*" style="display:none;" />
+      `;
       return `
-        <div class="section" style="margin-top:12px;">
+        <div class="section" style="margin-top:12px; border-color:rgba(255,210,110,.26); background:rgba(255,210,110,.05);">
           <div class="sectionTitle">${title}</div>
           <div class="mini">${body}</div>
-          ${renderEnrichmentBlock(data)}
+          ${actions}
         </div>
       `;
     }
