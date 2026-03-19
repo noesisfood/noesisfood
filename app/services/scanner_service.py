@@ -3841,6 +3841,63 @@ def _manual_ingredients_from_text(text: Any, note: str = "From manual") -> List[
     return [{"name": part, "class": "U", "note": note} for part in parts]
 
 
+def _ingredient_merge_key(value: Any) -> str:
+    text = _sanitize_ingredient_candidate(str(value or ""))
+    return _ingredient_confidence_text(text)
+
+
+def _ingredient_name_list(items: Any) -> List[str]:
+    out: List[str] = []
+    for item in _as_list(items):
+        if isinstance(item, dict):
+            name = str(item.get("name") or "").strip()
+        else:
+            name = str(item or "").strip()
+        if name:
+            out.append(name)
+    return out
+
+
+def _prefer_photo_ingredients(existing_ingredients: Any, extracted_ingredients: Any, extracted_text: Any) -> bool:
+    existing_names = _ingredient_name_list(existing_ingredients)
+    extracted_names = _ingredient_name_list(extracted_ingredients)
+    existing_keys = {_ingredient_merge_key(name) for name in existing_names if _ingredient_merge_key(name)}
+    extracted_keys = {_ingredient_merge_key(name) for name in extracted_names if _ingredient_merge_key(name)}
+    existing_text = ", ".join(existing_names).strip()
+    extracted_text_clean = str(extracted_text or "").strip()
+    if not extracted_keys:
+        return False
+    if len(extracted_keys) > len(existing_keys):
+        return True
+    if len(extracted_text_clean) > len(existing_text) + 20:
+        return True
+    return False
+
+
+def _merge_ingredient_objects(existing_ingredients: Any, extracted_text: Any, *, note: str = "From enrichment") -> List[Dict[str, Any]]:
+    existing_items = [item for item in _as_list(existing_ingredients) if isinstance(item, dict) and str(item.get("name") or "").strip()]
+    extracted_items = _manual_ingredients_from_text(extracted_text, note=note)
+    if not extracted_items:
+        return copy.deepcopy(existing_items)
+
+    prefer_photo = _prefer_photo_ingredients(existing_items, extracted_items, extracted_text)
+    merged: List[Dict[str, Any]] = []
+    seen = set()
+
+    def _push(item: Dict[str, Any]) -> None:
+        key = _ingredient_merge_key(item.get("name"))
+        if not key or key in seen:
+            return
+        seen.add(key)
+        merged.append(copy.deepcopy(item))
+
+    ordered_sources = (extracted_items, existing_items) if prefer_photo else (existing_items, extracted_items)
+    for source in ordered_sources:
+        for item in source:
+            _push(item)
+    return merged
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -3947,12 +4004,24 @@ def _apply_product_enrichment(norm: Dict[str, Any], enrichment: Dict[str, Any]) 
     out["nutrition_per_100"] = per100
 
     ingredients_text = str(captured.get("ingredients_text") or "").strip()
-    if ingredients_text and not _as_list(out.get("ingredients")):
-        out["ingredients"] = _manual_ingredients_from_text(ingredients_text, note="From enrichment")
+    ingredients_photo_preferred = False
+    if ingredients_text:
+        existing_ingredients = out.get("ingredients")
+        extracted_ingredients = _manual_ingredients_from_text(ingredients_text, note="From enrichment")
+        ingredients_photo_preferred = _prefer_photo_ingredients(existing_ingredients, extracted_ingredients, ingredients_text)
+        merged_ingredients = _merge_ingredient_objects(existing_ingredients, ingredients_text, note="From enrichment")
+        if merged_ingredients:
+            out["ingredients"] = merged_ingredients
 
     captured_categories = _as_list(captured.get("categories"))
     if captured_categories and not _as_list(out.get("categories")):
         out["categories"] = captured_categories
+
+    ingredients_meta = out.get("ingredients_meta") if isinstance(out.get("ingredients_meta"), dict) else {}
+    if ingredients_text:
+        ingredients_meta["enriched_from_photo"] = True
+    if ingredients_meta:
+        out["ingredients_meta"] = ingredients_meta
 
     meta = out.get("meta") if isinstance(out.get("meta"), dict) else {}
     meta["enrichment_layer"] = {
@@ -3967,6 +4036,8 @@ def _apply_product_enrichment(norm: Dict[str, Any], enrichment: Dict[str, Any]) 
                 for key in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "serving_size")
             },
         },
+        "ingredients_merge_applied": bool(ingredients_text),
+        "ingredients_photo_preferred": ingredients_photo_preferred,
     }
     out["meta"] = meta
     return out
