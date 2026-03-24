@@ -289,6 +289,47 @@ class SafetyObservabilityMatrixTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["observability"]["fetch_count"]["rasff_dg_sante_api"], 2)
         self.assertEqual(result["observability"]["page_count"]["rasff_dg_sante_api"], 2)
 
+    async def test_lebensmittelwarnung_fetch_emits_observability_on_success(self) -> None:
+        feed_xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss><channel>
+          <item>
+            <title>Recall title</title>
+            <link>/recall</link>
+            <description><![CDATA[Recall summary]]></description>
+            <pubDate>Mon, 16 Mar 2026 14:45:00 +0100</pubDate>
+          </item>
+        </channel></rss>"""
+
+        with patch.object(ss, "_fetch_safety_url_text", AsyncMock(return_value=feed_xml)):
+            result = await ss._fetch_lebensmittelwarnung_entries()
+
+        self.assertTrue(result["checked"])
+        self.assertEqual(len(result["entries"]), 1)
+        self.assertEqual(
+            result["observability"],
+            {
+                "source_checked": {"lebensmittelwarnung_de": 1},
+                "source_matched": {},
+                "confidence_assigned": {},
+                "batch_scope_explicit": 0,
+                "duplicate_collapsed": 0,
+                "fallback_used": False,
+                "fetch_count": {"lebensmittelwarnung_de": 1},
+                "page_count": {"lebensmittelwarnung_de": 1},
+                "no_match_reason": {},
+            },
+        )
+
+    async def test_lebensmittelwarnung_fetch_emits_observability_on_unavailable_source(self) -> None:
+        with patch.object(ss, "_fetch_safety_url_text", AsyncMock(return_value=None)):
+            result = await ss._fetch_lebensmittelwarnung_entries()
+
+        self.assertFalse(result["checked"])
+        self.assertEqual(result["entries"], [])
+        self.assertEqual(result["observability"]["fetch_count"]["lebensmittelwarnung_de"], 1)
+        self.assertEqual(result["observability"]["page_count"]["lebensmittelwarnung_de"], 1)
+        self.assertEqual(result["observability"]["no_match_reason"]["lebensmittelwarnung_de"], "source_unavailable")
+
 
 class SafetyLocalizationMatrixTests(unittest.TestCase):
     def test_el_en_de_fr_localization_invariant_case(self) -> None:

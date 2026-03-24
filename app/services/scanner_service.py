@@ -1364,13 +1364,18 @@ def _severity_from_text(text: str) -> str:
 
 
 async def _fetch_lebensmittelwarnung_entries() -> Dict[str, Any]:
+    observability = _new_safety_observability()
+    _bump_observability_bucket(observability, "fetch_count", "lebensmittelwarnung_de", 1)
+    _bump_observability_bucket(observability, "page_count", "lebensmittelwarnung_de", 1)
     feed_text = await _fetch_safety_url_text(LEBENSMITTELWARNUNG_FEED_URL, timeout_sec=4.5)
     if not feed_text:
-        return {"checked": False, "entries": []}
+        _set_no_match_reason(observability, "lebensmittelwarnung_de", "source_unavailable")
+        return {"checked": False, "entries": [], "observability": observability}
     try:
         root = ET.fromstring(feed_text)
     except Exception:
-        return {"checked": False, "entries": []}
+        _set_no_match_reason(observability, "lebensmittelwarnung_de", "source_unavailable")
+        return {"checked": False, "entries": [], "observability": observability}
 
     entries: List[Dict[str, Any]] = []
     for item in root.findall(".//item"):
@@ -1388,7 +1393,10 @@ async def _fetch_lebensmittelwarnung_entries() -> Dict[str, Any]:
             "text_blob": text_blob,
             "barcodes": _extract_alert_barcodes(text_blob),
         })
-    return {"checked": True, "entries": entries}
+    _bump_observability_bucket(observability, "source_checked", "lebensmittelwarnung_de", 1)
+    if not entries:
+        _set_no_match_reason(observability, "lebensmittelwarnung_de", "no_recent_entries")
+    return {"checked": True, "entries": entries, "observability": observability}
 
 
 async def _enrich_lebensmittelwarnung_recent_entries(entries: List[Dict[str, Any]], *, limit: int = 14) -> List[Dict[str, Any]]:
@@ -2050,11 +2058,14 @@ async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict
 
     feed_result = await _fetch_lebensmittelwarnung_entries()
     lebensmittelwarnung_lookup: Dict[str, Any]
-    lebensmittelwarnung_observability = _new_safety_observability()
-    _bump_observability_bucket(lebensmittelwarnung_observability, "fetch_count", "lebensmittelwarnung_de", 1)
-    _bump_observability_bucket(lebensmittelwarnung_observability, "page_count", "lebensmittelwarnung_de", 1)
+    lebensmittelwarnung_observability = _merge_safety_observability(feed_result.get("observability"))
+    if not (lebensmittelwarnung_observability.get("fetch_count") or {}).get("lebensmittelwarnung_de"):
+        _bump_observability_bucket(lebensmittelwarnung_observability, "fetch_count", "lebensmittelwarnung_de", 1)
+    if not (lebensmittelwarnung_observability.get("page_count") or {}).get("lebensmittelwarnung_de"):
+        _bump_observability_bucket(lebensmittelwarnung_observability, "page_count", "lebensmittelwarnung_de", 1)
     if not feed_result.get("checked"):
-        _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "source_unavailable")
+        if not str((lebensmittelwarnung_observability.get("no_match_reason") or {}).get("lebensmittelwarnung_de") or "").strip():
+            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "source_unavailable")
         lebensmittelwarnung_lookup = {
             "checked": False,
             "source": None,
@@ -2064,7 +2075,8 @@ async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict
             "observability": lebensmittelwarnung_observability,
         }
     else:
-        _bump_observability_bucket(lebensmittelwarnung_observability, "source_checked", "lebensmittelwarnung_de", 1)
+        if not (lebensmittelwarnung_observability.get("source_checked") or {}).get("lebensmittelwarnung_de"):
+            _bump_observability_bucket(lebensmittelwarnung_observability, "source_checked", "lebensmittelwarnung_de", 1)
         entries = await _enrich_lebensmittelwarnung_recent_entries(feed_result.get("entries") or [])
         candidate_entries: List[Dict[str, Any]] = []
         for entry in entries:
