@@ -4239,6 +4239,98 @@ def _photo_parsing_failed() -> Dict[str, Any]:
     return err
 
 
+def _normalize_photo_extracted_payload(parsed: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
+    out = copy.deepcopy(parsed) if isinstance(parsed, dict) else {}
+    payload = payload if isinstance(payload, dict) else {}
+    existing_product = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+    existing_analysis = payload.get("existing_analysis") if isinstance(payload.get("existing_analysis"), dict) else {}
+    existing_meta = existing_analysis.get("meta") if isinstance(existing_analysis.get("meta"), dict) else {}
+    existing_serving = existing_meta.get("serving") if isinstance(existing_meta.get("serving"), dict) else {}
+    nutrition = out.get("nutrition_per_100") if isinstance(out.get("nutrition_per_100"), dict) else {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+    out["nutrition_per_100"] = nutrition
+
+    extracted_fields = [str(item).strip() for item in _as_list(out.get("extracted_fields")) if str(item).strip()]
+    notes = str(out.get("notes") or "").strip()
+    label_kind = str(out.get("label_kind") or "").strip().lower()
+    composition_table_text = str(out.get("composition_table_text") or "").strip()
+    categories = out.get("categories")
+    if isinstance(categories, str):
+        categories = [c.strip() for c in categories.split(",") if c.strip()]
+    elif not isinstance(categories, list):
+        categories = []
+    product_name = str(out.get("product_name") or existing_product.get("name") or "").strip()
+    brand = str(out.get("brand") or existing_product.get("brand") or "").strip()
+    ingredients_text = str(out.get("ingredients_text") or "").strip()
+
+    evidence_blob = " ".join([
+        product_name,
+        brand,
+        " ".join([str(item).strip() for item in categories if str(item).strip()]),
+        notes,
+        composition_table_text,
+        " ".join(extracted_fields),
+        str(existing_product.get("name") or ""),
+        " ".join([str(item).strip() for item in _as_list(existing_product.get("categories")) if str(item).strip()]),
+    ]).strip().lower()
+    has_water_markers = _contains_any(evidence_blob, _CLEAN_WATER_MARKERS)
+    composition_markers = (
+        "composition table", "mineral composition", "mineralisation", "mineralization", "analysis", "analyse",
+        "hydrogencarbonat", "hydrogencarbonate", "bicarbonate", "calcium", "magnesium", "natrium", "sodium",
+        "sulfat", "sulfate", "chlorid", "chloride", "fluorid", "fluoride", "trockenrückstand", "dry residue",
+        "kohlensäure", "co2", "medium"
+    )
+    has_composition_markers = any(marker in evidence_blob for marker in composition_markers) or label_kind == "composition_table"
+    excluded_water_markers = ("juice", "saft", "soft drink", "soda", "cola", "energy", "flavour", "flavor", "limonade", "sirup", "syrup")
+    has_excluded_markers = any(marker in evidence_blob for marker in excluded_water_markers)
+    has_nutrition = any(nutrition.get(k) is not None for k in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g"))
+    if has_water_markers and has_composition_markers and not has_nutrition and not has_excluded_markers:
+        if not product_name:
+            product_name = str(existing_product.get("name") or "").strip()
+        if not brand:
+            brand = str(existing_product.get("brand") or "").strip()
+        existing_categories = [str(item).strip() for item in _as_list(existing_product.get("categories")) if str(item).strip()]
+        if not categories:
+            categories = existing_categories
+        if not categories:
+            categories = ["Mineral water"]
+        if not ingredients_text and product_name:
+            # Use the source-native water identity text only for composition-table water labels.
+            ingredients_text = product_name
+            extracted_fields.append("ingredients_text")
+        if nutrition.get("unit") is None:
+            inferred_unit = _first_present(
+                payload.get("unit"),
+                nutrition.get("unit"),
+                existing_analysis.get("nutrition_per_100", {}).get("unit") if isinstance(existing_analysis.get("nutrition_per_100"), dict) else None,
+                existing_serving.get("unit"),
+                "ml",
+            )
+            nutrition["unit"] = str(inferred_unit or "ml").strip().lower() or "ml"
+        for field in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g"):
+            if nutrition.get(field) is None:
+                nutrition[field] = 0.0
+        if not out.get("composition_table_text") and composition_table_text:
+            out["composition_table_text"] = composition_table_text
+        out["label_kind"] = "composition_table"
+        extracted_fields.append("composition_table")
+        extracted_fields.append("nutrition_per_100")
+        if not notes:
+            notes = "Composition-table water fallback applied with conservative zero nutrition for plain mineral water."
+        elif "composition-table water fallback applied" not in notes.lower():
+            notes = f"{notes} Composition-table water fallback applied with conservative zero nutrition for plain mineral water.".strip()
+
+    out["product_name"] = product_name or None
+    out["brand"] = brand or None
+    out["ingredients_text"] = ingredients_text or None
+    out["categories"] = [str(item).strip() for item in categories if str(item).strip()]
+    out["extracted_fields"] = list(dict.fromkeys(extracted_fields))
+    out["notes"] = notes or None
+    out["nutrition_per_100"] = nutrition
+    return out
+
+
 async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not OPENAI_API_KEY:
         return _photo_extraction_unavailable()
@@ -4260,18 +4352,24 @@ async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, A
                 "Return only a JSON object with keys: "
                 "product_name, brand, ingredients_text, categories, "
                 "nutrition_per_100 {unit, energy_kcal, sugar_g, salt_g, sat_fat_g, protein_g}, "
-                "confidence, extracted_fields, notes. "
+                "confidence, extracted_fields, notes, label_kind, composition_table_text. "
                 "Use null for unknown values. categories must be an array of short strings. "
                 "ingredients_text must be a single cleaned string. confidence must be high, medium, or low. "
-                "If the image is unclear, still extract what is visible and note uncertainty."
+                "label_kind must be one of ingredients, nutrition, composition_table, front_label, mixed, unknown. "
+                "If the product is water or mineral water and the label shows a mineral composition table instead of a classic nutrition or ingredients panel, "
+                "interpret that as composition_table, extract the product_name and brand exactly as written without translating them, "
+                "extract any visible composition_table_text, and infer short source-native categories when they are clearly visible. "
+                "If no ingredients list is present but the label clearly indicates plain mineral water or mineral water with carbonation, "
+                "you may return a short source-native water description in ingredients_text. "
+                "Do not translate the product_name. If the image is unclear, still extract what is visible and note uncertainty."
             ),
         }
     ]
     if ingredient_image:
-        content.append({"type": "input_text", "text": "Ingredient label photo:"})
+        content.append({"type": "input_text", "text": "Ingredient label / composition-table photo:"})
         content.append({"type": "input_image", "image_url": ingredient_image})
     if nutrition_image:
-        content.append({"type": "input_text", "text": "Nutrition table photo:"})
+        content.append({"type": "input_text", "text": "Nutrition table / composition-table photo:"})
         content.append({"type": "input_image", "image_url": nutrition_image})
 
     body = {
@@ -4301,7 +4399,7 @@ async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, A
     parsed = _extract_json_object(_responses_output_text(data))
     if not parsed:
         return _photo_parsing_failed()
-    return parsed
+    return _normalize_photo_extracted_payload(parsed, payload)
 
 
 def _analysis_mode(
