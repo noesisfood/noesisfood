@@ -15,6 +15,7 @@ import re
 import copy
 import logging
 import time
+import asyncio
 import html
 import xml.etree.ElementTree as ET
 from urllib.parse import urljoin
@@ -2046,6 +2047,157 @@ async def _lookup_efet_alerts(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+async def _lookup_lebensmittelwarnung_alerts(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
+    barcode = str(key or "").strip()
+    product_name = str(norm.get("name") or "").strip()
+    brand = str(norm.get("brand") or "").strip()
+    category = " ".join([str(item).strip() for item in _as_list(norm.get("categories")) if str(item).strip()])
+
+    feed_result = await _fetch_lebensmittelwarnung_entries()
+    lebensmittelwarnung_observability = _merge_safety_observability(feed_result.get("observability"))
+    if not (lebensmittelwarnung_observability.get("fetch_count") or {}).get("lebensmittelwarnung_de"):
+        _bump_observability_bucket(lebensmittelwarnung_observability, "fetch_count", "lebensmittelwarnung_de", 1)
+    if not (lebensmittelwarnung_observability.get("page_count") or {}).get("lebensmittelwarnung_de"):
+        _bump_observability_bucket(lebensmittelwarnung_observability, "page_count", "lebensmittelwarnung_de", 1)
+    if not feed_result.get("checked"):
+        if not str((lebensmittelwarnung_observability.get("no_match_reason") or {}).get("lebensmittelwarnung_de") or "").strip():
+            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "source_unavailable")
+        return {
+            "checked": False,
+            "source": None,
+            "source_label": None,
+            "has_matches": False,
+            "alerts": [],
+            "observability": lebensmittelwarnung_observability,
+        }
+
+    if not (lebensmittelwarnung_observability.get("source_checked") or {}).get("lebensmittelwarnung_de"):
+        _bump_observability_bucket(lebensmittelwarnung_observability, "source_checked", "lebensmittelwarnung_de", 1)
+
+    raw_entries = list(feed_result.get("entries") or [])
+    if not raw_entries:
+        _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "no_feed_entries")
+        return {
+            "checked": True,
+            "source": "lebensmittelwarnung_de",
+            "source_label": "lebensmittelwarnung.de",
+            "has_matches": False,
+            "alerts": [],
+            "observability": lebensmittelwarnung_observability,
+        }
+
+    scored_entries: List[Dict[str, Any]] = []
+    for entry in raw_entries:
+        score, confidence = _score_external_alert_candidate(entry, barcode, product_name, brand, category)
+        enriched = dict(entry)
+        enriched["_candidate_score"] = score
+        enriched["_candidate_confidence"] = confidence
+        scored_entries.append(enriched)
+
+    scored_entries.sort(key=lambda item: int(item.get("_candidate_score") or 0), reverse=True)
+
+    shortlist: List[Dict[str, Any]] = []
+    seen_shortlist_urls: set[str] = set()
+    for entry in scored_entries[:6]:
+        url = str(entry.get("url") or "").strip()
+        if url and url in seen_shortlist_urls:
+            continue
+        shortlist.append(entry)
+        if url:
+            seen_shortlist_urls.add(url)
+    for entry in raw_entries[:4]:
+        url = str(entry.get("url") or "").strip()
+        if url and url in seen_shortlist_urls:
+            continue
+        shortlist.append(entry)
+        if url:
+            seen_shortlist_urls.add(url)
+
+    enriched_shortlist = await _enrich_lebensmittelwarnung_recent_entries(shortlist, limit=len(shortlist))
+    enriched_by_url: Dict[str, Dict[str, Any]] = {}
+    for entry in enriched_shortlist:
+        url = str(entry.get("url") or "").strip()
+        if url:
+            enriched_by_url[url] = entry
+
+    candidate_entries: List[Dict[str, Any]] = []
+    seen_candidate_urls: set[str] = set()
+    for entry in scored_entries[:8]:
+        url = str(entry.get("url") or "").strip()
+        candidate = dict(enriched_by_url.get(url) or entry)
+        score, confidence = _score_external_alert_candidate(candidate, barcode, product_name, brand, category)
+        if score <= 0:
+            continue
+        candidate["_candidate_score"] = score
+        candidate["_candidate_confidence"] = confidence
+        candidate_entries.append(candidate)
+        if url:
+            seen_candidate_urls.add(url)
+
+    for entry in enriched_shortlist:
+        url = str(entry.get("url") or "").strip()
+        if url and url in seen_candidate_urls:
+            continue
+        score, confidence = _score_external_alert_candidate(entry, barcode, product_name, brand, category)
+        if score <= 0 and not (barcode and barcode in set(_extract_alert_barcodes(entry.get("text_blob") or ""))):
+            continue
+        extra = dict(entry)
+        extra["_candidate_score"] = max(score, 100 if barcode and barcode in set(_extract_alert_barcodes(entry.get("text_blob") or "")) else score)
+        extra["_candidate_confidence"] = "high" if extra["_candidate_score"] == 100 else confidence
+        candidate_entries.append(extra)
+        if url:
+            seen_candidate_urls.add(url)
+
+    candidate_entries.sort(key=lambda item: int(item.get("_candidate_score") or 0), reverse=True)
+    candidate_entries = candidate_entries[:8]
+
+    alerts: List[Dict[str, Any]] = []
+    for entry in candidate_entries:
+        detail_text = str(entry.get("detail_text") or "")
+        full_text = " ".join([str(entry.get("title") or ""), str(entry.get("summary") or ""), detail_text]).strip()
+        score, confidence = _score_external_alert_candidate(
+            {**entry, "detail_text": detail_text},
+            barcode,
+            product_name,
+            brand,
+            category,
+        )
+        if score < 40 and confidence != "high":
+            continue
+        scope_details = _extract_safety_scope_details(full_text)
+        if scope_details.get("batch_specific"):
+            confidence = "conditional"
+        alerts.append({
+            "title": _normalize_safety_text(entry.get("title") or "Lebensmittelwarnung"),
+            "summary": _normalize_safety_text(entry.get("summary") or detail_text),
+            "url": entry.get("url"),
+            "severity": _severity_from_text(full_text),
+            "scope": "batch" if scope_details.get("batch_specific") else "product",
+            "batch_specific": bool(scope_details.get("batch_specific")),
+            "batch": scope_details.get("batch"),
+            "lot": scope_details.get("lot"),
+            "best_before": scope_details.get("best_before"),
+            "source": "lebensmittelwarnung_de",
+            "source_label": "lebensmittelwarnung.de",
+            "match_score": int(score),
+            "confidence": confidence or "medium",
+            "published_at": entry.get("published_at"),
+        })
+
+    if alerts:
+        _bump_observability_bucket(lebensmittelwarnung_observability, "source_matched", "lebensmittelwarnung_de", len(alerts))
+    else:
+        _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "no_candidate_above_threshold")
+    return {
+        "checked": True,
+        "source": "lebensmittelwarnung_de",
+        "source_label": "lebensmittelwarnung.de",
+        "has_matches": len(alerts) > 0,
+        "alerts": _merge_safety_alerts(alerts),
+        "observability": lebensmittelwarnung_observability,
+    }
+
+
 async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict[str, Any]:
     barcode = str(key or "").strip()
     product_name = str(norm.get("name") or "").strip()
@@ -2056,104 +2208,27 @@ async def _lookup_external_safety_alerts(key: str, norm: Dict[str, Any]) -> Dict
     if cached is not None:
         return cached
 
-    feed_result = await _fetch_lebensmittelwarnung_entries()
-    lebensmittelwarnung_lookup: Dict[str, Any]
-    lebensmittelwarnung_observability = _merge_safety_observability(feed_result.get("observability"))
-    if not (lebensmittelwarnung_observability.get("fetch_count") or {}).get("lebensmittelwarnung_de"):
-        _bump_observability_bucket(lebensmittelwarnung_observability, "fetch_count", "lebensmittelwarnung_de", 1)
-    if not (lebensmittelwarnung_observability.get("page_count") or {}).get("lebensmittelwarnung_de"):
-        _bump_observability_bucket(lebensmittelwarnung_observability, "page_count", "lebensmittelwarnung_de", 1)
-    if not feed_result.get("checked"):
-        if not str((lebensmittelwarnung_observability.get("no_match_reason") or {}).get("lebensmittelwarnung_de") or "").strip():
-            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "source_unavailable")
-        lebensmittelwarnung_lookup = {
-            "checked": False,
-            "source": None,
-            "source_label": None,
-            "has_matches": False,
-            "alerts": [],
-            "observability": lebensmittelwarnung_observability,
-        }
-    else:
-        if not (lebensmittelwarnung_observability.get("source_checked") or {}).get("lebensmittelwarnung_de"):
-            _bump_observability_bucket(lebensmittelwarnung_observability, "source_checked", "lebensmittelwarnung_de", 1)
-        entries = await _enrich_lebensmittelwarnung_recent_entries(feed_result.get("entries") or [])
-        candidate_entries: List[Dict[str, Any]] = []
-        for entry in entries:
-            score, confidence = _score_external_alert_candidate(entry, barcode, product_name, brand, category)
-            if score <= 0:
-                continue
-            enriched = dict(entry)
-            enriched["_candidate_score"] = score
-            enriched["_candidate_confidence"] = confidence
-            candidate_entries.append(enriched)
+    async def _timed_lookup(field: str, coroutine: Any) -> Dict[str, Any]:
+        started = time.perf_counter()
+        result = await coroutine
+        result_copy = copy.deepcopy(result) if isinstance(result, dict) else {}
+        result_copy["_timing_field"] = field
+        result_copy["_timing_ms"] = int(round((time.perf_counter() - started) * 1000.0))
+        return result_copy
 
-        exact_barcode_entries = [entry for entry in entries if barcode and barcode in set(_extract_alert_barcodes(entry.get("text_blob") or ""))]
-        for entry in exact_barcode_entries:
-            if all(str(existing.get("url") or "") != str(entry.get("url") or "") for existing in candidate_entries):
-                extra = dict(entry)
-                extra["_candidate_score"] = 100
-                extra["_candidate_confidence"] = "high"
-                candidate_entries.append(extra)
-
-        candidate_entries.sort(key=lambda item: int(item.get("_candidate_score") or 0), reverse=True)
-        candidate_entries = candidate_entries[:8]
-
-        alerts: List[Dict[str, Any]] = []
-        for entry in candidate_entries:
-            detail_text = str(entry.get("detail_text") or "")
-            if not detail_text and entry.get("url"):
-                detail_html = await _fetch_safety_url_text(str(entry.get("url")), timeout_sec=3.0)
-                if detail_html:
-                    detail_text = _strip_html_to_text(detail_html)
-            full_text = " ".join([str(entry.get("title") or ""), str(entry.get("summary") or ""), detail_text]).strip()
-            score, confidence = _score_external_alert_candidate(
-                {**entry, "detail_text": detail_text},
-                barcode,
-                product_name,
-                brand,
-                category,
-            )
-            if score < 40 and confidence != "high":
-                continue
-            scope_details = _extract_safety_scope_details(full_text)
-            if scope_details.get("batch_specific"):
-                confidence = "conditional"
-            alerts.append({
-                "title": _normalize_safety_text(entry.get("title") or "Lebensmittelwarnung"),
-                "summary": _normalize_safety_text(entry.get("summary") or detail_text),
-                "url": entry.get("url"),
-                "severity": _severity_from_text(full_text),
-                "scope": "batch" if scope_details.get("batch_specific") else "product",
-                "batch_specific": bool(scope_details.get("batch_specific")),
-                "batch": scope_details.get("batch"),
-                "lot": scope_details.get("lot"),
-                "best_before": scope_details.get("best_before"),
-                "source": "lebensmittelwarnung_de",
-                "source_label": "lebensmittelwarnung.de",
-                "match_score": int(score),
-                "confidence": confidence or "medium",
-                "published_at": entry.get("published_at"),
-            })
-
-        if alerts:
-            _bump_observability_bucket(lebensmittelwarnung_observability, "source_matched", "lebensmittelwarnung_de", len(alerts))
-        elif entries:
-            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "no_candidate_above_threshold")
-        else:
-            _set_no_match_reason(lebensmittelwarnung_observability, "lebensmittelwarnung_de", "no_feed_entries")
-        lebensmittelwarnung_lookup = {
-            "checked": True,
-            "source": "lebensmittelwarnung_de",
-            "source_label": "lebensmittelwarnung.de",
-            "has_matches": len(alerts) > 0,
-            "alerts": _merge_safety_alerts(alerts),
-            "observability": lebensmittelwarnung_observability,
-        }
-
-    rasff_lookup = await _lookup_rasff_public_alerts(norm)
-    efet_lookup = await _lookup_efet_alerts(key, norm)
+    lebensmittelwarnung_lookup, rasff_lookup, efet_lookup = await asyncio.gather(
+        _timed_lookup("safety_lebensmittelwarnung_ms", _lookup_lebensmittelwarnung_alerts(key, norm)),
+        _timed_lookup("safety_rasff_ms", _lookup_rasff_public_alerts(norm)),
+        _timed_lookup("safety_efet_ms", _lookup_efet_alerts(key, norm)),
+    )
+    merge_started = time.perf_counter()
     result = _merge_safety_lookup_payloads(lebensmittelwarnung_lookup, rasff_lookup, efet_lookup)
+    result["_timing"] = {
+        str(lebensmittelwarnung_lookup.get("_timing_field") or "safety_lebensmittelwarnung_ms"): int(lebensmittelwarnung_lookup.get("_timing_ms") or 0),
+        str(rasff_lookup.get("_timing_field") or "safety_rasff_ms"): int(rasff_lookup.get("_timing_ms") or 0),
+        str(efet_lookup.get("_timing_field") or "safety_efet_ms"): int(efet_lookup.get("_timing_ms") or 0),
+        "safety_merge_ms": int(round((time.perf_counter() - merge_started) * 1000.0)),
+    }
     _safety_lookup_cache_set(cache_key, result)
     return result
 
@@ -2201,6 +2276,14 @@ async def _finalize_scan_result_with_safety(result: Dict[str, Any], key: str, no
         timing["safety_lookup_ms"] = int(round((time.perf_counter() - lookup_started) * 1000.0))
         timing["safety_alerts_checked"] = bool(merged_lookup.get("checked"))
         timing["safety_alerts_has_matches"] = bool(merged_lookup.get("has_matches"))
+        per_source_timing = merged_lookup.get("_timing")
+        if not isinstance(per_source_timing, dict):
+            per_source_timing = safety_lookup.get("_timing")
+        if isinstance(per_source_timing, dict):
+            timing["safety_lebensmittelwarnung_ms"] = int(per_source_timing.get("safety_lebensmittelwarnung_ms") or 0)
+            timing["safety_rasff_ms"] = int(per_source_timing.get("safety_rasff_ms") or 0)
+            timing["safety_efet_ms"] = int(per_source_timing.get("safety_efet_ms") or 0)
+            timing["safety_merge_ms"] = int(per_source_timing.get("safety_merge_ms") or 0)
     return _apply_safety_lookup_to_result(result, merged_lookup)
 
 

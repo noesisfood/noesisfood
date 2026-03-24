@@ -514,6 +514,7 @@
       scanner:{
         open:false,
         opening:false,
+        processing:false,
         error:"",
         success:false,
         detectedCode:"",
@@ -1739,6 +1740,9 @@
       detector: null,
       rafId: 0,
       sessionId: 0,
+      attachedVideo: null,
+      attachedStream: null,
+      attachedSessionId: 0,
       stableCode: "",
       stableFormat: "",
       stableFrames: 0,
@@ -1752,8 +1756,9 @@
       return i18n[lang]?.[key] || i18n.en[key] || key;
     }
 
-    function updateScannerState(next){
+    function updateScannerState(next, opts = {}){
       state.scanner = Object.assign({}, state.scanner || {}, next || {});
+      if (opts.syncDom) _syncScannerOverlayState();
     }
 
     function _stopScannerLoop(){
@@ -1768,6 +1773,14 @@
         Array.from(scannerRuntime.stream.getTracks?.() || []).forEach(track => track.stop());
         scannerRuntime.stream = null;
       }
+      if (scannerRuntime.attachedVideo){
+        try{
+          scannerRuntime.attachedVideo.srcObject = null;
+        }catch(_e){}
+      }
+      scannerRuntime.attachedVideo = null;
+      scannerRuntime.attachedStream = null;
+      scannerRuntime.attachedSessionId = 0;
     }
 
     function closeScanner(opts = {}){
@@ -1785,6 +1798,7 @@
       updateScannerState({
         open:false,
         opening:false,
+        processing:false,
         error:"",
         success:false,
         detectedCode:"",
@@ -1822,9 +1836,29 @@
     async function _attachScannerStream(sessionId){
       const video = document.getElementById("scannerVideo");
       if (!video || sessionId !== scannerRuntime.sessionId || !scannerRuntime.stream) return;
+      if (
+        scannerRuntime.attachedSessionId === sessionId
+        && scannerRuntime.attachedVideo === video
+        && scannerRuntime.attachedStream === scannerRuntime.stream
+        && video.srcObject === scannerRuntime.stream
+      ){
+        if (video.paused){
+          try{
+            await video.play?.();
+          }catch(_e){}
+        }
+        return;
+      }
       try{
-        video.srcObject = scannerRuntime.stream;
-        await video.play?.();
+        if (video.srcObject !== scannerRuntime.stream){
+          video.srcObject = scannerRuntime.stream;
+        }
+        scannerRuntime.attachedVideo = video;
+        scannerRuntime.attachedStream = scannerRuntime.stream;
+        scannerRuntime.attachedSessionId = sessionId;
+        if (video.paused){
+          await video.play?.();
+        }
       }catch(_e){}
     }
 
@@ -1884,6 +1918,7 @@
 
     function _scannerStatusText(){
       if (state.scanner?.error) return state.scanner.error;
+      if (state.scanner?.processing) return scanLoadingHint(false);
       if (state.scanner?.success) return `${t("scanner_success")} ${state.scanner?.detectedCode || ""}`.trim();
       if (state.scanner?.candidateCode) return `${t("scanner_confirming")} ${state.scanner.candidateCode}`.trim();
       if (state.scanner?.opening) return t("scanner_loading");
@@ -1903,12 +1938,23 @@
       const prev = state.scanner || {};
       return prev.open !== next.open
         || prev.opening !== next.opening
+        || prev.processing !== next.processing
         || prev.error !== next.error
         || prev.success !== next.success
         || prev.detectedCode !== next.detectedCode
         || prev.candidateCode !== next.candidateCode
         || prev.candidateFormat !== next.candidateFormat
         || prev.unstable !== next.unstable;
+    }
+
+    function _syncScannerOverlayState(){
+      const guidance = document.getElementById("scannerGuidanceText");
+      if (guidance) guidance.textContent = _scannerGuidanceText();
+      const status = document.getElementById("scannerStatusText");
+      if (status){
+        status.textContent = _scannerStatusText();
+        status.className = _scannerStatusClass();
+      }
     }
 
     async function _scanFrameLoop(sessionId){
@@ -1965,6 +2011,7 @@
               success:false,
               error:"",
               opening:false,
+              processing:false,
               detectedCode:"",
               candidateCode: scannerRuntime.stableCode,
               candidateFormat: scannerRuntime.stableFormat,
@@ -1980,12 +2027,13 @@
                 success:true,
                 error:"",
                 opening:false,
+                processing:true,
                 detectedCode:lookupBarcode,
                 candidateCode:lookupBarcode,
                 candidateFormat:scannerRuntime.stableFormat,
                 stableFrames:scannerRuntime.stableFrames,
                 unstable:scannerRuntime.unstableMode
-              });
+              }, { syncDom:true });
               state.key = lookupBarcode;
               _logScannerCandidate("lock", {
                 selected_candidate: selected.rawValue,
@@ -1997,15 +2045,18 @@
                 unstable_mode: scannerRuntime.unstableMode,
                 confidence: null
               });
-              render();
+              _stopScannerLoop();
+              try{
+                video.pause?.();
+              }catch(_e){}
               window.setTimeout(() => {
                 if (sessionId !== scannerRuntime.sessionId) return;
                 closeScanner({ skipRender:true });
                 doScan(lookupBarcode);
-              }, 260);
+              }, 120);
               return;
             }
-            if (shouldRender) render();
+            if (shouldRender) updateScannerState(nextScannerState, { syncDom:true });
           } else if (scannerRuntime.stableFrames || state.scanner?.candidateCode){
             scannerRuntime.stableCode = "";
             scannerRuntime.stableFormat = "";
@@ -2016,6 +2067,7 @@
               success:false,
               error:"",
               opening:false,
+              processing:false,
               detectedCode:"",
               candidateCode:"",
               candidateFormat:"",
@@ -2024,7 +2076,7 @@
             };
             const shouldRender = _scannerNeedsRender(Object.assign({}, state.scanner || {}, nextScannerState));
             updateScannerState(nextScannerState);
-            if (shouldRender) render();
+            if (shouldRender) updateScannerState(nextScannerState, { syncDom:true });
           }
         }catch(_e){}
       }
@@ -2034,11 +2086,11 @@
     async function openScanner(){
       if (state.scanner?.open && (state.scanner?.opening || scannerRuntime.stream)) return;
       closeScanner({ skipRender:true });
-      updateScannerState({ open:true, opening:true, error:"", success:false, detectedCode:"", candidateCode:"", candidateFormat:"", stableFrames:0, unstable:false });
+      updateScannerState({ open:true, opening:true, processing:false, error:"", success:false, detectedCode:"", candidateCode:"", candidateFormat:"", stableFrames:0, unstable:false });
       render();
       const sessionId = scannerRuntime.sessionId;
       if (!navigator.mediaDevices?.getUserMedia || typeof window.BarcodeDetector === "undefined"){
-        updateScannerState({ opening:false, error:t("scanner_permission_error") });
+        updateScannerState({ opening:false, processing:false, error:t("scanner_permission_error") });
         render();
         return;
       }
@@ -2063,15 +2115,15 @@
           closeScanner({ skipRender:true });
           return;
         }
-        updateScannerState({ opening:false, error:"", success:false });
-        render();
+        updateScannerState({ opening:false, processing:false, error:"", success:false }, { syncDom:true });
         await _attachScannerStream(sessionId);
+        _stopScannerLoop();
         _scanFrameLoop(sessionId);
       }catch(_e){
         _stopScannerStream();
         scannerRuntime.detector = null;
         if (sessionId !== scannerRuntime.sessionId) return;
-        updateScannerState({ opening:false, error:t("scanner_permission_error"), success:false });
+        updateScannerState({ opening:false, processing:false, error:t("scanner_permission_error"), success:false });
         render();
       }
     }
@@ -3311,14 +3363,14 @@
               <div class="scannerSheetHead">
                 <div>
                   <div class="sectionTitle" style="margin-bottom:4px;">${t("scanner_title")}</div>
-                  <div class="mini">${_escapeHtml(_scannerGuidanceText())}</div>
+                  <div class="mini" id="scannerGuidanceText">${_escapeHtml(_scannerGuidanceText())}</div>
                 </div>
                 <button class="ghost" id="scannerCloseBtn">${t("scanner_close")}</button>
               </div>
               <div class="scannerViewport">
                 <video id="scannerVideo" autoplay playsinline muted></video>
                 <div class="scannerFrame"></div>
-                <div class="${_scannerStatusClass()}">${_escapeHtml(_scannerStatusText())}</div>
+                <div class="${_scannerStatusClass()}" id="scannerStatusText">${_escapeHtml(_scannerStatusText())}</div>
               </div>
               <div class="scannerActions">
                 <button class="ghost" id="scannerManualBtn">${t("scanner_manual_fallback")}</button>

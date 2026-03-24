@@ -330,6 +330,57 @@ class SafetyObservabilityMatrixTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["observability"]["page_count"]["lebensmittelwarnung_de"], 1)
         self.assertEqual(result["observability"]["no_match_reason"]["lebensmittelwarnung_de"], "source_unavailable")
 
+    async def test_external_lookup_records_per_source_timing(self) -> None:
+        empty_lookup = {
+            "checked": True,
+            "source": "rasff_dg_sante_api",
+            "source_label": "RASFF (DG SANTE API)",
+            "has_matches": False,
+            "alerts": [],
+            "observability": ss._new_safety_observability(),
+        }
+        with (
+            patch.object(ss, "_lookup_lebensmittelwarnung_alerts", AsyncMock(return_value={**empty_lookup, "source": "lebensmittelwarnung_de", "source_label": "lebensmittelwarnung.de"})),
+            patch.object(ss, "_lookup_rasff_public_alerts", AsyncMock(return_value=empty_lookup)),
+            patch.object(ss, "_lookup_efet_alerts", AsyncMock(return_value={**empty_lookup, "source": "efet_gr", "source_label": "EFET"})),
+        ):
+            result = await ss._lookup_external_safety_alerts("1111111111111", {"name": "Clean Product", "brand": "", "categories": []})
+
+        self.assertIn("_timing", result)
+        self.assertIn("safety_lebensmittelwarnung_ms", result["_timing"])
+        self.assertIn("safety_rasff_ms", result["_timing"])
+        self.assertIn("safety_efet_ms", result["_timing"])
+        self.assertIn("safety_merge_ms", result["_timing"])
+
+    async def test_finalize_scan_result_attaches_per_source_timing(self) -> None:
+        safety_lookup = {
+            "checked": True,
+            "source": "multi_source_safety",
+            "source_label": None,
+            "has_matches": False,
+            "alerts": [],
+            "observability": ss._new_safety_observability(),
+            "_timing": {
+                "safety_lebensmittelwarnung_ms": 12,
+                "safety_rasff_ms": 34,
+                "safety_efet_ms": 56,
+                "safety_merge_ms": 1,
+            },
+        }
+        timing = {}
+        with patch.object(ss, "_lookup_external_safety_alerts", AsyncMock(return_value=safety_lookup)):
+            await ss._finalize_scan_result_with_safety(
+                {"lookup_state": "found_but_incomplete", "analysis_state": "limited_estimate", "meta": {}},
+                "1111111111111",
+                {"name": "Clean Product", "brand": "", "categories": []},
+                timing,
+            )
+
+        self.assertEqual(timing["safety_lebensmittelwarnung_ms"], 12)
+        self.assertEqual(timing["safety_rasff_ms"], 34)
+        self.assertEqual(timing["safety_efet_ms"], 56)
+        self.assertEqual(timing["safety_merge_ms"], 1)
+
 
 class SafetyLocalizationMatrixTests(unittest.TestCase):
     def test_el_en_de_fr_localization_invariant_case(self) -> None:
