@@ -4331,6 +4331,52 @@ def _normalize_photo_extracted_payload(parsed: Dict[str, Any], payload: Dict[str
     return out
 
 
+def _build_photo_context_water_fallback(payload: Dict[str, Any], base: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    payload = payload if isinstance(payload, dict) else {}
+    existing_product = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+    ingredient_image = str(payload.get("ingredient_image_data_url") or "").strip()
+    nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
+    if not ingredient_image and not nutrition_image:
+        return None
+
+    evidence_blob = " ".join([
+        str(existing_product.get("name") or ""),
+        " ".join([str(item).strip() for item in _as_list(existing_product.get("categories")) if str(item).strip()]),
+    ]).strip().lower()
+    has_water_markers = _contains_any(evidence_blob, _CLEAN_WATER_MARKERS)
+    mineral_water_markers = (
+        "mineral water", "natural mineral water", "sparkling water", "carbonated water",
+        "mineralwasser", "natürliches mineralwasser", "natuerliches mineralwasser",
+        "kohlensäure", "kohlensaeure", "medium",
+    )
+    excluded_water_markers = ("juice", "saft", "soft drink", "soda", "cola", "energy", "flavour", "flavor", "limonade", "sirup", "syrup")
+    has_mineral_water_markers = any(marker in evidence_blob for marker in mineral_water_markers)
+    if not has_water_markers or not has_mineral_water_markers or any(marker in evidence_blob for marker in excluded_water_markers):
+        return None
+
+    base_payload = copy.deepcopy(base) if isinstance(base, dict) else {}
+    nutrition = base_payload.get("nutrition_per_100") if isinstance(base_payload.get("nutrition_per_100"), dict) else {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+    for field in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g"):
+        nutrition.setdefault(field, None)
+    base_payload.setdefault("product_name", str(existing_product.get("name") or "").strip() or None)
+    base_payload.setdefault("brand", str(existing_product.get("brand") or "").strip() or None)
+    base_payload.setdefault("categories", _as_list(existing_product.get("categories")))
+    base_payload.setdefault("ingredients_text", str(existing_product.get("name") or "").strip() or None)
+    base_payload["nutrition_per_100"] = nutrition
+    base_payload["confidence"] = str(base_payload.get("confidence") or "low").strip().lower() or "low"
+    extracted_fields = [str(item).strip() for item in _as_list(base_payload.get("extracted_fields")) if str(item).strip()]
+    extracted_fields.extend(["product_name", "brand", "categories", "ingredients_text", "nutrition_per_100", "composition_table_context"])
+    base_payload["extracted_fields"] = list(dict.fromkeys(extracted_fields))
+    notes = str(base_payload.get("notes") or "").strip()
+    fallback_note = "Composition-table water fallback derived from existing product context after photo upload."
+    base_payload["notes"] = f"{notes} {fallback_note}".strip() if notes else fallback_note
+    base_payload["label_kind"] = "composition_table"
+    base_payload.setdefault("composition_table_text", None)
+    return _normalize_photo_extracted_payload(base_payload, payload)
+
+
 async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not OPENAI_API_KEY:
         return _photo_extraction_unavailable()
@@ -5267,7 +5313,14 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     payload = payload if isinstance(payload, dict) else {}
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
-        return extracted
+        context_fallback = _build_photo_context_water_fallback(payload)
+        if context_fallback is None:
+            return extracted
+        extracted = context_fallback
+    else:
+        context_fallback = _build_photo_context_water_fallback(payload, extracted if isinstance(extracted, dict) else None)
+        if isinstance(context_fallback, dict):
+            extracted = context_fallback
 
     existing_analysis = payload.get("existing_analysis") if isinstance(payload.get("existing_analysis"), dict) else {}
     existing_product = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
