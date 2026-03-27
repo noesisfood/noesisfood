@@ -724,6 +724,7 @@
         err_missing_data: "Key data required for product assessment is missing.",
         err_found_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
         err_photo_extract: "We could not extract enough data from this photo. Try a flat, close, glare-free photo of the ingredients, nutrition table, or for water products the mineral composition table and product name.",
+        err_photo_unavailable: "Photo extraction is temporarily unavailable right now. Try again later, continue with manual entry, or use an ingredient photo if that would help.",
         err_photo_parse: "We could not extract the label data reliably from this photo. Retake one clear label section close-up. For water products, use the product name or mineral composition table.",
         err_photo_retry: "Try a clearer photo with better lighting.",
         err_network: "Network error. Is the server running?",
@@ -2271,7 +2272,8 @@
       if (code === "INVALID_BARCODE" || status === 400) return t("err_invalid_barcode");
       if (code === "PRODUCT_NOT_FOUND" || status === 404) return t("err_not_found");
       if (code === "PHOTO_PARSING_FAILED") return t("err_photo_parse");
-      if (code === "PHOTO_EXTRACTION_UNAVAILABLE" || code === "PHOTO_EXTRACTION_FAILED") return t("err_photo_extract");
+      if (code === "PHOTO_EXTRACTION_UNAVAILABLE") return localizedPhotoUnavailableMessage();
+      if (code === "PHOTO_EXTRACTION_FAILED") return t("err_photo_extract");
       if (code === "MISSING_KEY_DATA" && lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
       if (code === "MISSING_KEY_DATA") return t("err_missing_data");
       if (lookupState === "found_but_incomplete" && analysisState === "insufficient_data") return t("err_found_incomplete");
@@ -2471,6 +2473,13 @@
       if (key === "medium") return t("confidence_medium");
       if (key === "low") return t("confidence_low");
       return value || "-";
+    }
+
+    function localizedPhotoUnavailableMessage(){
+      if (lang === "el") return "Η εξαγωγή στοιχείων από φωτογραφία δεν είναι προσωρινά διαθέσιμη αυτή τη στιγμή. Δοκίμασε ξανά αργότερα, συνέχισε με χειροκίνητη εισαγωγή ή χρησιμοποίησε φωτογραφία συστατικών αν αυτό βοηθά.";
+      if (lang === "de") return "Die Fotoextraktion ist derzeit vorübergehend nicht verfügbar. Versuche es später erneut, fahre mit der manuellen Eingabe fort oder nutze ein Zutatenfoto, falls das hilfreich ist.";
+      if (lang === "fr") return "L’extraction à partir d’une photo est temporairement indisponible pour le moment. Réessayez plus tard, poursuivez avec la saisie manuelle ou utilisez une photo des ingrédients si cela peut aider.";
+      return "Photo extraction is temporarily unavailable right now. Try again later, continue with manual entry, or use an ingredient photo if that would help.";
     }
 
     function resolvedAnalysisConfidenceKey(data){
