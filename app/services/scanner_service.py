@@ -16,8 +16,10 @@ import copy
 import logging
 import time
 import asyncio
+import base64
 import html
 import xml.etree.ElementTree as ET
+from io import BytesIO
 from urllib.parse import urljoin
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -25,6 +27,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
+
+try:
+    from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+except Exception:  # pragma: no cover - optional dependency
+    Image = None
+    ImageEnhance = None
+    ImageFilter = None
+    ImageOps = None
+
+try:
+    from rapidocr import RapidOCR
+except Exception:  # pragma: no cover - optional dependency
+    RapidOCR = None
 
 from app.services.openfoodfacts_service import fetch_off_product
 from app.services.product_normalizer import is_placeholder_product_name, normalize_product
@@ -49,6 +64,8 @@ _SAFETY_LOOKUP_CACHE: Dict[str, Dict[str, Any]] = {}
 _SAFETY_LOOKUP_CACHE_TTL_SEC = 10 * 60
 _SAFETY_HTTP_CACHE: Dict[str, Dict[str, Any]] = {}
 _SAFETY_HTTP_CACHE_TTL_SEC = 15 * 60
+_LOCAL_NUTRITION_OCR_ENGINE: Any = None
+_LOCAL_NUTRITION_OCR_ENGINE_INIT = False
 
 LEBENSMITTELWARNUNG_FEED_URL = "https://www.lebensmittelwarnung.de/___LMW-Redaktion/RSSNewsfeed/Functions/RssFeeds/rssnewsfeed_Alle_DE.xml?nn=314268"
 RASFF_PUBLIC_API_URL = "https://api.datalake.sante.service.ec.europa.eu/rasff/irasff-general-info-view"
@@ -4240,46 +4257,125 @@ def _photo_parsing_failed() -> Dict[str, Any]:
     return err
 
 
-async def _extract_nutrition_photo_text_with_ai(payload: Dict[str, Any]) -> str:
-    if not OPENAI_API_KEY:
+def _decode_image_data_url(data_url: str) -> Optional[bytes]:
+    value = str(data_url or "").strip()
+    if not value:
+        return None
+    if "," not in value:
+        return None
+    try:
+        _, encoded = value.split(",", 1)
+        return base64.b64decode(encoded, validate=False)
+    except Exception:
+        return None
+
+
+def _get_local_nutrition_ocr_engine() -> Any:
+    global _LOCAL_NUTRITION_OCR_ENGINE, _LOCAL_NUTRITION_OCR_ENGINE_INIT
+    if _LOCAL_NUTRITION_OCR_ENGINE_INIT:
+        return _LOCAL_NUTRITION_OCR_ENGINE
+    _LOCAL_NUTRITION_OCR_ENGINE_INIT = True
+    if RapidOCR is None:
+        _LOCAL_NUTRITION_OCR_ENGINE = None
+        return None
+    try:
+        _LOCAL_NUTRITION_OCR_ENGINE = RapidOCR()
+    except Exception:
+        _LOCAL_NUTRITION_OCR_ENGINE = None
+    return _LOCAL_NUTRITION_OCR_ENGINE
+
+
+def _preprocess_nutrition_image_variants(image_bytes: bytes) -> List[Any]:
+    if not image_bytes or Image is None or ImageOps is None:
+        return []
+    try:
+        img = Image.open(BytesIO(image_bytes)).convert("L")
+    except Exception:
+        return []
+    width, height = img.size
+    max_edge = max(width, height, 1)
+    scale = 1.0
+    if max_edge < 1400:
+        scale = 1400.0 / float(max_edge)
+    if scale > 1.0:
+        img = img.resize((max(1, int(round(width * scale))), max(1, int(round(height * scale)))), Image.Resampling.LANCZOS)
+    base = ImageOps.autocontrast(img)
+    variants: List[Any] = [base]
+    if ImageEnhance is not None:
+        sharpened = ImageEnhance.Sharpness(base).enhance(1.8)
+        contrast = ImageEnhance.Contrast(sharpened).enhance(1.5)
+        variants.append(contrast)
+        threshold = contrast.point(lambda px: 255 if px > 168 else 0)
+        variants.append(threshold)
+    if ImageFilter is not None:
+        variants.append(base.filter(ImageFilter.SHARPEN))
+    return variants
+
+
+def _extract_text_from_rapidocr_result(result: Any) -> str:
+    if result is None:
         return ""
+    texts: List[str] = []
+    if hasattr(result, "txts") and isinstance(getattr(result, "txts"), list):
+        texts.extend(str(item).strip() for item in getattr(result, "txts") if str(item).strip())
+    elif isinstance(result, tuple) and len(result) >= 2 and isinstance(result[1], list):
+        for item in result[1]:
+            if isinstance(item, (list, tuple)) and item:
+                text = str(item[0] if len(item) > 0 else "").strip()
+                if text:
+                    texts.append(text)
+            else:
+                text = str(item).strip()
+                if text:
+                    texts.append(text)
+    elif isinstance(result, list):
+        for item in result:
+            if isinstance(item, (list, tuple)) and item:
+                text = str(item[0] if len(item) > 0 else "").strip()
+                if text:
+                    texts.append(text)
+            else:
+                text = str(item).strip()
+                if text:
+                    texts.append(text)
+    elif isinstance(result, str):
+        texts.append(result.strip())
+    return "\n".join(item for item in texts if item).strip()
+
+
+async def _extract_nutrition_photo_text_locally(payload: Dict[str, Any]) -> str:
     payload = payload if isinstance(payload, dict) else {}
     nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
     if not nutrition_image:
         return ""
+    image_bytes = _decode_image_data_url(nutrition_image)
+    if not image_bytes:
+        return ""
+    engine = _get_local_nutrition_ocr_engine()
+    if engine is None:
+        return ""
+    variants = _preprocess_nutrition_image_variants(image_bytes)
+    if not variants:
+        return ""
 
-    content: List[Dict[str, Any]] = [
-        {
-            "type": "input_text",
-            "text": (
-                "Read the nutrition table in this image and return only plain text OCR output. "
-                "Preserve visible row labels, units, and numeric values exactly as they appear. "
-                "Do not return JSON, explanations, or summaries."
-            ),
-        },
-        {"type": "input_image", "image_url": nutrition_image},
-    ]
-    body = {
-        "model": OPENAI_VISION_MODEL,
-        "input": [{"role": "user", "content": content}],
-        "max_output_tokens": 700,
-    }
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    def _run_local_ocr() -> str:
+        best_text = ""
+        for variant in variants:
+            try:
+                result = engine(variant, use_det=True, use_cls=True, use_rec=True)
+            except TypeError:
+                result = engine(variant)
+            except Exception:
+                continue
+            text = _extract_text_from_rapidocr_result(result)
+            if len(text) > len(best_text):
+                best_text = text
+        return best_text
+
     try:
-        async with httpx.AsyncClient(timeout=25.0) as client:
-            res = await client.post(OPENAI_RESPONSES_URL, headers=headers, json=body)
+        return await asyncio.to_thread(_run_local_ocr)
     except Exception:
         return ""
-    if res.status_code >= 400:
-        return ""
-    try:
-        data = res.json()
-    except Exception:
-        return ""
-    return _responses_output_text(data)
 
 
 def _normalize_nutrition_ocr_text(text: str) -> str:
@@ -5552,7 +5648,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
         nutrition_ocr_debug["ocr_helper_invoked"] = bool(str(payload.get("nutrition_image_data_url") or "").strip())
-        nutrition_ocr_text = await _extract_nutrition_photo_text_with_ai(payload)
+        nutrition_ocr_text = await _extract_nutrition_photo_text_locally(payload)
         nutrition_ocr_debug["ocr_text_non_empty"] = bool(str(nutrition_ocr_text or "").strip())
         nutrition_ocr_debug["ocr_text_length"] = len(str(nutrition_ocr_text or "").strip())
         nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, nutrition_ocr_text)

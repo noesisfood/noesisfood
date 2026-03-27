@@ -381,7 +381,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
             patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
             patch.object(
                 ss,
-                "_extract_nutrition_photo_text_with_ai",
+                "_extract_nutrition_photo_text_locally",
                 AsyncMock(return_value="Per 100 g Energy 265 kcal Saturates 14 g Sugars 1.0 g Protein 17 g Salt 2.5 g"),
             ),
             patch.object(ss, "_persist_product_enrichment", return_value={}),
@@ -399,6 +399,55 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_helper_invoked"], True)
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_text_non_empty"], True)
         self.assertGreaterEqual(int(result["photo_extraction"]["debug"]["rescued_field_count"]), 2)
+
+    async def test_analyze_photo_product_uses_local_ocr_after_upstream_unavailable(self) -> None:
+        extracted_error = {
+            "error": "Photo extraction is not available.",
+            "error_code": "PHOTO_EXTRACTION_UNAVAILABLE",
+            "status_code": 422,
+            "lookup_state": "found_but_incomplete",
+            "lookup_missing_fields": [],
+            "analysis_state": "insufficient_data",
+            "analysis_confidence": "low",
+        }
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "existing_key": "4000000000001",
+            "existing_analysis": {
+                "key": "4000000000001",
+                "source": "openfoodfacts",
+                "product": {"barcode": "4000000000001"},
+                "nutrition_per_100": {"unit": "g"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+                "image_url": "",
+                "quantity": "",
+            },
+        }
+
+        with (
+            patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
+            patch.object(
+                ss,
+                "_extract_nutrition_photo_text_locally",
+                AsyncMock(return_value="Per 100 g Energy 265 kcal Saturates 14 g Sugars 1.0 g Protein 17 g Salt 2.5 g"),
+            ),
+            patch.object(ss, "_persist_product_enrichment", return_value={}),
+        ):
+            result = await ss.analyze_photo_product(payload, lang="en")
+
+        self.assertFalse(result.get("error"))
+        self.assertEqual(result["product"]["name"], "Feta")
+        self.assertEqual(result["source"], "openfoodfacts")
+        self.assertEqual(result["matched_by"], "photo_enrichment")
+        self.assertEqual(result["nutrition_per_100"]["energy_kcal"], 265.0)
+        self.assertEqual(result["nutrition_per_100"]["salt_g"], 2.5)
+        self.assertEqual(result["photo_extraction"]["debug"]["ocr_helper_invoked"], True)
+        self.assertEqual(result["photo_extraction"]["debug"]["ocr_text_non_empty"], True)
 
     async def test_analyze_photo_product_returns_debug_on_failed_nutrition_rescue(self) -> None:
         extracted_error = {
@@ -430,7 +479,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
-            patch.object(ss, "_extract_nutrition_photo_text_with_ai", AsyncMock(return_value="")),
+            patch.object(ss, "_extract_nutrition_photo_text_locally", AsyncMock(return_value="")),
         ):
             result = await ss.analyze_photo_product(payload, lang="en")
 
