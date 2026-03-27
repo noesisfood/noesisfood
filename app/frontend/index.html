@@ -2799,6 +2799,9 @@
         const data = await res.json().catch(()=> ({}));
         if (!isCurrentAnalysisRequest(requestId)) return;
         if (!res.ok || data?.error){
+          if (payload.nutrition_image_data_url && data?.photo_extraction_debug){
+            console.info("[nutrition-photo-debug]", data.photo_extraction_debug);
+          }
           state.error = localizeScanError(data, res.status);
           state.errorCode = scanErrorCode(data, res.status);
           state.loading = false;

@@ -400,6 +400,50 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_text_non_empty"], True)
         self.assertGreaterEqual(int(result["photo_extraction"]["debug"]["rescued_field_count"]), 2)
 
+    async def test_analyze_photo_product_returns_debug_on_failed_nutrition_rescue(self) -> None:
+        extracted_error = {
+            "error": {"code": "PHOTO_EXTRACTION_FAILED", "message": "Could not extract enough data from the photo."},
+            "error_code": "PHOTO_EXTRACTION_FAILED",
+            "status": 422,
+            "lookup_state": "found_but_incomplete",
+            "analysis_state": "insufficient_data",
+            "analysis_confidence": "low",
+        }
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "existing_key": "4000000000001",
+            "existing_analysis": {
+                "key": "4000000000001",
+                "source": "openfoodfacts",
+                "product": {"barcode": "4000000000001"},
+                "nutrition_per_100": {"unit": "g"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+                "image_url": "",
+                "quantity": "",
+            },
+        }
+
+        with (
+            patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
+            patch.object(ss, "_extract_nutrition_photo_text_with_ai", AsyncMock(return_value="")),
+        ):
+            result = await ss.analyze_photo_product(payload, lang="en")
+
+        self.assertTrue(result.get("error"))
+        self.assertEqual(result["error_code"], "PHOTO_EXTRACTION_FAILED")
+        debug = result.get("photo_extraction_debug") or {}
+        self.assertEqual(debug.get("nutrition_upload_present"), True)
+        self.assertEqual(debug.get("ocr_helper_invoked"), True)
+        self.assertEqual(debug.get("ocr_text_non_empty"), False)
+        self.assertEqual(int(debug.get("ocr_text_length") or 0), 0)
+        self.assertEqual(int(debug.get("rescued_field_count") or 0), 0)
+        self.assertEqual(debug.get("final_error_branch"), "photo_extraction_failed")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5541,15 +5541,20 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     lang = lang if lang in SUPPORTED_LANGS else "en"
     payload = payload if isinstance(payload, dict) else {}
     nutrition_ocr_debug = {
+        "nutrition_upload_present": bool(str(payload.get("nutrition_image_data_url") or "").strip()),
+        "nutrition_image_chars": len(str(payload.get("nutrition_image_data_url") or "").strip()),
         "ocr_helper_invoked": False,
         "ocr_text_non_empty": False,
+        "ocr_text_length": 0,
         "rescued_field_count": 0,
+        "final_error_branch": "",
     }
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
         nutrition_ocr_debug["ocr_helper_invoked"] = bool(str(payload.get("nutrition_image_data_url") or "").strip())
         nutrition_ocr_text = await _extract_nutrition_photo_text_with_ai(payload)
         nutrition_ocr_debug["ocr_text_non_empty"] = bool(str(nutrition_ocr_text or "").strip())
+        nutrition_ocr_debug["ocr_text_length"] = len(str(nutrition_ocr_text or "").strip())
         nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, nutrition_ocr_text)
         if isinstance(nutrition_fallback, dict):
             debug_payload = nutrition_fallback.get("nutrition_ocr_debug") if isinstance(nutrition_fallback.get("nutrition_ocr_debug"), dict) else {}
@@ -5559,7 +5564,19 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
             context_fallback = _build_photo_context_water_fallback(payload)
             if context_fallback is None:
                 extracted = copy.deepcopy(extracted)
+                nutrition_ocr_debug["final_error_branch"] = str(extracted.get("error_code") or extracted.get("error", {}).get("code") or "photo_extraction_error").strip().lower()
                 extracted["photo_extraction_debug"] = nutrition_ocr_debug
+                logger.info(
+                    "photo nutrition rescue failed key=%s upload_present=%s image_chars=%s ocr_invoked=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s final_error_branch=%s",
+                    str(payload.get("existing_key") or _get_path(payload, "existing_analysis", "key") or ""),
+                    nutrition_ocr_debug["nutrition_upload_present"],
+                    nutrition_ocr_debug["nutrition_image_chars"],
+                    nutrition_ocr_debug["ocr_helper_invoked"],
+                    nutrition_ocr_debug["ocr_text_non_empty"],
+                    nutrition_ocr_debug["ocr_text_length"],
+                    nutrition_ocr_debug["rescued_field_count"],
+                    nutrition_ocr_debug["final_error_branch"],
+                )
                 return extracted
             extracted = context_fallback
     else:
@@ -5638,6 +5655,17 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
             "used_nutrition_photo": bool(str(payload.get("nutrition_image_data_url") or "").strip()),
             "debug": nutrition_ocr_debug,
         }
+        if result["photo_extraction"]["used_nutrition_photo"]:
+            logger.info(
+                "photo nutrition rescue success key=%s upload_present=%s image_chars=%s ocr_invoked=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s",
+                str(existing_key or ""),
+                nutrition_ocr_debug["nutrition_upload_present"],
+                nutrition_ocr_debug["nutrition_image_chars"],
+                nutrition_ocr_debug["ocr_helper_invoked"],
+                nutrition_ocr_debug["ocr_text_non_empty"],
+                nutrition_ocr_debug["ocr_text_length"],
+                nutrition_ocr_debug["rescued_field_count"],
+            )
         if isinstance(result.get("meta"), dict):
             result["meta"]["photo_extraction"] = result["photo_extraction"]
             if enrichment_record:
