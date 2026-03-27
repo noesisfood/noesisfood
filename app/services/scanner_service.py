@@ -4282,6 +4282,45 @@ async def _extract_nutrition_photo_text_with_ai(payload: Dict[str, Any]) -> str:
     return _responses_output_text(data)
 
 
+def _normalize_nutrition_ocr_text(text: str) -> str:
+    value = str(text or "")
+    if not value.strip():
+        return ""
+    replacements = {
+        "\r": "\n",
+        "\u00a0": " ",
+        "per100": "per 100",
+        "perl00": "per 100",
+        "per loo": "per 100",
+        "1009": "100 g",
+        "100q": "100 g",
+        "100qr": "100 g",
+        "kcai": "kcal",
+        "kca1": "kcal",
+        "sugers": "sugars",
+        "sugat": "sugar",
+        "protei n": "protein",
+        "protei": "protein",
+        "sait": "salt",
+        "sa1t": "salt",
+        "satur ates": "saturates",
+        "saturatesg": "saturates g",
+        "κορεσμενα": "κορεσμένα",
+        "σακχαρα": "σάκχαρα",
+        "αλατι": "αλάτι",
+        "ενεργεια": "ενέργεια",
+        "|": " ",
+    }
+    normalized = value
+    for old, new in replacements.items():
+        normalized = re.sub(re.escape(old), new, normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"(?<=\d)[ ]?(?=(kcal|kj|g)\b)", " ", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"(?<=\D)(\d+[.,]\d+|\d+)(?=(kcal|kj|g)\b)", r"\1 ", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"[ \t]+", " ", normalized)
+    normalized = re.sub(r"\n{2,}", "\n", normalized)
+    return normalized.strip()
+
+
 def _photo_numeric(value: Any) -> Optional[float]:
     if value is None:
         return None
@@ -4343,7 +4382,7 @@ def _build_nutrition_photo_rescue_payload(
         if direct_value is not None and nutrition.get(field) is None:
             nutrition[field] = direct_value
 
-    text = str(raw_text or "")
+    text = _normalize_nutrition_ocr_text(raw_text)
     if nutrition.get("energy_kcal") is None:
         nutrition["energy_kcal"] = _nutrition_value_from_text(
             text,
@@ -4413,6 +4452,10 @@ def _build_nutrition_photo_rescue_payload(
     notes = str(base_payload.get("notes") or "").strip()
     fallback_note = "Nutrition-photo fallback accepted with nutrition-only enrichment for an existing partial product."
     base_payload["notes"] = f"{notes} {fallback_note}".strip() if notes else fallback_note
+    base_payload["nutrition_ocr_debug"] = {
+        "ocr_text_non_empty": bool(text),
+        "rescued_field_count": usable_count,
+    }
     return _normalize_photo_extracted_payload(base_payload, payload)
 
 
@@ -5497,15 +5540,26 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
 async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Dict[str, Any]:
     lang = lang if lang in SUPPORTED_LANGS else "en"
     payload = payload if isinstance(payload, dict) else {}
+    nutrition_ocr_debug = {
+        "ocr_helper_invoked": False,
+        "ocr_text_non_empty": False,
+        "rescued_field_count": 0,
+    }
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
+        nutrition_ocr_debug["ocr_helper_invoked"] = bool(str(payload.get("nutrition_image_data_url") or "").strip())
         nutrition_ocr_text = await _extract_nutrition_photo_text_with_ai(payload)
+        nutrition_ocr_debug["ocr_text_non_empty"] = bool(str(nutrition_ocr_text or "").strip())
         nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, nutrition_ocr_text)
         if isinstance(nutrition_fallback, dict):
+            debug_payload = nutrition_fallback.get("nutrition_ocr_debug") if isinstance(nutrition_fallback.get("nutrition_ocr_debug"), dict) else {}
+            nutrition_ocr_debug["rescued_field_count"] = int(debug_payload.get("rescued_field_count") or 0)
             extracted = nutrition_fallback
         else:
             context_fallback = _build_photo_context_water_fallback(payload)
             if context_fallback is None:
+                extracted = copy.deepcopy(extracted)
+                extracted["photo_extraction_debug"] = nutrition_ocr_debug
                 return extracted
             extracted = context_fallback
     else:
@@ -5582,6 +5636,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
             "notes": str(extracted.get("notes") or "").strip(),
             "used_ingredient_photo": bool(str(payload.get("ingredient_image_data_url") or "").strip()),
             "used_nutrition_photo": bool(str(payload.get("nutrition_image_data_url") or "").strip()),
+            "debug": nutrition_ocr_debug,
         }
         if isinstance(result.get("meta"), dict):
             result["meta"]["photo_extraction"] = result["photo_extraction"]
