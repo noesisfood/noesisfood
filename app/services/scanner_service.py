@@ -4240,6 +4240,48 @@ def _photo_parsing_failed() -> Dict[str, Any]:
     return err
 
 
+async def _extract_nutrition_photo_text_with_ai(payload: Dict[str, Any]) -> str:
+    if not OPENAI_API_KEY:
+        return ""
+    payload = payload if isinstance(payload, dict) else {}
+    nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
+    if not nutrition_image:
+        return ""
+
+    content: List[Dict[str, Any]] = [
+        {
+            "type": "input_text",
+            "text": (
+                "Read the nutrition table in this image and return only plain text OCR output. "
+                "Preserve visible row labels, units, and numeric values exactly as they appear. "
+                "Do not return JSON, explanations, or summaries."
+            ),
+        },
+        {"type": "input_image", "image_url": nutrition_image},
+    ]
+    body = {
+        "model": OPENAI_VISION_MODEL,
+        "input": [{"role": "user", "content": content}],
+        "max_output_tokens": 700,
+    }
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            res = await client.post(OPENAI_RESPONSES_URL, headers=headers, json=body)
+    except Exception:
+        return ""
+    if res.status_code >= 400:
+        return ""
+    try:
+        data = res.json()
+    except Exception:
+        return ""
+    return _responses_output_text(data)
+
+
 def _photo_numeric(value: Any) -> Optional[float]:
     if value is None:
         return None
@@ -5457,7 +5499,8 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     payload = payload if isinstance(payload, dict) else {}
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
-        nutrition_fallback = _build_nutrition_photo_rescue_payload(payload)
+        nutrition_ocr_text = await _extract_nutrition_photo_text_with_ai(payload)
+        nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, nutrition_ocr_text)
         if isinstance(nutrition_fallback, dict):
             extracted = nutrition_fallback
         else:
