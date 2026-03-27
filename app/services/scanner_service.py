@@ -5457,10 +5457,14 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     payload = payload if isinstance(payload, dict) else {}
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
-        context_fallback = _build_photo_context_water_fallback(payload)
-        if context_fallback is None:
-            return extracted
-        extracted = context_fallback
+        nutrition_fallback = _build_nutrition_photo_rescue_payload(payload)
+        if isinstance(nutrition_fallback, dict):
+            extracted = nutrition_fallback
+        else:
+            context_fallback = _build_photo_context_water_fallback(payload)
+            if context_fallback is None:
+                return extracted
+            extracted = context_fallback
     else:
         context_fallback = _build_photo_context_water_fallback(payload, extracted if isinstance(extracted, dict) else None)
         if isinstance(context_fallback, dict):
