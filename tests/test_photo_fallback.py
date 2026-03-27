@@ -81,6 +81,38 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNone(normalized)
 
+    def test_build_nutrition_photo_rescue_payload_salvages_malformed_table_text(self) -> None:
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "existing_key": "4000000000001",
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+            },
+            "existing_analysis": {
+                "key": "4000000000001",
+                "nutrition_per_100": {"unit": "g"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+        }
+
+        rescued = ss._build_nutrition_photo_rescue_payload(
+            payload,
+            "Per 100 g Energy 265 kcal Fat 21 g Saturates 14 g Carbohydrate 1.0 g Sugars 1.0 g Protein 17 g Salt 2.5 g",
+        )
+
+        self.assertIsInstance(rescued, dict)
+        self.assertEqual(rescued["label_kind"], "nutrition")
+        self.assertEqual(rescued["product_name"], "Feta")
+        self.assertEqual(rescued["nutrition_per_100"]["unit"], "g")
+        self.assertEqual(rescued["nutrition_per_100"]["energy_kcal"], 265.0)
+        self.assertEqual(rescued["nutrition_per_100"]["sugar_g"], 1.0)
+        self.assertEqual(rescued["nutrition_per_100"]["salt_g"], 2.5)
+        self.assertEqual(rescued["nutrition_per_100"]["sat_fat_g"], 14.0)
+        self.assertEqual(rescued["nutrition_per_100"]["protein_g"], 17.0)
+        self.assertIn("nutrition_photo_context", rescued["extracted_fields"])
+
     async def test_analyze_photo_product_resolves_mineral_water_composition_case(self) -> None:
         extracted = {
             "product_name": "NatÃ¼rliches Mineralwasser mit KohlensÃ¤ure (medium)",
@@ -172,6 +204,60 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["matched_by"], "photo_enrichment")
         self.assertEqual(result["photo_extraction"]["confidence"], "low")
         self.assertIn("composition_table_context", result["photo_extraction"]["extracted_fields"])
+
+    async def test_analyze_photo_product_accepts_nutrition_only_photo_payload(self) -> None:
+        extracted = {
+            "product_name": None,
+            "brand": None,
+            "ingredients_text": None,
+            "categories": [],
+            "nutrition_per_100": {
+                "unit": "g",
+                "energy_kcal": 265.0,
+                "sugar_g": 1.0,
+                "salt_g": 2.5,
+                "sat_fat_g": 14.0,
+                "protein_g": 17.0,
+            },
+            "confidence": "medium",
+            "extracted_fields": ["nutrition_per_100", "energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g"],
+            "notes": "Nutrition table extracted from photo.",
+            "label_kind": "nutrition",
+        }
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "existing_key": "4000000000001",
+            "existing_analysis": {
+                "key": "4000000000001",
+                "source": "openfoodfacts",
+                "product": {"barcode": "4000000000001"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+                "image_url": "",
+                "quantity": "",
+            },
+        }
+
+        with (
+            patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted)),
+            patch.object(ss, "_persist_product_enrichment", return_value={}),
+        ):
+            result = await ss.analyze_photo_product(payload, lang="en")
+
+        self.assertFalse(result.get("error"))
+        self.assertEqual(result["product"]["name"], "Feta")
+        self.assertEqual(result["source"], "openfoodfacts")
+        self.assertEqual(result["matched_by"], "photo_enrichment")
+        self.assertEqual(result["nutrition_per_100"]["energy_kcal"], 265.0)
+        self.assertEqual(result["nutrition_per_100"]["sugar_g"], 1.0)
+        self.assertEqual(result["nutrition_per_100"]["salt_g"], 2.5)
+        self.assertEqual(result["nutrition_per_100"]["sat_fat_g"], 14.0)
+        self.assertEqual(result["nutrition_per_100"]["protein_g"], 17.0)
+        self.assertEqual(result["photo_extraction"]["used_nutrition_photo"], True)
 
 
 if __name__ == "__main__":

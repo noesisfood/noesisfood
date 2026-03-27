@@ -4049,6 +4049,7 @@ def _persist_product_enrichment(
     captured_payload = {
         "ingredients_text": str(merged_payload.get("ingredients_text") or "").strip() or None,
         "nutrition_per_100": {
+            "energy_kcal": _to_float(merged_payload.get("energy_kcal")),
             "sugar_g": _to_float(merged_payload.get("sugar_g")),
             "salt_g": _to_float(merged_payload.get("salt_g")),
             "sat_fat_g": _to_float(merged_payload.get("sat_fat_g")),
@@ -4128,7 +4129,7 @@ def _apply_product_enrichment(norm: Dict[str, Any], enrichment: Dict[str, Any]) 
             "ingredients_text": bool(ingredients_text),
             "nutrition_per_100": {
                 key: nutrition.get(key) is not None
-                for key in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "serving_size")
+                for key in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g", "serving_size")
             },
         },
         "ingredients_merge_applied": bool(ingredients_text),
@@ -4237,6 +4238,140 @@ def _photo_parsing_failed() -> Dict[str, Any]:
     err["analysis_state"] = "insufficient_data"
     err["analysis_confidence"] = "low"
     return err
+
+
+def _photo_numeric(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value or "").strip()
+    if not text:
+        return None
+    text = text.replace(",", ".")
+    match = re.search(r"-?\d+(?:\.\d+)?", text)
+    if not match:
+        return None
+    try:
+        return float(match.group(0))
+    except Exception:
+        return None
+
+
+def _nutrition_value_from_text(text: str, patterns: Sequence[str]) -> Optional[float]:
+    normalized = str(text or "")
+    for pattern in patterns:
+        match = re.search(pattern, normalized, flags=re.IGNORECASE)
+        if not match:
+            continue
+        value = _photo_numeric(match.group(1))
+        if value is not None:
+            return value
+    return None
+
+
+def _count_usable_nutrition_fields(nutrition: Dict[str, Any]) -> int:
+    if not isinstance(nutrition, dict):
+        return 0
+    return sum(1 for key in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g") if _photo_numeric(nutrition.get(key)) is not None)
+
+
+def _build_nutrition_photo_rescue_payload(
+    payload: Dict[str, Any],
+    raw_text: str = "",
+    base: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    payload = payload if isinstance(payload, dict) else {}
+    nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
+    if not nutrition_image:
+        return None
+
+    existing_product = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+    existing_analysis = payload.get("existing_analysis") if isinstance(payload.get("existing_analysis"), dict) else {}
+    if not str(existing_product.get("name") or "").strip() and not str(existing_analysis.get("key") or payload.get("existing_key") or "").strip():
+        return None
+
+    base_payload = copy.deepcopy(base) if isinstance(base, dict) else {}
+    nutrition = base_payload.get("nutrition_per_100") if isinstance(base_payload.get("nutrition_per_100"), dict) else {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+
+    for field in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g", "serving_size"):
+        direct_value = _photo_numeric(base_payload.get(field))
+        if direct_value is not None and nutrition.get(field) is None:
+            nutrition[field] = direct_value
+
+    text = str(raw_text or "")
+    if nutrition.get("energy_kcal") is None:
+        nutrition["energy_kcal"] = _nutrition_value_from_text(
+            text,
+            [
+                r"(?:energy|energie|energi(?:e|ja)?|ενέργεια)[^\n\r]{0,40}?(\d+(?:[.,]\d+)?)\s*kcal",
+                r"kcal[^\d]{0,12}(\d+(?:[.,]\d+)?)",
+            ],
+        )
+    if nutrition.get("energy_kcal") is None:
+        energy_kj = _nutrition_value_from_text(
+            text,
+            [r"(?:energy|energie|energi(?:e|ja)?|ενέργεια)[^\n\r]{0,40}?(\d+(?:[.,]\d+)?)\s*kj"],
+        )
+        if energy_kj is not None:
+            nutrition["energy_kcal"] = round(float(energy_kj) / 4.184, 1)
+    if nutrition.get("sugar_g") is None:
+        nutrition["sugar_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:sugars|sugar|zucker|zuccheri|sucre(?:s)?|σάκχαρα)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("salt_g") is None:
+        nutrition["salt_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:salt|salz|sel|αλάτι)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("sat_fat_g") is None:
+        nutrition["sat_fat_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:saturates|saturated fat(?:ty acids)?|davon gesättigte|dont acides gras saturés|κορεσμένα)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("protein_g") is None:
+        nutrition["protein_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:protein|eiwei(?:ß|ss)|protéines|πρωτεΐνες)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("unit") is None:
+        unit_match = re.search(r"(?:per|ανά|pour|pro)\s*100\s*(ml|g)\b", text, flags=re.IGNORECASE)
+        if unit_match:
+            nutrition["unit"] = str(unit_match.group(1) or "").strip().lower()
+    if nutrition.get("unit") is None:
+        inferred_unit = _first_present(
+            base_payload.get("unit"),
+            existing_analysis.get("nutrition_per_100", {}).get("unit") if isinstance(existing_analysis.get("nutrition_per_100"), dict) else None,
+            _get_path(existing_analysis, "meta", "serving", "unit"),
+            payload.get("unit"),
+            "g",
+        )
+        nutrition["unit"] = str(inferred_unit or "g").strip().lower() or "g"
+
+    usable_count = _count_usable_nutrition_fields(nutrition)
+    if usable_count < 2:
+        return None
+
+    base_payload["nutrition_per_100"] = nutrition
+    base_payload["product_name"] = str(_first_present(base_payload.get("product_name"), existing_product.get("name")) or "").strip() or None
+    base_payload["brand"] = str(_first_present(base_payload.get("brand"), existing_product.get("brand")) or "").strip() or None
+    base_payload["categories"] = _merge_categories(existing_product.get("categories") or [], base_payload.get("categories") or [])
+    base_payload["confidence"] = str(base_payload.get("confidence") or "low").strip().lower() or "low"
+    base_payload["label_kind"] = "nutrition"
+    extracted_fields = [str(item).strip() for item in _as_list(base_payload.get("extracted_fields")) if str(item).strip()]
+    extracted_fields.append("nutrition_per_100")
+    extracted_fields.append("nutrition_photo_context")
+    for field in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g"):
+        if nutrition.get(field) is not None:
+            extracted_fields.append(field)
+    base_payload["extracted_fields"] = list(dict.fromkeys(extracted_fields))
+    notes = str(base_payload.get("notes") or "").strip()
+    fallback_note = "Nutrition-photo fallback accepted with nutrition-only enrichment for an existing partial product."
+    base_payload["notes"] = f"{notes} {fallback_note}".strip() if notes else fallback_note
+    return _normalize_photo_extracted_payload(base_payload, payload)
 
 
 def _normalize_photo_extracted_payload(parsed: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -4442,10 +4577,18 @@ async def _extract_photo_payload_with_ai(payload: Dict[str, Any]) -> Dict[str, A
     except Exception:
         return _photo_extraction_unavailable()
 
-    parsed = _extract_json_object(_responses_output_text(data))
+    response_text = _responses_output_text(data)
+    parsed = _extract_json_object(response_text)
     if not parsed:
+        nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, response_text)
+        if isinstance(nutrition_fallback, dict):
+            return nutrition_fallback
         return _photo_parsing_failed()
-    return _normalize_photo_extracted_payload(parsed, payload)
+    normalized = _normalize_photo_extracted_payload(parsed, payload)
+    nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, response_text, normalized)
+    if isinstance(nutrition_fallback, dict):
+        return nutrition_fallback
+    return normalized
 
 
 def _analysis_mode(
@@ -5261,6 +5404,7 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
     ingredients = _manual_ingredients_from_text(ingredients_text, note=str(payload.get("ingredients_note") or "From manual"))
     nutrition = {
         "unit": unit,
+        "energy_kcal": _to_float(payload.get("energy_kcal")),
         "sugar_g": _to_float(payload.get("sugar_g")),
         "salt_g": _to_float(payload.get("salt_g")),
         "sat_fat_g": _to_float(payload.get("sat_fat_g")),
@@ -5336,6 +5480,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         "brand": str(_first_present(extracted.get("brand"), payload.get("brand"), existing_product.get("brand")) or "").strip(),
         "ingredients_text": _merge_ingredient_text(existing_ingredients, _first_present(extracted.get("ingredients_text"), payload.get("ingredients_text"))),
         "ingredients_note": "From photo",
+        "energy_kcal": _first_present(nutrition.get("energy_kcal"), existing_nutrition.get("energy_kcal")),
         "sugar_g": _first_present(nutrition.get("sugar_g"), existing_nutrition.get("sugar_g")),
         "salt_g": _first_present(nutrition.get("salt_g"), existing_nutrition.get("salt_g")),
         "sat_fat_g": _first_present(nutrition.get("sat_fat_g"), existing_nutrition.get("sat_fat_g")),
