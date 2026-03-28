@@ -3796,6 +3796,9 @@ def _has_minimum_product_data(normalized: Dict[str, Any]) -> bool:
     if not isinstance(nutrition, dict):
         nutrition = {}
     nutrition_values = [
+        nutrition.get("energy_kcal"),
+        nutrition.get("fat_g"),
+        nutrition.get("carb_g"),
         nutrition.get("sugar_g"),
         nutrition.get("salt_g"),
         nutrition.get("sat_fat_g"),
@@ -3825,7 +3828,7 @@ def _has_renderable_nutrition_payload(result: Dict[str, Any]) -> bool:
         nutrition = {}
     return any(
         _to_float(nutrition.get(key)) is not None
-        for key in ("sugar_g", "salt_g", "sat_fat_g", "protein_g", "energy_kcal")
+        for key in ("energy_kcal", "fat_g", "carb_g", "sugar_g", "salt_g", "sat_fat_g", "protein_g")
     )
 
 
@@ -4659,9 +4662,10 @@ def _evaluate_nutrition_photo_rescue(
     if usable_count == 0:
         debug["parser_acceptance_reason"] = "no_recognizable_nutrition_patterns"
         return None, debug
-    if not (usable_count >= 2 or primary_count >= 2):
-        debug["parser_acceptance_reason"] = "insufficient_rescued_fields"
-        return None, debug
+    if usable_count >= 3 or primary_count >= 2:
+        debug["parser_acceptance_reason"] = "accepted_structured"
+    else:
+        debug["parser_acceptance_reason"] = "accepted_partial"
 
     base_payload["nutrition_per_100"] = nutrition
     base_payload["product_name"] = str(_first_present(base_payload.get("product_name"), existing_product.get("name")) or "").strip() or None
@@ -4677,7 +4681,6 @@ def _evaluate_nutrition_photo_rescue(
     notes = str(base_payload.get("notes") or "").strip()
     fallback_note = "Nutrition-photo fallback accepted with nutrition-only enrichment for an existing partial product."
     base_payload["notes"] = f"{notes} {fallback_note}".strip() if notes else fallback_note
-    debug["parser_acceptance_reason"] = "accepted"
     base_payload["nutrition_ocr_debug"] = debug
     return _normalize_photo_extracted_payload(base_payload, payload), debug
 
@@ -5817,6 +5820,8 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
     nutrition = {
         "unit": unit,
         "energy_kcal": _to_float(payload.get("energy_kcal")),
+        "fat_g": _to_float(payload.get("fat_g")),
+        "carb_g": _to_float(payload.get("carb_g")),
         "sugar_g": _to_float(payload.get("sugar_g")),
         "salt_g": _to_float(payload.get("salt_g")),
         "sat_fat_g": _to_float(payload.get("sat_fat_g")),
@@ -5958,6 +5963,8 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         "ingredients_text": _merge_ingredient_text(existing_ingredients, _first_present(extracted.get("ingredients_text"), payload.get("ingredients_text"))),
         "ingredients_note": "From photo",
         "energy_kcal": _first_present(nutrition.get("energy_kcal"), existing_nutrition.get("energy_kcal")),
+        "fat_g": _first_present(nutrition.get("fat_g"), existing_nutrition.get("fat_g")),
+        "carb_g": _first_present(nutrition.get("carb_g"), existing_nutrition.get("carb_g")),
         "sugar_g": _first_present(nutrition.get("sugar_g"), existing_nutrition.get("sugar_g")),
         "salt_g": _first_present(nutrition.get("salt_g"), existing_nutrition.get("salt_g")),
         "sat_fat_g": _first_present(nutrition.get("sat_fat_g"), existing_nutrition.get("sat_fat_g")),
