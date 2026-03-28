@@ -506,6 +506,7 @@
         dataUrl:"",
         fileName:"",
         source:"",
+        originalDataUrl:"",
         crop:{ x:0.08, y:0.12, width:0.84, height:0.7 },
       };
     }
@@ -542,6 +543,12 @@
         nutrition_file_name:"",
         ingredient_crop_applied:false,
         nutrition_crop_applied:false,
+        ingredient_image_variant:"",
+        nutrition_image_variant:"",
+        ingredient_image_state_source:"",
+        nutrition_image_state_source:"",
+        ingredient_original_image_length:0,
+        nutrition_original_image_length:0,
       },
       photoCapture:{
         ...emptyPhotoCapture(),
@@ -2887,11 +2894,13 @@
       render();
       try{
         const existingProduct = state.data?.product || {};
+        const ingredientVariant = String(state.photoForm?.ingredient_image_variant || "").trim().toLowerCase();
+        const nutritionVariant = String(state.photoForm?.nutrition_image_variant || "").trim().toLowerCase();
         const payload = {
           ingredient_image_data_url: state.photoForm?.ingredient_image_data_url || "",
           nutrition_image_data_url: state.photoForm?.nutrition_image_data_url || "",
-          ingredient_crop_applied: Boolean(state.photoForm?.ingredient_crop_applied),
-          nutrition_crop_applied: Boolean(state.photoForm?.nutrition_crop_applied),
+          ingredient_crop_applied: ingredientVariant === "cropped" || Boolean(state.photoForm?.ingredient_crop_applied),
+          nutrition_crop_applied: nutritionVariant === "cropped" || Boolean(state.photoForm?.nutrition_crop_applied),
           existing_analysis: previousData || {},
           existing_key: state.key || previousData?.key || "",
           existing_product: {
@@ -2903,6 +2912,26 @@
           },
           timestamp: Date.now(),
         };
+        console.info("[photo-submit-debug]", {
+          ingredient_crop_applied: payload.ingredient_crop_applied,
+          ingredient_image_length: (payload.ingredient_image_data_url || "").length,
+          ingredient_image_variant: ingredientVariant || "unset",
+          ingredient_image_state_source: state.photoForm?.ingredient_image_state_source || "",
+          ingredient_original_image_length: Number(state.photoForm?.ingredient_original_image_length || 0),
+          ingredient_is_cropped_distinct:
+            ingredientVariant === "cropped"
+              ? Number((payload.ingredient_image_data_url || "").length) !== Number(state.photoForm?.ingredient_original_image_length || 0)
+              : false,
+          nutrition_crop_applied: payload.nutrition_crop_applied,
+          nutrition_image_length: (payload.nutrition_image_data_url || "").length,
+          nutrition_image_variant: nutritionVariant || "unset",
+          nutrition_image_state_source: state.photoForm?.nutrition_image_state_source || "",
+          nutrition_original_image_length: Number(state.photoForm?.nutrition_original_image_length || 0),
+          nutrition_is_cropped_distinct:
+            nutritionVariant === "cropped"
+              ? Number((payload.nutrition_image_data_url || "").length) !== Number(state.photoForm?.nutrition_original_image_length || 0)
+              : false,
+        });
         const res = await fetch(`/scan/photo?lang=${lang}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2989,6 +3018,7 @@
         dataUrl,
         fileName: String(file.name || ""),
         source: source || "camera",
+        originalDataUrl: dataUrl,
         crop: defaultPhotoCrop(),
       };
       state.recoveryPhotoMessage = "";
@@ -3006,11 +3036,17 @@
         state.photoForm.ingredient_image_data_url = finalDataUrl;
         state.photoForm.ingredient_file_name = pending.fileName || "";
         state.photoForm.ingredient_crop_applied = Boolean(useCrop);
+        state.photoForm.ingredient_image_variant = useCrop ? "cropped" : "full";
+        state.photoForm.ingredient_image_state_source = `confirmed:${useCrop ? "cropped" : "full"}:${pending.source || "camera"}`;
+        state.photoForm.ingredient_original_image_length = Number((pending.originalDataUrl || pending.dataUrl || "").length);
         state.recoveryPhotoMessage = t("photo_ready_ingredient");
       }else if (pending.slot === "nutrition"){
         state.photoForm.nutrition_image_data_url = finalDataUrl;
         state.photoForm.nutrition_file_name = pending.fileName || "";
         state.photoForm.nutrition_crop_applied = Boolean(useCrop);
+        state.photoForm.nutrition_image_variant = useCrop ? "cropped" : "full";
+        state.photoForm.nutrition_image_state_source = `confirmed:${useCrop ? "cropped" : "full"}:${pending.source || "camera"}`;
+        state.photoForm.nutrition_original_image_length = Number((pending.originalDataUrl || pending.dataUrl || "").length);
         state.recoveryPhotoMessage = t("photo_ready_nutrition");
       }
       state.recoveryOpen = true;
@@ -5213,7 +5249,20 @@
           state.compareTargetKey = "";
           state.recoveryOpen = false;
           state.recoveryPhotoMessage = "";
-          state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"", ingredient_crop_applied:false, nutrition_crop_applied:false };
+          state.photoForm = {
+            ingredient_image_data_url:"",
+            nutrition_image_data_url:"",
+            ingredient_file_name:"",
+            nutrition_file_name:"",
+            ingredient_crop_applied:false,
+            nutrition_crop_applied:false,
+            ingredient_image_variant:"",
+            nutrition_image_variant:"",
+            ingredient_image_state_source:"",
+            nutrition_image_state_source:"",
+            ingredient_original_image_length:0,
+            nutrition_original_image_length:0,
+          };
           state.photoCapture = emptyPhotoCapture();
           render();
         };
@@ -5288,9 +5337,35 @@
       state.recoveryOpen = false;
       state.refreshNotice = null;
       state.recoveryPhotoMessage = "";
-      state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"", ingredient_crop_applied:false, nutrition_crop_applied:false };
+      state.photoForm = {
+        ingredient_image_data_url:"",
+        nutrition_image_data_url:"",
+        ingredient_file_name:"",
+        nutrition_file_name:"",
+        ingredient_crop_applied:false,
+        nutrition_crop_applied:false,
+        ingredient_image_variant:"",
+        nutrition_image_variant:"",
+        ingredient_image_state_source:"",
+        nutrition_image_state_source:"",
+        ingredient_original_image_length:0,
+        nutrition_original_image_length:0,
+      };
       state.photoCapture = emptyPhotoCapture();
-      state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"", ingredient_crop_applied:false, nutrition_crop_applied:false };
+      state.photoForm = state.photoForm || {
+        ingredient_image_data_url:"",
+        nutrition_image_data_url:"",
+        ingredient_file_name:"",
+        nutrition_file_name:"",
+        ingredient_crop_applied:false,
+        nutrition_crop_applied:false,
+        ingredient_image_variant:"",
+        nutrition_image_variant:"",
+        ingredient_image_state_source:"",
+        nutrition_image_state_source:"",
+        ingredient_original_image_length:0,
+        nutrition_original_image_length:0,
+      };
       render();
       try{
         const { res, data, stale } = await fetchStableScanResult(state.key, requestId);
