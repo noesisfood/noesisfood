@@ -2475,7 +2475,12 @@
       if (!pending?.slot || !pending?.dataUrl) return "";
       const title = pending.slot === "nutrition" ? t("enrich_scan_nutrition") : t("enrich_scan_ingredients");
       const crop = getPendingPhotoCrop();
-      const confirmLabel = pending.confirmMode === "full" ? t("photo_crop_use_full") : t("photo_crop_confirm");
+      const confirmLabel = pending.slot === "nutrition"
+        ? t("photo_crop_confirm")
+        : (pending.confirmMode === "full" ? t("photo_crop_use_full") : t("photo_crop_confirm"));
+      const fullButton = pending.slot === "nutrition"
+        ? ""
+        : `<button class="ghost" id="useFullPhotoBtn">${t("photo_crop_use_full")}</button>`;
       return `
         <div class="section" style="margin-top:10px;">
           <div class="sectionTitle">${title}</div>
@@ -2490,7 +2495,7 @@
           </div>
           <div class="btns" style="margin-top:10px;">
             <button class="primary" id="confirmPhotoBtn">${confirmLabel}</button>
-            <button class="ghost" id="useFullPhotoBtn">${t("photo_crop_use_full")}</button>
+            ${fullButton}
             <button class="ghost" id="resetCropBtn">${t("photo_crop_reset")}</button>
             <button class="ghost" id="retakePhotoBtn">${t("photo_preview_retake")}</button>
           </div>
@@ -2834,9 +2839,11 @@
     function syncPendingPhotoConfirmUi(){
       const confirmPhotoBtn = document.getElementById("confirmPhotoBtn");
       if (confirmPhotoBtn){
-        confirmPhotoBtn.textContent = state.photoCapture?.confirmMode === "full"
-          ? t("photo_crop_use_full")
-          : t("photo_crop_confirm");
+        confirmPhotoBtn.textContent = state.photoCapture?.slot === "nutrition"
+          ? t("photo_crop_confirm")
+          : (state.photoCapture?.confirmMode === "full"
+            ? t("photo_crop_use_full")
+            : t("photo_crop_confirm"));
       }
     }
 
@@ -2951,6 +2958,27 @@
           },
           timestamp: Date.now(),
         };
+        if (payload.nutrition_image_data_url){
+          const invalidNutritionCrop =
+            payload.nutrition_crop_applied !== true ||
+            payload.nutrition_image_variant !== "cropped";
+          if (invalidNutritionCrop){
+            console.error("[nutrition-submit-blocked]", {
+              nutrition_crop_applied: payload.nutrition_crop_applied,
+              nutrition_image_variant: payload.nutrition_image_variant,
+              nutrition_image_state_source: payload.nutrition_image_state_source,
+              nutrition_image_length: (payload.nutrition_image_data_url || "").length,
+              nutrition_original_image_length: Number(payload.nutrition_original_image_length || 0),
+            });
+            state.error = t("err_photo_retry");
+            state.errorCode = "NUTRITION_CROP_REQUIRED";
+            state.loading = false;
+            state.recoveryOpen = true;
+            state.recoveryPhotoMessage = t("err_photo_retry");
+            render();
+            return;
+          }
+        }
         console.info("[photo-submit-debug]", {
           payload_keys: Object.keys(payload),
           ingredient_crop_applied: payload.ingredient_crop_applied,
@@ -3076,7 +3104,10 @@
     async function confirmPendingPhoto(){
       const pending = state.photoCapture || {};
       if (!pending?.slot || !pending?.dataUrl) return;
-      const useCrop = pending.confirmMode !== "full";
+      if (pending.slot === "nutrition"){
+        pending.confirmMode = "cropped";
+      }
+      const useCrop = pending.slot === "nutrition" ? true : pending.confirmMode !== "full";
       console.info(useCrop ? "[photo-use-cropped-click]" : "[photo-use-full-confirmed-click]", {
         slot: pending.slot,
         source: pending.source || "",
@@ -3111,6 +3142,23 @@
         state.photoForm.nutrition_image_state_source = `confirmed:${useCrop ? "cropped" : "full"}:${pending.source || "camera"}`;
         state.photoForm.nutrition_original_image_length = Number((pending.originalDataUrl || pending.dataUrl || "").length);
         state.recoveryPhotoMessage = t("photo_ready_nutrition");
+        if (state.photoForm.nutrition_image_variant !== "cropped" || !state.photoForm.nutrition_crop_applied){
+          console.error("[nutrition-crop-assertion-failed]", {
+            slot: pending.slot,
+            confirmMode: pending.confirmMode || "",
+            nutrition_image_variant: state.photoForm.nutrition_image_variant,
+            nutrition_crop_applied: state.photoForm.nutrition_crop_applied,
+            nutrition_image_state_source: state.photoForm.nutrition_image_state_source,
+            imageLength: Number((state.photoForm.nutrition_image_data_url || "").length),
+          });
+          state.error = t("err_photo_retry");
+          state.errorCode = "NUTRITION_CROP_REQUIRED";
+          state.recoveryOpen = true;
+          state.loading = false;
+          state.photoCapture = emptyPhotoCapture();
+          render();
+          return;
+        }
       }
       state.recoveryOpen = true;
       state.photoCapture = emptyPhotoCapture();
