@@ -171,8 +171,26 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch.dict("os.environ", {"ENABLE_LOCAL_NUTRITION_OCR_FALLBACK": "1"}),
             patch.object(ss, "_decode_image_data_url", return_value=b"image-bytes"),
-            patch.object(ss, "_preprocess_nutrition_image", return_value="base-variant"),
-            patch.object(ss, "_preprocess_nutrition_retry_image", return_value="retry-variant"),
+            patch.object(
+                ss,
+                "_preprocess_nutrition_image",
+                return_value=("base-variant", {
+                    "original_image_size": [800, 1200],
+                    "processed_image_size": [1400, 2100],
+                    "thresholding_applied": True,
+                    "preprocess_variant": "base",
+                }),
+            ),
+            patch.object(
+                ss,
+                "_preprocess_nutrition_retry_image",
+                return_value=("retry-variant", {
+                    "original_image_size": [800, 1200],
+                    "processed_image_size": [1400, 2100],
+                    "thresholding_applied": True,
+                    "preprocess_variant": "retry_strong_threshold",
+                }),
+            ),
             patch.object(ss, "_get_local_nutrition_ocr_engine", return_value=object()),
             patch.object(
                 ss,
@@ -215,6 +233,23 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(debug["local_ocr_enabled"], True)
         self.assertEqual(debug["local_ocr_engine_available"], False)
         self.assertEqual(debug["local_ocr_status"], "engine_unavailable")
+
+    def test_preprocess_nutrition_image_reports_debug_metadata(self) -> None:
+        if ss.Image is None:
+            self.skipTest("Pillow not available")
+        img = ss.Image.new("RGB", (1000, 600), "white")
+        from io import BytesIO
+
+        buf = BytesIO()
+        img.save(buf, format="JPEG", quality=90)
+        result = ss._preprocess_nutrition_image(buf.getvalue())
+
+        self.assertIsNotNone(result)
+        processed, debug = result
+        self.assertEqual(debug["original_image_size"], [1000, 600])
+        self.assertEqual(debug["processed_image_size"], [1750, 1050])
+        self.assertEqual(debug["thresholding_applied"], True)
+        self.assertEqual(processed.size, (1750, 1050))
 
     async def test_analyze_photo_product_resolves_mineral_water_composition_case(self) -> None:
         extracted = {

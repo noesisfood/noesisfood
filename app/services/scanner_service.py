@@ -29,9 +29,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 try:
-    from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+    from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageOps
 except Exception:  # pragma: no cover - optional dependency
     Image = None
+    ImageChops = None
     ImageEnhance = None
     ImageFilter = None
     ImageOps = None
@@ -4289,7 +4290,7 @@ def _local_nutrition_ocr_enabled() -> bool:
     return True
 
 
-def _preprocess_nutrition_image(image_bytes: bytes) -> Optional[Any]:
+def _preprocess_nutrition_image(image_bytes: bytes) -> Optional[Tuple[Any, Dict[str, Any]]]:
     if not image_bytes or Image is None or ImageOps is None:
         return None
     try:
@@ -4297,25 +4298,53 @@ def _preprocess_nutrition_image(image_bytes: bytes) -> Optional[Any]:
     except Exception:
         return None
     width, height = img.size
-    max_edge = max(width, height, 1)
-    scale = 1.0
-    if max_edge < 1200:
-        scale = 1200.0 / float(max_edge)
-    if scale > 1.0:
-        img = img.resize((max(1, int(round(width * scale))), max(1, int(round(height * scale)))), Image.Resampling.LANCZOS)
-    return ImageOps.autocontrast(img)
+    scale = 1.75
+    img = img.resize((max(1, int(round(width * scale))), max(1, int(round(height * scale)))), Image.Resampling.LANCZOS)
+    processed = ImageOps.autocontrast(img)
+    thresholding_applied = False
+    if ImageEnhance is not None:
+        processed = ImageEnhance.Contrast(processed).enhance(1.7)
+        processed = ImageEnhance.Sharpness(processed).enhance(1.8)
+    if ImageFilter is not None:
+        processed = processed.filter(ImageFilter.SHARPEN)
+    if ImageFilter is not None and ImageChops is not None:
+        # Approximate adaptive thresholding using local background subtraction.
+        blurred = processed.filter(ImageFilter.GaussianBlur(radius=10))
+        adaptive = ImageChops.subtract(processed, blurred)
+        adaptive = ImageOps.autocontrast(adaptive)
+        processed = adaptive.point(lambda px: 255 if px > 28 else 0)
+        thresholding_applied = True
+    return processed, {
+        "original_image_size": [width, height],
+        "processed_image_size": [processed.size[0], processed.size[1]],
+        "thresholding_applied": thresholding_applied,
+        "preprocess_variant": "base",
+    }
 
 
-def _preprocess_nutrition_retry_image(base: Any) -> Optional[Any]:
+def _preprocess_nutrition_retry_image(base: Any, base_debug: Optional[Dict[str, Any]] = None) -> Optional[Tuple[Any, Dict[str, Any]]]:
     if base is None:
         return None
+    processed = base
+    thresholding_applied = False
     if ImageEnhance is not None:
-        sharpened = ImageEnhance.Sharpness(base).enhance(1.8)
-        contrast = ImageEnhance.Contrast(sharpened).enhance(1.5)
-        return contrast.point(lambda px: 255 if px > 168 else 0)
-    if ImageFilter is not None:
-        return base.filter(ImageFilter.SHARPEN)
-    return None
+        processed = ImageEnhance.Contrast(processed).enhance(2.1)
+        processed = ImageEnhance.Sharpness(processed).enhance(2.4)
+    if ImageFilter is not None and ImageChops is not None:
+        blurred = processed.filter(ImageFilter.GaussianBlur(radius=14))
+        adaptive = ImageChops.subtract(processed, blurred)
+        adaptive = ImageOps.autocontrast(adaptive)
+        processed = adaptive.point(lambda px: 255 if px > 18 else 0)
+        thresholding_applied = True
+    elif ImageFilter is not None:
+        processed = processed.filter(ImageFilter.SHARPEN)
+    base_meta = base_debug if isinstance(base_debug, dict) else {}
+    return processed, {
+        "original_image_size": list(base_meta.get("original_image_size") or [0, 0]),
+        "processed_image_size": [processed.size[0], processed.size[1]],
+        "thresholding_applied": thresholding_applied,
+        "preprocess_variant": "retry_strong_threshold",
+    }
 
 
 def _extract_text_from_rapidocr_result(result: Any) -> str:
@@ -4359,6 +4388,11 @@ async def _extract_nutrition_photo_text_locally_with_debug(payload: Dict[str, An
         "local_ocr_status": "",
         "first_pass_text_length": 0,
         "second_pass_text_length": 0,
+        "original_image_size": [0, 0],
+        "processed_image_size": [0, 0],
+        "thresholding_applied": False,
+        "retry_processed_image_size": [0, 0],
+        "retry_thresholding_applied": False,
     }
     nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
     if not nutrition_image:
@@ -4374,10 +4408,14 @@ async def _extract_nutrition_photo_text_locally_with_debug(payload: Dict[str, An
         return "", debug
     debug["local_ocr_engine_available"] = True
     debug["local_ocr_engine_name"] = type(engine).__name__
-    base_variant = _preprocess_nutrition_image(image_bytes)
-    if base_variant is None:
+    base_result = _preprocess_nutrition_image(image_bytes)
+    if base_result is None:
         debug["local_ocr_status"] = "image_preprocess_failed"
         return "", debug
+    base_variant, base_debug = base_result
+    debug["original_image_size"] = list(base_debug.get("original_image_size") or [0, 0])
+    debug["processed_image_size"] = list(base_debug.get("processed_image_size") or [0, 0])
+    debug["thresholding_applied"] = bool(base_debug.get("thresholding_applied"))
 
     def _ocr_variant(variant: Any) -> str:
         try:
@@ -4398,11 +4436,14 @@ async def _extract_nutrition_photo_text_locally_with_debug(payload: Dict[str, An
         if _build_nutrition_photo_rescue_payload(payload, best_text):
             local_debug["local_ocr_status"] = "success_base"
             return best_text, local_debug
-        retry_variant = _preprocess_nutrition_retry_image(base_variant)
-        if retry_variant is None:
+        retry_result = _preprocess_nutrition_retry_image(base_variant, base_debug)
+        if retry_result is None:
             local_debug["local_ocr_status"] = "rescue_rejected" if best_text else "no_text"
             return best_text, local_debug
+        retry_variant, retry_debug = retry_result
         local_debug["local_ocr_retry_used"] = True
+        local_debug["retry_processed_image_size"] = list(retry_debug.get("processed_image_size") or [0, 0])
+        local_debug["retry_thresholding_applied"] = bool(retry_debug.get("thresholding_applied"))
         retry_text = _ocr_variant(retry_variant)
         local_debug["second_pass_text_length"] = len(retry_text)
         if _build_nutrition_photo_rescue_payload(payload, retry_text):
