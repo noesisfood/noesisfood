@@ -141,6 +141,76 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rescued["nutrition_per_100"]["sat_fat_g"], 14.0)
         self.assertEqual(rescued["nutrition_per_100"]["protein_g"], 17.0)
 
+    def test_extract_text_from_rapidocr_result_accepts_tuple_txts(self) -> None:
+        class FakeRapidOCROutput:
+            txts = ("Per 100 g", "Energy 265 kcal", "Salt 2.5 g")
+
+        text = ss._extract_text_from_rapidocr_result(FakeRapidOCROutput())
+
+        self.assertEqual(text, "Per 100 g\nEnergy 265 kcal\nSalt 2.5 g")
+
+    async def test_extract_nutrition_photo_text_locally_uses_retry_only_after_failed_first_pass(self) -> None:
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "existing_key": "4000000000001",
+            "existing_analysis": {
+                "key": "4000000000001",
+                "nutrition_per_100": {"unit": "g"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+            },
+        }
+
+        with (
+            patch.dict("os.environ", {"ENABLE_LOCAL_NUTRITION_OCR_FALLBACK": "1"}),
+            patch.object(ss, "_decode_image_data_url", return_value=b"image-bytes"),
+            patch.object(ss, "_preprocess_nutrition_image", return_value="base-variant"),
+            patch.object(ss, "_preprocess_nutrition_retry_image", return_value="retry-variant"),
+            patch.object(ss, "_get_local_nutrition_ocr_engine", return_value=object()),
+            patch.object(
+                ss,
+                "_build_nutrition_photo_rescue_payload",
+                side_effect=[None, {"nutrition_per_100": {"energy_kcal": 265.0, "salt_g": 2.5}}],
+            ) as rescue_mock,
+            patch.object(
+                ss,
+                "_extract_text_from_rapidocr_result",
+                side_effect=["Energy 265 kcal", "Energy 265 kcal Salt 2.5 g"],
+            ),
+        ):
+            calls = []
+
+            def fake_engine(variant, **kwargs):
+                calls.append((variant, kwargs))
+                return object()
+
+            with patch.object(ss, "_get_local_nutrition_ocr_engine", return_value=fake_engine):
+                text = await ss._extract_nutrition_photo_text_locally(payload)
+
+        self.assertEqual(text, "Energy 265 kcal Salt 2.5 g")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][0], "base-variant")
+        self.assertEqual(calls[1][0], "retry-variant")
+        self.assertEqual(calls[0][1]["use_cls"], False)
+        self.assertEqual(calls[1][1]["use_cls"], False)
+        self.assertEqual(rescue_mock.call_count, 2)
+
+    async def test_extract_nutrition_photo_text_locally_respects_feature_flag(self) -> None:
+        payload = {"nutrition_image_data_url": "data:image/jpeg;base64,AAA"}
+
+        with (
+            patch.dict("os.environ", {"ENABLE_LOCAL_NUTRITION_OCR_FALLBACK": "0"}),
+            patch.object(ss, "_decode_image_data_url") as decode_mock,
+        ):
+            text = await ss._extract_nutrition_photo_text_locally(payload)
+
+        self.assertEqual(text, "")
+        decode_mock.assert_not_called()
+
     async def test_analyze_photo_product_resolves_mineral_water_composition_case(self) -> None:
         extracted = {
             "product_name": "NatÃ¼rliches Mineralwasser mit KohlensÃ¤ure (medium)",
@@ -492,6 +562,47 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(int(debug.get("ocr_text_length") or 0), 0)
         self.assertEqual(int(debug.get("rescued_field_count") or 0), 0)
         self.assertEqual(debug.get("final_error_branch"), "photo_extraction_failed")
+
+    async def test_analyze_photo_product_skips_local_ocr_when_feature_flag_disabled(self) -> None:
+        extracted_error = {
+            "error": "Photo extraction is not available.",
+            "error_code": "PHOTO_EXTRACTION_UNAVAILABLE",
+            "status_code": 422,
+            "lookup_state": "found_but_incomplete",
+            "lookup_missing_fields": [],
+            "analysis_state": "insufficient_data",
+            "analysis_confidence": "low",
+        }
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "existing_key": "4000000000001",
+            "existing_analysis": {
+                "key": "4000000000001",
+                "source": "openfoodfacts",
+                "product": {"barcode": "4000000000001"},
+                "nutrition_per_100": {"unit": "g"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+            },
+        }
+
+        with (
+            patch.dict("os.environ", {"ENABLE_LOCAL_NUTRITION_OCR_FALLBACK": "0"}),
+            patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
+            patch.object(ss, "_extract_nutrition_photo_text_locally", AsyncMock(return_value="")) as ocr_mock,
+        ):
+            result = await ss.analyze_photo_product(payload, lang="en")
+
+        self.assertTrue(result.get("error"))
+        self.assertEqual(result["error_code"], "PHOTO_EXTRACTION_UNAVAILABLE")
+        debug = result.get("photo_extraction_debug") or {}
+        self.assertEqual(debug.get("ocr_helper_invoked"), False)
+        self.assertEqual(debug.get("ocr_text_non_empty"), False)
+        ocr_mock.assert_awaited_once()
 
 
 if __name__ == "__main__":

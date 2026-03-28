@@ -4285,38 +4285,45 @@ def _get_local_nutrition_ocr_engine() -> Any:
     return _LOCAL_NUTRITION_OCR_ENGINE
 
 
-def _preprocess_nutrition_image_variants(image_bytes: bytes) -> List[Any]:
+def _local_nutrition_ocr_enabled() -> bool:
+    value = str(os.getenv("ENABLE_LOCAL_NUTRITION_OCR_FALLBACK", "1") or "").strip().lower()
+    return value not in {"0", "false", "off", "no"}
+
+
+def _preprocess_nutrition_image(image_bytes: bytes) -> Optional[Any]:
     if not image_bytes or Image is None or ImageOps is None:
-        return []
+        return None
     try:
         img = Image.open(BytesIO(image_bytes)).convert("L")
     except Exception:
-        return []
+        return None
     width, height = img.size
     max_edge = max(width, height, 1)
     scale = 1.0
-    if max_edge < 1400:
-        scale = 1400.0 / float(max_edge)
+    if max_edge < 1200:
+        scale = 1200.0 / float(max_edge)
     if scale > 1.0:
         img = img.resize((max(1, int(round(width * scale))), max(1, int(round(height * scale)))), Image.Resampling.LANCZOS)
-    base = ImageOps.autocontrast(img)
-    variants: List[Any] = [base]
+    return ImageOps.autocontrast(img)
+
+
+def _preprocess_nutrition_retry_image(base: Any) -> Optional[Any]:
+    if base is None:
+        return None
     if ImageEnhance is not None:
         sharpened = ImageEnhance.Sharpness(base).enhance(1.8)
         contrast = ImageEnhance.Contrast(sharpened).enhance(1.5)
-        variants.append(contrast)
-        threshold = contrast.point(lambda px: 255 if px > 168 else 0)
-        variants.append(threshold)
+        return contrast.point(lambda px: 255 if px > 168 else 0)
     if ImageFilter is not None:
-        variants.append(base.filter(ImageFilter.SHARPEN))
-    return variants
+        return base.filter(ImageFilter.SHARPEN)
+    return None
 
 
 def _extract_text_from_rapidocr_result(result: Any) -> str:
     if result is None:
         return ""
     texts: List[str] = []
-    if hasattr(result, "txts") and isinstance(getattr(result, "txts"), list):
+    if hasattr(result, "txts") and isinstance(getattr(result, "txts"), (list, tuple)):
         texts.extend(str(item).strip() for item in getattr(result, "txts") if str(item).strip())
     elif isinstance(result, tuple) and len(result) >= 2 and isinstance(result[1], list):
         for item in result[1]:
@@ -4348,29 +4355,41 @@ async def _extract_nutrition_photo_text_locally(payload: Dict[str, Any]) -> str:
     nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
     if not nutrition_image:
         return ""
+    if not _local_nutrition_ocr_enabled():
+        return ""
     image_bytes = _decode_image_data_url(nutrition_image)
     if not image_bytes:
         return ""
     engine = _get_local_nutrition_ocr_engine()
     if engine is None:
         return ""
-    variants = _preprocess_nutrition_image_variants(image_bytes)
-    if not variants:
+    base_variant = _preprocess_nutrition_image(image_bytes)
+    if base_variant is None:
         return ""
 
-    def _run_local_ocr() -> str:
-        best_text = ""
-        for variant in variants:
+    def _ocr_variant(variant: Any) -> str:
+        try:
+            result = engine(variant, use_det=True, use_cls=False, use_rec=True)
+        except TypeError:
             try:
-                result = engine(variant, use_det=True, use_cls=True, use_rec=True)
-            except TypeError:
                 result = engine(variant)
             except Exception:
-                continue
-            text = _extract_text_from_rapidocr_result(result)
-            if len(text) > len(best_text):
-                best_text = text
-        return best_text
+                return ""
+        except Exception:
+            return ""
+        return _extract_text_from_rapidocr_result(result)
+
+    def _run_local_ocr() -> str:
+        best_text = _ocr_variant(base_variant)
+        if _build_nutrition_photo_rescue_payload(payload, best_text):
+            return best_text
+        retry_variant = _preprocess_nutrition_retry_image(base_variant)
+        if retry_variant is None:
+            return best_text
+        retry_text = _ocr_variant(retry_variant)
+        if _build_nutrition_photo_rescue_payload(payload, retry_text):
+            return retry_text
+        return retry_text if len(retry_text) > len(best_text) else best_text
 
     try:
         return await asyncio.to_thread(_run_local_ocr)
@@ -5647,7 +5666,9 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     }
     extracted = await _extract_photo_payload_with_ai(payload)
     if isinstance(extracted, dict) and extracted.get("error"):
-        nutrition_ocr_debug["ocr_helper_invoked"] = bool(str(payload.get("nutrition_image_data_url") or "").strip())
+        nutrition_ocr_debug["ocr_helper_invoked"] = (
+            bool(str(payload.get("nutrition_image_data_url") or "").strip()) and _local_nutrition_ocr_enabled()
+        )
         nutrition_ocr_text = await _extract_nutrition_photo_text_locally(payload)
         nutrition_ocr_debug["ocr_text_non_empty"] = bool(str(nutrition_ocr_text or "").strip())
         nutrition_ocr_debug["ocr_text_length"] = len(str(nutrition_ocr_text or "").strip())
