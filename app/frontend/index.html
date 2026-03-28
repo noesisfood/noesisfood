@@ -2859,7 +2859,7 @@
       box.style.top = `${(crop.y * 100).toFixed(3)}%`;
       box.style.width = `${(crop.width * 100).toFixed(3)}%`;
       box.style.height = `${(crop.height * 100).toFixed(3)}%`;
-      console.info("[photo-crop-change]", {
+      console.debug("[photo-crop-change]", {
         slot: state.photoCapture?.slot || "",
         confirmMode: state.photoCapture?.confirmMode || "cropped",
         crop,
@@ -2872,7 +2872,7 @@
     function setPendingPhotoConfirmMode(mode){
       if (!state.photoCapture || !state.photoCapture.dataUrl) return;
       state.photoCapture.confirmMode = mode === "full" ? "full" : "cropped";
-      console.info("[photo-confirm-mode]", {
+      console.debug("[photo-confirm-mode]", {
         slot: state.photoCapture?.slot || "",
         confirmMode: state.photoCapture.confirmMode,
         imageLength: Number((state.photoCapture?.dataUrl || "").length),
@@ -2979,7 +2979,7 @@
             return;
           }
         }
-        console.info("[photo-submit-debug]", {
+        console.debug("[photo-submit-debug]", {
           payload_keys: Object.keys(payload),
           ingredient_crop_applied: payload.ingredient_crop_applied,
           ingredient_image_length: (payload.ingredient_image_data_url || "").length,
@@ -3090,7 +3090,7 @@
         confirmMode:"cropped",
         crop: defaultPhotoCrop(),
       };
-      console.info("[photo-crop-open]", {
+      console.debug("[photo-crop-open]", {
         slot,
         source: source || "camera",
         confirmMode: "cropped",
@@ -3108,14 +3108,14 @@
         pending.confirmMode = "cropped";
       }
       const useCrop = pending.slot === "nutrition" ? true : pending.confirmMode !== "full";
-      console.info(useCrop ? "[photo-use-cropped-click]" : "[photo-use-full-confirmed-click]", {
+      console.debug(useCrop ? "[photo-use-cropped-click]" : "[photo-use-full-confirmed-click]", {
         slot: pending.slot,
         source: pending.source || "",
         confirmMode: pending.confirmMode || "cropped",
         imageLength: Number((pending.dataUrl || "").length),
         originalImageLength: Number((pending.originalDataUrl || "").length),
       });
-      console.info("[photo-confirm-click]", {
+      console.debug("[photo-confirm-click]", {
         slot: pending.slot,
         source: pending.source || "",
         confirmMode: pending.confirmMode || "cropped",
@@ -3329,7 +3329,7 @@
       }
       if (useFullPhotoBtn){
         useFullPhotoBtn.onclick = () => {
-          console.info("[photo-use-full-click]", {
+          console.debug("[photo-use-full-click]", {
             slot: state.photoCapture?.slot || "",
             source: state.photoCapture?.source || "",
             imageLength: Number((state.photoCapture?.dataUrl || "").length),

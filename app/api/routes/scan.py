@@ -121,7 +121,7 @@ async def scan_photo_endpoint(payload: dict = Body(default={}), lang: str = Quer
         if isinstance(data, dict) and data.get("error"):
             status = _error_status(data)
             logger.warning(
-                "photo route error status=%s error_code=%s error=%s lookup_state=%s analysis_state=%s lookup_missing_fields=%s payload=%s photo_debug=%s response=%s",
+                "photo route error status=%s error_code=%s error=%s lookup_state=%s analysis_state=%s lookup_missing_fields=%s payload=%s photo_debug=%s",
                 status,
                 data.get("error_code") or data.get("error", {}).get("code"),
                 data.get("error") if not isinstance(data.get("error"), dict) else data.get("error", {}).get("message"),
@@ -130,7 +130,6 @@ async def scan_photo_endpoint(payload: dict = Body(default={}), lang: str = Quer
                 data.get("lookup_missing_fields"),
                 payload_summary,
                 data.get("photo_extraction_debug") or data.get("photo_extraction", {}).get("debug"),
-                data,
             )
             return JSONResponse(status_code=status, content=data)
         return data

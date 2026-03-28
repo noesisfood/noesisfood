@@ -5922,7 +5922,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 nutrition_ocr_debug["final_error_branch"] = str(extracted.get("error_code") or extracted.get("error", {}).get("code") or "photo_extraction_error").strip().lower()
                 extracted["photo_extraction_debug"] = nutrition_ocr_debug
                 logger.info(
-                    "photo nutrition rescue failed key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s ocr_text_preview=%s rescued_fields=%s rescued_names=%s parser_reason=%s final_error_branch=%s",
+                    "photo nutrition rescue failed key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s rescued_names=%s parser_reason=%s final_error_branch=%s",
                     str(payload.get("existing_key") or _get_path(payload, "existing_analysis", "key") or ""),
                     nutrition_ocr_debug["nutrition_upload_present"],
                     nutrition_ocr_debug["nutrition_crop_applied"],
@@ -5935,7 +5935,6 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                     nutrition_ocr_debug["local_ocr_status"],
                     nutrition_ocr_debug["ocr_text_non_empty"],
                     nutrition_ocr_debug["ocr_text_length"],
-                    nutrition_ocr_debug["ocr_text_preview"],
                     nutrition_ocr_debug["rescued_field_count"],
                     ",".join(nutrition_ocr_debug["rescued_field_names"]),
                     nutrition_ocr_debug["parser_acceptance_reason"],
@@ -6023,7 +6022,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         }
         if result["photo_extraction"]["used_nutrition_photo"]:
             logger.info(
-                "photo nutrition rescue success key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s ocr_text_preview=%s rescued_fields=%s rescued_names=%s parser_reason=%s",
+                "photo nutrition rescue success key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s rescued_names=%s parser_reason=%s",
                 str(existing_key or ""),
                 nutrition_ocr_debug["nutrition_upload_present"],
                 nutrition_ocr_debug["nutrition_crop_applied"],
@@ -6036,7 +6035,6 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 nutrition_ocr_debug["local_ocr_status"],
                 nutrition_ocr_debug["ocr_text_non_empty"],
                 nutrition_ocr_debug["ocr_text_length"],
-                nutrition_ocr_debug["ocr_text_preview"],
                 nutrition_ocr_debug["rescued_field_count"],
                 ",".join(nutrition_ocr_debug["rescued_field_names"]),
                 nutrition_ocr_debug["parser_acceptance_reason"],
