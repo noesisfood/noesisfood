@@ -500,6 +500,16 @@
   </div>
 
   <script>
+    function emptyPhotoCapture(){
+      return {
+        slot:"",
+        dataUrl:"",
+        fileName:"",
+        source:"",
+        crop:{ x:0.08, y:0.12, width:0.84, height:0.7 },
+      };
+    }
+
     let step = 1;
     let state = {
       key:"",
@@ -532,10 +542,7 @@
         nutrition_file_name:"",
       },
       photoCapture:{
-        slot:"",
-        dataUrl:"",
-        fileName:"",
-        source:"",
+        ...emptyPhotoCapture(),
       },
       manualForm:{
         name:"",
@@ -767,6 +774,11 @@
         photo_preview_note: "Check the photo before analysis.",
         photo_preview_confirm: "Use this photo",
         photo_preview_retake: "Retake photo",
+        photo_crop_title: "Crop to the label section",
+        photo_crop_hint: "Drag the box to keep only the nutrition table or ingredients list. Use the corner handle to resize it.",
+        photo_crop_confirm: "Use cropped photo",
+        photo_crop_use_full: "Use full photo",
+        photo_crop_reset: "Reset crop",
         refresh_updated: "The assessment was updated with new data.",
         refresh_after_photo: "The result was refreshed after photo analysis.",
         refresh_confidence_up: "Confidence increased thanks to the new data.",
@@ -1596,6 +1608,35 @@
     };
 
     Object.assign(i18n.en, {
+      photo_crop_title: "Crop to the label section",
+      photo_crop_hint: "Drag the box to keep only the nutrition table or ingredients list. Use the corner handle to resize it.",
+      photo_crop_confirm: "Use cropped photo",
+      photo_crop_use_full: "Use full photo",
+      photo_crop_reset: "Reset crop",
+    });
+    Object.assign(i18n.el, {
+      photo_crop_title: "Περικοπή στην ενότητα ετικέτας",
+      photo_crop_hint: "Σύρε το πλαίσιο ώστε να κρατήσεις μόνο τον διατροφικό πίνακα ή τη λίστα συστατικών. Χρησιμοποίησε τη γωνιακή λαβή για αλλαγή μεγέθους.",
+      photo_crop_confirm: "Χρήση περικομμένης φωτογραφίας",
+      photo_crop_use_full: "Χρήση ολόκληρης φωτογραφίας",
+      photo_crop_reset: "Επαναφορά περικοπής",
+    });
+    Object.assign(i18n.de, {
+      photo_crop_title: "Auf Etikettenbereich zuschneiden",
+      photo_crop_hint: "Ziehe den Rahmen so, dass nur die Nährwerttabelle oder Zutatenliste bleibt. Mit dem Eckpunkt kannst du die Größe anpassen.",
+      photo_crop_confirm: "Zugeschnittenes Foto verwenden",
+      photo_crop_use_full: "Ganzes Foto verwenden",
+      photo_crop_reset: "Zuschnitt zurücksetzen",
+    });
+    Object.assign(i18n.fr, {
+      photo_crop_title: "Rogner sur la zone d’étiquette",
+      photo_crop_hint: "Déplacez le cadre pour ne garder que le tableau nutritionnel ou la liste des ingrédients. Utilisez la poignée d’angle pour le redimensionner.",
+      photo_crop_confirm: "Utiliser la photo recadrée",
+      photo_crop_use_full: "Utiliser la photo entière",
+      photo_crop_reset: "Réinitialiser le cadrage",
+    });
+
+    Object.assign(i18n.en, {
       home_title: "Scan a product",
       home_subtitle: "Scan the barcode with your camera or enter it manually.",
       home_camera_cta: "Scan with camera",
@@ -2423,14 +2464,23 @@
       const pending = state.photoCapture || {};
       if (!pending?.slot || !pending?.dataUrl) return "";
       const title = pending.slot === "nutrition" ? t("enrich_scan_nutrition") : t("enrich_scan_ingredients");
+      const crop = getPendingPhotoCrop();
       return `
         <div class="section" style="margin-top:10px;">
           <div class="sectionTitle">${title}</div>
           <div class="mini">${t("photo_preview_note")}</div>
           <div class="mini" style="margin-top:6px;">${_escapeHtml(pending.fileName || "")}</div>
-          <img src="${_escapeHtml(pending.dataUrl)}" alt="${_escapeHtml(title)}" style="width:100%; margin-top:10px; border-radius:14px; border:1px solid rgba(255,255,255,.12); object-fit:cover; max-height:320px;" />
+          <div class="mini" style="margin-top:8px;"><b>${t("photo_crop_title")}</b><br/>${t("photo_crop_hint")}</div>
+          <div id="photoCropStage" style="position:relative; width:100%; margin-top:10px; border-radius:14px; border:1px solid rgba(255,255,255,.12); overflow:hidden; touch-action:none; max-height:320px; background:rgba(255,255,255,.03);">
+            <img id="photoCropImage" src="${_escapeHtml(pending.dataUrl)}" alt="${_escapeHtml(title)}" style="display:block; width:100%; object-fit:cover; max-height:320px; user-select:none; -webkit-user-drag:none;" />
+            <div id="photoCropBox" style="position:absolute; left:${(crop.x * 100).toFixed(3)}%; top:${(crop.y * 100).toFixed(3)}%; width:${(crop.width * 100).toFixed(3)}%; height:${(crop.height * 100).toFixed(3)}%; border:2px solid rgba(255,255,255,.96); background:rgba(255,255,255,.12); box-shadow:0 0 0 9999px rgba(0,0,0,.28); border-radius:12px; cursor:move; touch-action:none;">
+              <div id="photoCropHandle" style="position:absolute; right:-1px; bottom:-1px; width:22px; height:22px; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,.25); cursor:nwse-resize; touch-action:none;"></div>
+            </div>
+          </div>
           <div class="btns" style="margin-top:10px;">
-            <button class="primary" id="confirmPhotoBtn">${t("photo_preview_confirm")}</button>
+            <button class="primary" id="confirmPhotoBtn">${t("photo_crop_confirm")}</button>
+            <button class="ghost" id="useFullPhotoBtn">${t("photo_crop_use_full")}</button>
+            <button class="ghost" id="resetCropBtn">${t("photo_crop_reset")}</button>
             <button class="ghost" id="retakePhotoBtn">${t("photo_preview_retake")}</button>
           </div>
         </div>
@@ -2753,6 +2803,55 @@
       });
     }
 
+    function defaultPhotoCrop(){
+      return { x:0.08, y:0.12, width:0.84, height:0.7 };
+    }
+
+    function clampPhotoCrop(crop){
+      const next = crop && typeof crop === "object" ? crop : defaultPhotoCrop();
+      const width = Math.min(0.96, Math.max(0.2, Number(next.width) || 0.84));
+      const height = Math.min(0.96, Math.max(0.2, Number(next.height) || 0.7));
+      const x = Math.min(1 - width, Math.max(0, Number(next.x) || 0));
+      const y = Math.min(1 - height, Math.max(0, Number(next.y) || 0));
+      return { x, y, width, height };
+    }
+
+    function getPendingPhotoCrop(){
+      return clampPhotoCrop(state.photoCapture?.crop || defaultPhotoCrop());
+    }
+
+    function setPendingPhotoCrop(nextCrop){
+      if (!state.photoCapture || !state.photoCapture.dataUrl) return;
+      state.photoCapture.crop = clampPhotoCrop(nextCrop);
+      const box = document.getElementById("photoCropBox");
+      if (!box) return;
+      const crop = state.photoCapture.crop;
+      box.style.left = `${(crop.x * 100).toFixed(3)}%`;
+      box.style.top = `${(crop.y * 100).toFixed(3)}%`;
+      box.style.width = `${(crop.width * 100).toFixed(3)}%`;
+      box.style.height = `${(crop.height * 100).toFixed(3)}%`;
+    }
+
+    async function cropPhotoDataUrl(dataUrl, crop){
+      const img = await loadImageFromDataUrl(dataUrl);
+      const safeCrop = clampPhotoCrop(crop);
+      const width = img.naturalWidth || img.width || 1;
+      const height = img.naturalHeight || img.height || 1;
+      const sx = Math.max(0, Math.floor(width * safeCrop.x));
+      const sy = Math.max(0, Math.floor(height * safeCrop.y));
+      const sw = Math.max(1, Math.floor(width * safeCrop.width));
+      const sh = Math.max(1, Math.floor(height * safeCrop.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return dataUrl;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      return canvas.toDataURL("image/jpeg", 0.9);
+    }
+
     async function normalizeNutritionPhotoDataUrl(file){
       const sourceDataUrl = await readFileAsDataUrl(file);
       try{
@@ -2843,7 +2942,7 @@
         state.loading = false;
         state.recoveryOpen = false;
         state.recoveryPhotoMessage = "";
-        state.photoCapture = { slot:"", dataUrl:"", fileName:"", source:"" };
+        state.photoCapture = emptyPhotoCapture();
         _storeRecentProduct(data, data?.key || "photo:entry");
         _storeAnalysisHistory(data, data?.key || "photo:entry");
         step = 2;
@@ -2881,32 +2980,107 @@
         ? await normalizeNutritionPhotoDataUrl(file)
         : await readFileAsDataUrl(file);
       state.photoCapture = {
+        ...emptyPhotoCapture(),
         slot,
         dataUrl,
         fileName: String(file.name || ""),
         source: source || "camera",
+        crop: defaultPhotoCrop(),
       };
       state.recoveryPhotoMessage = "";
       state.recoveryOpen = false;
       render();
     }
 
-    async function confirmPendingPhoto(){
+    async function confirmPendingPhoto(useCrop = true){
       const pending = state.photoCapture || {};
       if (!pending?.slot || !pending?.dataUrl) return;
+      const finalDataUrl = useCrop
+        ? await cropPhotoDataUrl(pending.dataUrl, pending.crop || defaultPhotoCrop())
+        : pending.dataUrl;
       if (pending.slot === "ingredient"){
-        state.photoForm.ingredient_image_data_url = pending.dataUrl;
+        state.photoForm.ingredient_image_data_url = finalDataUrl;
         state.photoForm.ingredient_file_name = pending.fileName || "";
         state.recoveryPhotoMessage = t("photo_ready_ingredient");
       }else if (pending.slot === "nutrition"){
-        state.photoForm.nutrition_image_data_url = pending.dataUrl;
+        state.photoForm.nutrition_image_data_url = finalDataUrl;
         state.photoForm.nutrition_file_name = pending.fileName || "";
         state.recoveryPhotoMessage = t("photo_ready_nutrition");
       }
       state.recoveryOpen = true;
-      state.photoCapture = { slot:"", dataUrl:"", fileName:"", source:"" };
+      state.photoCapture = emptyPhotoCapture();
       render();
       await doPhotoAnalysis();
+    }
+
+    function bindPhotoCropInteractions(){
+      const stage = document.getElementById("photoCropStage");
+      const box = document.getElementById("photoCropBox");
+      const handle = document.getElementById("photoCropHandle");
+      if (!stage || !box || !handle || !state.photoCapture?.dataUrl) return;
+      let activePointerId = null;
+      let mode = "";
+      let startX = 0;
+      let startY = 0;
+      let startCrop = getPendingPhotoCrop();
+
+      const beginPointer = (event, nextMode) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const pointer = event.touches ? event.touches[0] : event;
+        if (!pointer) return;
+        activePointerId = typeof pointer.pointerId === "number" ? pointer.pointerId : 1;
+        mode = nextMode;
+        startX = Number(pointer.clientX) || 0;
+        startY = Number(pointer.clientY) || 0;
+        startCrop = getPendingPhotoCrop();
+        if (event.target?.setPointerCapture && typeof pointer.pointerId === "number"){
+          try{ event.target.setPointerCapture(pointer.pointerId); }catch(_e){}
+        }
+      };
+
+      const movePointer = (event) => {
+        if (!mode) return;
+        const pointer = event.touches ? event.touches[0] : event;
+        if (!pointer) return;
+        if (!event.touches && activePointerId !== null && typeof pointer.pointerId === "number" && pointer.pointerId !== activePointerId) return;
+        const rect = stage.getBoundingClientRect();
+        const dx = rect.width ? (Number(pointer.clientX) - startX) / rect.width : 0;
+        const dy = rect.height ? (Number(pointer.clientY) - startY) / rect.height : 0;
+        if (mode === "move"){
+          setPendingPhotoCrop({
+            x: startCrop.x + dx,
+            y: startCrop.y + dy,
+            width: startCrop.width,
+            height: startCrop.height,
+          });
+          return;
+        }
+        if (mode === "resize"){
+          setPendingPhotoCrop({
+            x: startCrop.x,
+            y: startCrop.y,
+            width: startCrop.width + dx,
+            height: startCrop.height + dy,
+          });
+        }
+      };
+
+      const endPointer = () => {
+        activePointerId = null;
+        mode = "";
+      };
+
+      box.onpointerdown = (event) => beginPointer(event, "move");
+      handle.onpointerdown = (event) => beginPointer(event, "resize");
+      stage.onpointermove = movePointer;
+      stage.onpointerup = endPointer;
+      stage.onpointercancel = endPointer;
+      box.ontouchstart = (event) => beginPointer(event, "move");
+      handle.ontouchstart = (event) => beginPointer(event, "resize");
+      stage.ontouchmove = (event) => { movePointer(event); };
+      stage.ontouchend = endPointer;
+      stage.ontouchcancel = endPointer;
     }
 
     function bindEnrichmentActions(){
@@ -2919,6 +3093,8 @@
       const ingredientGalleryBtn = document.getElementById("ingredientGalleryBtn");
       const nutritionGalleryBtn = document.getElementById("nutritionGalleryBtn");
       const confirmPhotoBtn = document.getElementById("confirmPhotoBtn");
+      const useFullPhotoBtn = document.getElementById("useFullPhotoBtn");
+      const resetCropBtn = document.getElementById("resetCropBtn");
       const retakePhotoBtn = document.getElementById("retakePhotoBtn");
       const manualEntryBtn = document.getElementById("manualEntryBtn");
       const manualSubmitBtn = document.getElementById("manualSubmitBtn");
@@ -2996,12 +3172,20 @@
         };
       }
       if (confirmPhotoBtn){
-        confirmPhotoBtn.onclick = () => { confirmPendingPhoto(); };
+        confirmPhotoBtn.onclick = () => { confirmPendingPhoto(true); };
+      }
+      if (useFullPhotoBtn){
+        useFullPhotoBtn.onclick = () => { confirmPendingPhoto(false); };
+      }
+      if (resetCropBtn){
+        resetCropBtn.onclick = () => {
+          setPendingPhotoCrop(defaultPhotoCrop());
+        };
       }
       if (retakePhotoBtn){
         retakePhotoBtn.onclick = () => {
           const slot = state.photoCapture?.slot || "nutrition";
-          state.photoCapture = { slot:"", dataUrl:"", fileName:"", source:"" };
+          state.photoCapture = emptyPhotoCapture();
           render();
           openPhotoPicker(slot, isMobileCapturePreferred() ? "camera" : "gallery");
         };
@@ -3024,6 +3208,7 @@
           render();
         };
       }
+      bindPhotoCropInteractions();
     }
 
     function syncLanguageSelector(){
@@ -5023,7 +5208,7 @@
           state.recoveryOpen = false;
           state.recoveryPhotoMessage = "";
           state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
-          state.photoCapture = { slot:"", dataUrl:"", fileName:"", source:"" };
+          state.photoCapture = emptyPhotoCapture();
           render();
         };
       }
@@ -5098,7 +5283,7 @@
       state.refreshNotice = null;
       state.recoveryPhotoMessage = "";
       state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
-      state.photoCapture = { slot:"", dataUrl:"", fileName:"", source:"" };
+      state.photoCapture = emptyPhotoCapture();
       state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
       render();
       try{
