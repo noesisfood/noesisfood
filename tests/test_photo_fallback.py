@@ -84,6 +84,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
     def test_build_nutrition_photo_rescue_payload_salvages_malformed_table_text(self) -> None:
         payload = {
             "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "nutrition_crop_applied": True,
             "existing_key": "4000000000001",
             "existing_product": {
                 "name": "Feta",
@@ -116,6 +117,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
     def test_build_nutrition_photo_rescue_payload_normalizes_noisy_ocr_text(self) -> None:
         payload = {
             "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "nutrition_crop_applied": True,
             "existing_key": "4000000000001",
             "existing_product": {
                 "name": "Feta",
@@ -152,6 +154,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
     async def test_extract_nutrition_photo_text_locally_uses_retry_only_after_failed_first_pass(self) -> None:
         payload = {
             "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "nutrition_crop_applied": True,
             "existing_key": "4000000000001",
             "existing_analysis": {
                 "key": "4000000000001",
@@ -199,17 +202,19 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(calls[1][1]["use_cls"], False)
         self.assertEqual(rescue_mock.call_count, 2)
 
-    async def test_extract_nutrition_photo_text_locally_respects_feature_flag(self) -> None:
+    async def test_extract_nutrition_photo_text_locally_reports_engine_unavailable(self) -> None:
         payload = {"nutrition_image_data_url": "data:image/jpeg;base64,AAA"}
 
         with (
-            patch.dict("os.environ", {"ENABLE_LOCAL_NUTRITION_OCR_FALLBACK": "0"}),
-            patch.object(ss, "_decode_image_data_url") as decode_mock,
+            patch.object(ss, "_decode_image_data_url", return_value=b"image-bytes"),
+            patch.object(ss, "_get_local_nutrition_ocr_engine", return_value=None),
         ):
-            text = await ss._extract_nutrition_photo_text_locally(payload)
+            text, debug = await ss._extract_nutrition_photo_text_locally_with_debug(payload)
 
         self.assertEqual(text, "")
-        decode_mock.assert_not_called()
+        self.assertEqual(debug["local_ocr_enabled"], True)
+        self.assertEqual(debug["local_ocr_engine_available"], False)
+        self.assertEqual(debug["local_ocr_status"], "engine_unavailable")
 
     async def test_analyze_photo_product_resolves_mineral_water_composition_case(self) -> None:
         extracted = {
@@ -324,6 +329,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         }
         payload = {
             "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "nutrition_crop_applied": True,
             "existing_key": "4000000000001",
             "existing_analysis": {
                 "key": "4000000000001",
@@ -451,8 +457,16 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
             patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
             patch.object(
                 ss,
-                "_extract_nutrition_photo_text_locally",
-                AsyncMock(return_value="Per 100 g Energy 265 kcal Saturates 14 g Sugars 1.0 g Protein 17 g Salt 2.5 g"),
+                "_extract_nutrition_photo_text_locally_with_debug",
+                AsyncMock(return_value=("Per 100 g Energy 265 kcal Saturates 14 g Sugars 1.0 g Protein 17 g Salt 2.5 g", {
+                    "local_ocr_enabled": True,
+                    "local_ocr_engine_available": True,
+                    "local_ocr_engine_name": "RapidOCR",
+                    "local_ocr_retry_used": False,
+                    "local_ocr_status": "success_base",
+                    "first_pass_text_length": 78,
+                    "second_pass_text_length": 0,
+                })),
             ),
             patch.object(ss, "_persist_product_enrichment", return_value={}),
         ):
@@ -469,6 +483,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_helper_invoked"], True)
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_text_non_empty"], True)
         self.assertGreaterEqual(int(result["photo_extraction"]["debug"]["rescued_field_count"]), 2)
+        self.assertEqual(result["photo_extraction"]["debug"]["local_ocr_enabled"], True)
 
     async def test_analyze_photo_product_uses_local_ocr_after_upstream_unavailable(self) -> None:
         extracted_error = {
@@ -482,6 +497,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         }
         payload = {
             "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "nutrition_crop_applied": True,
             "existing_key": "4000000000001",
             "existing_analysis": {
                 "key": "4000000000001",
@@ -503,8 +519,16 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
             patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
             patch.object(
                 ss,
-                "_extract_nutrition_photo_text_locally",
-                AsyncMock(return_value="Per 100 g Energy 265 kcal Saturates 14 g Sugars 1.0 g Protein 17 g Salt 2.5 g"),
+                "_extract_nutrition_photo_text_locally_with_debug",
+                AsyncMock(return_value=("Per 100 g Energy 265 kcal Saturates 14 g Sugars 1.0 g Protein 17 g Salt 2.5 g", {
+                    "local_ocr_enabled": True,
+                    "local_ocr_engine_available": True,
+                    "local_ocr_engine_name": "RapidOCR",
+                    "local_ocr_retry_used": False,
+                    "local_ocr_status": "success_base",
+                    "first_pass_text_length": 78,
+                    "second_pass_text_length": 0,
+                })),
             ),
             patch.object(ss, "_persist_product_enrichment", return_value={}),
         ):
@@ -518,6 +542,8 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["nutrition_per_100"]["salt_g"], 2.5)
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_helper_invoked"], True)
         self.assertEqual(result["photo_extraction"]["debug"]["ocr_text_non_empty"], True)
+        self.assertEqual(result["photo_extraction"]["debug"]["local_ocr_enabled"], True)
+        self.assertEqual(result["photo_extraction"]["debug"]["nutrition_crop_applied"], True)
 
     async def test_analyze_photo_product_returns_debug_on_failed_nutrition_rescue(self) -> None:
         extracted_error = {
@@ -549,7 +575,19 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
-            patch.object(ss, "_extract_nutrition_photo_text_locally", AsyncMock(return_value="")),
+            patch.object(
+                ss,
+                "_extract_nutrition_photo_text_locally_with_debug",
+                AsyncMock(return_value=("", {
+                    "local_ocr_enabled": True,
+                    "local_ocr_engine_available": True,
+                    "local_ocr_engine_name": "RapidOCR",
+                    "local_ocr_retry_used": True,
+                    "local_ocr_status": "no_text",
+                    "first_pass_text_length": 0,
+                    "second_pass_text_length": 0,
+                })),
+            ),
         ):
             result = await ss.analyze_photo_product(payload, lang="en")
 
@@ -562,8 +600,9 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(int(debug.get("ocr_text_length") or 0), 0)
         self.assertEqual(int(debug.get("rescued_field_count") or 0), 0)
         self.assertEqual(debug.get("final_error_branch"), "photo_extraction_failed")
+        self.assertEqual(debug.get("local_ocr_enabled"), True)
 
-    async def test_analyze_photo_product_skips_local_ocr_when_feature_flag_disabled(self) -> None:
+    async def test_analyze_photo_product_reports_engine_unavailable_for_nutrition_rescue(self) -> None:
         extracted_error = {
             "error": "Photo extraction is not available.",
             "error_code": "PHOTO_EXTRACTION_UNAVAILABLE",
@@ -591,18 +630,31 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         }
 
         with (
-            patch.dict("os.environ", {"ENABLE_LOCAL_NUTRITION_OCR_FALLBACK": "0"}),
             patch.object(ss, "_extract_photo_payload_with_ai", AsyncMock(return_value=extracted_error)),
-            patch.object(ss, "_extract_nutrition_photo_text_locally", AsyncMock(return_value="")) as ocr_mock,
+            patch.object(
+                ss,
+                "_extract_nutrition_photo_text_locally_with_debug",
+                AsyncMock(return_value=("", {
+                    "local_ocr_enabled": True,
+                    "local_ocr_engine_available": False,
+                    "local_ocr_engine_name": "",
+                    "local_ocr_retry_used": False,
+                    "local_ocr_status": "engine_unavailable",
+                    "first_pass_text_length": 0,
+                    "second_pass_text_length": 0,
+                })),
+            ),
         ):
             result = await ss.analyze_photo_product(payload, lang="en")
 
         self.assertTrue(result.get("error"))
         self.assertEqual(result["error_code"], "PHOTO_EXTRACTION_UNAVAILABLE")
         debug = result.get("photo_extraction_debug") or {}
-        self.assertEqual(debug.get("ocr_helper_invoked"), False)
+        self.assertEqual(debug.get("ocr_helper_invoked"), True)
         self.assertEqual(debug.get("ocr_text_non_empty"), False)
-        ocr_mock.assert_awaited_once()
+        self.assertEqual(debug.get("local_ocr_enabled"), True)
+        self.assertEqual(debug.get("local_ocr_engine_available"), False)
+        self.assertEqual(debug.get("local_ocr_status"), "engine_unavailable")
 
 
 if __name__ == "__main__":

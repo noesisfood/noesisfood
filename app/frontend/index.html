@@ -540,6 +540,8 @@
         nutrition_image_data_url:"",
         ingredient_file_name:"",
         nutrition_file_name:"",
+        ingredient_crop_applied:false,
+        nutrition_crop_applied:false,
       },
       photoCapture:{
         ...emptyPhotoCapture(),
@@ -2888,6 +2890,8 @@
         const payload = {
           ingredient_image_data_url: state.photoForm?.ingredient_image_data_url || "",
           nutrition_image_data_url: state.photoForm?.nutrition_image_data_url || "",
+          ingredient_crop_applied: Boolean(state.photoForm?.ingredient_crop_applied),
+          nutrition_crop_applied: Boolean(state.photoForm?.nutrition_crop_applied),
           existing_analysis: previousData || {},
           existing_key: state.key || previousData?.key || "",
           existing_product: {
@@ -3001,10 +3005,12 @@
       if (pending.slot === "ingredient"){
         state.photoForm.ingredient_image_data_url = finalDataUrl;
         state.photoForm.ingredient_file_name = pending.fileName || "";
+        state.photoForm.ingredient_crop_applied = Boolean(useCrop);
         state.recoveryPhotoMessage = t("photo_ready_ingredient");
       }else if (pending.slot === "nutrition"){
         state.photoForm.nutrition_image_data_url = finalDataUrl;
         state.photoForm.nutrition_file_name = pending.fileName || "";
+        state.photoForm.nutrition_crop_applied = Boolean(useCrop);
         state.recoveryPhotoMessage = t("photo_ready_nutrition");
       }
       state.recoveryOpen = true;
@@ -5207,7 +5213,7 @@
           state.compareTargetKey = "";
           state.recoveryOpen = false;
           state.recoveryPhotoMessage = "";
-          state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
+          state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"", ingredient_crop_applied:false, nutrition_crop_applied:false };
           state.photoCapture = emptyPhotoCapture();
           render();
         };
@@ -5282,9 +5288,9 @@
       state.recoveryOpen = false;
       state.refreshNotice = null;
       state.recoveryPhotoMessage = "";
-      state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
+      state.photoForm = { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"", ingredient_crop_applied:false, nutrition_crop_applied:false };
       state.photoCapture = emptyPhotoCapture();
-      state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"" };
+      state.photoForm = state.photoForm || { ingredient_image_data_url:"", nutrition_image_data_url:"", ingredient_file_name:"", nutrition_file_name:"", ingredient_crop_applied:false, nutrition_crop_applied:false };
       render();
       try{
         const { res, data, stale } = await fetchStableScanResult(state.key, requestId);

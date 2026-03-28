@@ -4286,8 +4286,7 @@ def _get_local_nutrition_ocr_engine() -> Any:
 
 
 def _local_nutrition_ocr_enabled() -> bool:
-    value = str(os.getenv("ENABLE_LOCAL_NUTRITION_OCR_FALLBACK", "1") or "").strip().lower()
-    return value not in {"0", "false", "off", "no"}
+    return True
 
 
 def _preprocess_nutrition_image(image_bytes: bytes) -> Optional[Any]:
@@ -4350,22 +4349,35 @@ def _extract_text_from_rapidocr_result(result: Any) -> str:
     return "\n".join(item for item in texts if item).strip()
 
 
-async def _extract_nutrition_photo_text_locally(payload: Dict[str, Any]) -> str:
+async def _extract_nutrition_photo_text_locally_with_debug(payload: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
     payload = payload if isinstance(payload, dict) else {}
+    debug = {
+        "local_ocr_enabled": _local_nutrition_ocr_enabled(),
+        "local_ocr_engine_available": False,
+        "local_ocr_engine_name": "",
+        "local_ocr_retry_used": False,
+        "local_ocr_status": "",
+        "first_pass_text_length": 0,
+        "second_pass_text_length": 0,
+    }
     nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
     if not nutrition_image:
-        return ""
-    if not _local_nutrition_ocr_enabled():
-        return ""
+        debug["local_ocr_status"] = "missing_image"
+        return "", debug
     image_bytes = _decode_image_data_url(nutrition_image)
     if not image_bytes:
-        return ""
+        debug["local_ocr_status"] = "image_decode_failed"
+        return "", debug
     engine = _get_local_nutrition_ocr_engine()
     if engine is None:
-        return ""
+        debug["local_ocr_status"] = "engine_unavailable"
+        return "", debug
+    debug["local_ocr_engine_available"] = True
+    debug["local_ocr_engine_name"] = type(engine).__name__
     base_variant = _preprocess_nutrition_image(image_bytes)
     if base_variant is None:
-        return ""
+        debug["local_ocr_status"] = "image_preprocess_failed"
+        return "", debug
 
     def _ocr_variant(variant: Any) -> str:
         try:
@@ -4379,22 +4391,37 @@ async def _extract_nutrition_photo_text_locally(payload: Dict[str, Any]) -> str:
             return ""
         return _extract_text_from_rapidocr_result(result)
 
-    def _run_local_ocr() -> str:
+    def _run_local_ocr() -> Tuple[str, Dict[str, Any]]:
         best_text = _ocr_variant(base_variant)
+        local_debug = dict(debug)
+        local_debug["first_pass_text_length"] = len(best_text)
         if _build_nutrition_photo_rescue_payload(payload, best_text):
-            return best_text
+            local_debug["local_ocr_status"] = "success_base"
+            return best_text, local_debug
         retry_variant = _preprocess_nutrition_retry_image(base_variant)
         if retry_variant is None:
-            return best_text
+            local_debug["local_ocr_status"] = "rescue_rejected" if best_text else "no_text"
+            return best_text, local_debug
+        local_debug["local_ocr_retry_used"] = True
         retry_text = _ocr_variant(retry_variant)
+        local_debug["second_pass_text_length"] = len(retry_text)
         if _build_nutrition_photo_rescue_payload(payload, retry_text):
-            return retry_text
-        return retry_text if len(retry_text) > len(best_text) else best_text
+            local_debug["local_ocr_status"] = "success_retry"
+            return retry_text, local_debug
+        winner = retry_text if len(retry_text) > len(best_text) else best_text
+        local_debug["local_ocr_status"] = "rescue_rejected" if winner else "no_text"
+        return winner, local_debug
 
     try:
         return await asyncio.to_thread(_run_local_ocr)
     except Exception:
-        return ""
+        debug["local_ocr_status"] = "runtime_error"
+        return "", debug
+
+
+async def _extract_nutrition_photo_text_locally(payload: Dict[str, Any]) -> str:
+    text, _debug = await _extract_nutrition_photo_text_locally_with_debug(payload)
+    return text
 
 
 def _normalize_nutrition_ocr_text(text: str) -> str:
@@ -5658,10 +5685,16 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
     nutrition_ocr_debug = {
         "nutrition_upload_present": bool(str(payload.get("nutrition_image_data_url") or "").strip()),
         "nutrition_image_chars": len(str(payload.get("nutrition_image_data_url") or "").strip()),
+        "nutrition_crop_applied": bool(payload.get("nutrition_crop_applied")),
         "ocr_helper_invoked": False,
         "ocr_text_non_empty": False,
         "ocr_text_length": 0,
         "rescued_field_count": 0,
+        "local_ocr_enabled": _local_nutrition_ocr_enabled(),
+        "local_ocr_engine_available": False,
+        "local_ocr_engine_name": "",
+        "local_ocr_retry_used": False,
+        "local_ocr_status": "",
         "final_error_branch": "",
     }
     extracted = await _extract_photo_payload_with_ai(payload)
@@ -5669,7 +5702,12 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         nutrition_ocr_debug["ocr_helper_invoked"] = (
             bool(str(payload.get("nutrition_image_data_url") or "").strip()) and _local_nutrition_ocr_enabled()
         )
-        nutrition_ocr_text = await _extract_nutrition_photo_text_locally(payload)
+        nutrition_ocr_text, local_ocr_debug = await _extract_nutrition_photo_text_locally_with_debug(payload)
+        nutrition_ocr_debug["local_ocr_enabled"] = bool(local_ocr_debug.get("local_ocr_enabled"))
+        nutrition_ocr_debug["local_ocr_engine_available"] = bool(local_ocr_debug.get("local_ocr_engine_available"))
+        nutrition_ocr_debug["local_ocr_engine_name"] = str(local_ocr_debug.get("local_ocr_engine_name") or "")
+        nutrition_ocr_debug["local_ocr_retry_used"] = bool(local_ocr_debug.get("local_ocr_retry_used"))
+        nutrition_ocr_debug["local_ocr_status"] = str(local_ocr_debug.get("local_ocr_status") or "")
         nutrition_ocr_debug["ocr_text_non_empty"] = bool(str(nutrition_ocr_text or "").strip())
         nutrition_ocr_debug["ocr_text_length"] = len(str(nutrition_ocr_text or "").strip())
         nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, nutrition_ocr_text)
@@ -5684,11 +5722,17 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 nutrition_ocr_debug["final_error_branch"] = str(extracted.get("error_code") or extracted.get("error", {}).get("code") or "photo_extraction_error").strip().lower()
                 extracted["photo_extraction_debug"] = nutrition_ocr_debug
                 logger.info(
-                    "photo nutrition rescue failed key=%s upload_present=%s image_chars=%s ocr_invoked=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s final_error_branch=%s",
+                    "photo nutrition rescue failed key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s final_error_branch=%s",
                     str(payload.get("existing_key") or _get_path(payload, "existing_analysis", "key") or ""),
                     nutrition_ocr_debug["nutrition_upload_present"],
+                    nutrition_ocr_debug["nutrition_crop_applied"],
                     nutrition_ocr_debug["nutrition_image_chars"],
                     nutrition_ocr_debug["ocr_helper_invoked"],
+                    nutrition_ocr_debug["local_ocr_enabled"],
+                    nutrition_ocr_debug["local_ocr_engine_available"],
+                    nutrition_ocr_debug["local_ocr_engine_name"],
+                    nutrition_ocr_debug["local_ocr_retry_used"],
+                    nutrition_ocr_debug["local_ocr_status"],
                     nutrition_ocr_debug["ocr_text_non_empty"],
                     nutrition_ocr_debug["ocr_text_length"],
                     nutrition_ocr_debug["rescued_field_count"],
@@ -5774,11 +5818,17 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         }
         if result["photo_extraction"]["used_nutrition_photo"]:
             logger.info(
-                "photo nutrition rescue success key=%s upload_present=%s image_chars=%s ocr_invoked=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s",
+                "photo nutrition rescue success key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s",
                 str(existing_key or ""),
                 nutrition_ocr_debug["nutrition_upload_present"],
+                nutrition_ocr_debug["nutrition_crop_applied"],
                 nutrition_ocr_debug["nutrition_image_chars"],
                 nutrition_ocr_debug["ocr_helper_invoked"],
+                nutrition_ocr_debug["local_ocr_enabled"],
+                nutrition_ocr_debug["local_ocr_engine_available"],
+                nutrition_ocr_debug["local_ocr_engine_name"],
+                nutrition_ocr_debug["local_ocr_retry_used"],
+                nutrition_ocr_debug["local_ocr_status"],
                 nutrition_ocr_debug["ocr_text_non_empty"],
                 nutrition_ocr_debug["ocr_text_length"],
                 nutrition_ocr_debug["rescued_field_count"],
