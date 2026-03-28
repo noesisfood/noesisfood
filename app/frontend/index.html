@@ -2901,6 +2901,12 @@
           nutrition_image_data_url: state.photoForm?.nutrition_image_data_url || "",
           ingredient_crop_applied: ingredientVariant === "cropped" || Boolean(state.photoForm?.ingredient_crop_applied),
           nutrition_crop_applied: nutritionVariant === "cropped" || Boolean(state.photoForm?.nutrition_crop_applied),
+          ingredient_image_variant: ingredientVariant || "",
+          nutrition_image_variant: nutritionVariant || "",
+          ingredient_image_state_source: String(state.photoForm?.ingredient_image_state_source || ""),
+          nutrition_image_state_source: String(state.photoForm?.nutrition_image_state_source || ""),
+          ingredient_original_image_length: Number(state.photoForm?.ingredient_original_image_length || 0),
+          nutrition_original_image_length: Number(state.photoForm?.nutrition_original_image_length || 0),
           existing_analysis: previousData || {},
           existing_key: state.key || previousData?.key || "",
           existing_product: {
@@ -2913,23 +2919,24 @@
           timestamp: Date.now(),
         };
         console.info("[photo-submit-debug]", {
+          payload_keys: Object.keys(payload),
           ingredient_crop_applied: payload.ingredient_crop_applied,
           ingredient_image_length: (payload.ingredient_image_data_url || "").length,
-          ingredient_image_variant: ingredientVariant || "unset",
-          ingredient_image_state_source: state.photoForm?.ingredient_image_state_source || "",
-          ingredient_original_image_length: Number(state.photoForm?.ingredient_original_image_length || 0),
+          ingredient_image_variant: payload.ingredient_image_variant || "unset",
+          ingredient_image_state_source: payload.ingredient_image_state_source || "",
+          ingredient_original_image_length: Number(payload.ingredient_original_image_length || 0),
           ingredient_is_cropped_distinct:
             ingredientVariant === "cropped"
-              ? Number((payload.ingredient_image_data_url || "").length) !== Number(state.photoForm?.ingredient_original_image_length || 0)
+              ? Number((payload.ingredient_image_data_url || "").length) !== Number(payload.ingredient_original_image_length || 0)
               : false,
           nutrition_crop_applied: payload.nutrition_crop_applied,
           nutrition_image_length: (payload.nutrition_image_data_url || "").length,
-          nutrition_image_variant: nutritionVariant || "unset",
-          nutrition_image_state_source: state.photoForm?.nutrition_image_state_source || "",
-          nutrition_original_image_length: Number(state.photoForm?.nutrition_original_image_length || 0),
+          nutrition_image_variant: payload.nutrition_image_variant || "unset",
+          nutrition_image_state_source: payload.nutrition_image_state_source || "",
+          nutrition_original_image_length: Number(payload.nutrition_original_image_length || 0),
           nutrition_is_cropped_distinct:
             nutritionVariant === "cropped"
-              ? Number((payload.nutrition_image_data_url || "").length) !== Number(state.photoForm?.nutrition_original_image_length || 0)
+              ? Number((payload.nutrition_image_data_url || "").length) !== Number(payload.nutrition_original_image_length || 0)
               : false,
         });
         const res = await fetch(`/scan/photo?lang=${lang}`, {
