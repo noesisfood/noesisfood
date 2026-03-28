@@ -174,6 +174,35 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rescued["nutrition_per_100"]["protein_g"], 17.0)
         self.assertEqual(rescued["nutrition_per_100"]["salt_g"], 2.5)
 
+    def test_evaluate_nutrition_photo_rescue_accepts_two_field_partial_table(self) -> None:
+        payload = {
+            "nutrition_image_data_url": "data:image/jpeg;base64,AAA",
+            "nutrition_crop_applied": True,
+            "existing_key": "4000000000001",
+            "existing_product": {
+                "name": "Feta",
+                "brand": "Noesis",
+                "categories": ["Feta", "Cheese"],
+            },
+            "existing_analysis": {
+                "key": "4000000000001",
+                "nutrition_per_100": {"unit": "g"},
+                "meta": {"serving": {"unit": "g"}},
+            },
+        }
+
+        rescued, debug = ss._evaluate_nutrition_photo_rescue(
+            payload,
+            "Per 100 g Energy 265 kcal Protein 17 g",
+        )
+
+        self.assertIsInstance(rescued, dict)
+        self.assertEqual(debug["parser_acceptance_reason"], "accepted")
+        self.assertEqual(debug["rescued_field_count"], 2)
+        self.assertIn("265 kcal", debug["ocr_text_preview"])
+        self.assertEqual(rescued["nutrition_per_100"]["energy_kcal"], 265.0)
+        self.assertEqual(rescued["nutrition_per_100"]["protein_g"], 17.0)
+
     def test_extract_text_from_rapidocr_result_accepts_tuple_txts(self) -> None:
         class FakeRapidOCROutput:
             txts = ("Per 100 g", "Energy 265 kcal", "Salt 2.5 g")
@@ -761,13 +790,13 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
             patch.object(
                 ss,
                 "_extract_nutrition_photo_text_locally_with_debug",
-                AsyncMock(return_value=("Fett 21 g Kohlenhydrate 1,0 g", {
+                AsyncMock(return_value=("Fett 21 g", {
                     "local_ocr_enabled": True,
                     "local_ocr_engine_available": True,
                     "local_ocr_engine_name": "RapidOCR",
                     "local_ocr_retry_used": False,
                     "local_ocr_status": "rescue_rejected",
-                    "first_pass_text_length": 29,
+                    "first_pass_text_length": 9,
                     "second_pass_text_length": 0,
                 })),
             ),
@@ -780,7 +809,7 @@ class PhotoFallbackCompositionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(debug.get("ocr_text_non_empty"), True)
         self.assertEqual(debug.get("parser_acceptance_reason"), "insufficient_rescued_fields")
         self.assertIn("fat_g", debug.get("rescued_field_names") or [])
-        self.assertIn("carb_g", debug.get("rescued_field_names") or [])
+        self.assertEqual(debug.get("ocr_text_preview"), "Fett 21 g")
         self.assertEqual(debug.get("final_error_branch"), "photo_extraction_failed")
 
 
