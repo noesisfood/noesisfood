@@ -4537,7 +4537,144 @@ def _nutrition_value_from_text(text: str, patterns: Sequence[str]) -> Optional[f
 def _count_usable_nutrition_fields(nutrition: Dict[str, Any]) -> int:
     if not isinstance(nutrition, dict):
         return 0
-    return sum(1 for key in ("energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g") if _photo_numeric(nutrition.get(key)) is not None)
+    return sum(1 for key in ("energy_kcal", "fat_g", "carb_g", "sugar_g", "salt_g", "sat_fat_g", "protein_g") if _photo_numeric(nutrition.get(key)) is not None)
+
+
+def _nutrition_primary_field_count(nutrition: Dict[str, Any]) -> int:
+    if not isinstance(nutrition, dict):
+        return 0
+    return sum(1 for key in ("energy_kcal", "salt_g", "protein_g", "sugar_g", "sat_fat_g") if _photo_numeric(nutrition.get(key)) is not None)
+
+
+def _evaluate_nutrition_photo_rescue(
+    payload: Dict[str, Any],
+    raw_text: str = "",
+    base: Optional[Dict[str, Any]] = None,
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
+    payload = payload if isinstance(payload, dict) else {}
+    debug: Dict[str, Any] = {
+        "ocr_text_non_empty": False,
+        "rescued_field_count": 0,
+        "rescued_field_names": [],
+        "parser_acceptance_reason": "",
+    }
+    nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
+    if not nutrition_image:
+        debug["parser_acceptance_reason"] = "missing_nutrition_image"
+        return None, debug
+
+    existing_product = payload.get("existing_product") if isinstance(payload.get("existing_product"), dict) else {}
+    existing_analysis = payload.get("existing_analysis") if isinstance(payload.get("existing_analysis"), dict) else {}
+    if not str(existing_product.get("name") or "").strip() and not str(existing_analysis.get("key") or payload.get("existing_key") or "").strip():
+        debug["parser_acceptance_reason"] = "missing_existing_context"
+        return None, debug
+
+    base_payload = copy.deepcopy(base) if isinstance(base, dict) else {}
+    nutrition = base_payload.get("nutrition_per_100") if isinstance(base_payload.get("nutrition_per_100"), dict) else {}
+    if not isinstance(nutrition, dict):
+        nutrition = {}
+
+    for field in ("energy_kcal", "fat_g", "carb_g", "sugar_g", "salt_g", "sat_fat_g", "protein_g", "serving_size"):
+        direct_value = _photo_numeric(base_payload.get(field))
+        if direct_value is not None and nutrition.get(field) is None:
+            nutrition[field] = direct_value
+
+    text = _normalize_nutrition_ocr_text(raw_text)
+    debug["ocr_text_non_empty"] = bool(text)
+    if not text:
+        debug["parser_acceptance_reason"] = "empty_ocr_text"
+        return None, debug
+
+    if nutrition.get("energy_kcal") is None:
+        nutrition["energy_kcal"] = _nutrition_value_from_text(
+            text,
+            [
+                r"(?:energy|energie|energi(?:e|ja)?|ενέργεια)[^\n\r]{0,40}?(\d+(?:[.,]\d+)?)\s*kcal",
+                r"kcal[^\d]{0,12}(\d+(?:[.,]\d+)?)",
+            ],
+        )
+    if nutrition.get("energy_kcal") is None:
+        energy_kj = _nutrition_value_from_text(
+            text,
+            [r"(?:energy|energie|energi(?:e|ja)?|ενέργεια)[^\n\r]{0,40}?(\d+(?:[.,]\d+)?)\s*kj"],
+        )
+        if energy_kj is not None:
+            nutrition["energy_kcal"] = round(float(energy_kj) / 4.184, 1)
+    if nutrition.get("fat_g") is None:
+        nutrition["fat_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:fat|fett|mati[eè]res?\s+grasses?|λιπαρά)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("carb_g") is None:
+        nutrition["carb_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:carbohydrate(?:s)?|carbs?|kohlenhydrate|glucides|υδατάνθρακ(?:ες|ακ)?)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("sugar_g") is None:
+        nutrition["sugar_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:sugars|sugar|zucker|zuccheri|sucre(?:s)?|σάκχαρα)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("salt_g") is None:
+        nutrition["salt_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:salt|salz|sel|αλάτι)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("sat_fat_g") is None:
+        nutrition["sat_fat_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:saturates|saturated fat(?:ty acids)?|davon ges[aä]ttigte|dont acides gras satur[ée]s|κορεσμ[έε]να)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("protein_g") is None:
+        nutrition["protein_g"] = _nutrition_value_from_text(
+            text,
+            [r"(?:protein|eiwei(?:ß|ss)|prot[ée]ines|πρωτε(?:ΐ|ι)ν(?:η|ες)?)[^\n\r]{0,30}?(\d+(?:[.,]\d+)?)\s*g"],
+        )
+    if nutrition.get("serving_size") is None:
+        nutrition["serving_size"] = _nutrition_value_from_text(
+            text,
+            [r"(?:portion|serving|pro portion|per portion|ανά μερίδα|par portion)[^\n\r]{0,20}?(\d+(?:[.,]\d+)?)\s*(?:g|ml)"],
+        )
+    if nutrition.get("unit") is None:
+        unit_match = re.search(r"(?:per|ανά|pour|pro)\s*100\s*(ml|g)\b", text, flags=re.IGNORECASE)
+        if unit_match:
+            nutrition["unit"] = str(unit_match.group(1) or "").strip().lower()
+    if nutrition.get("unit") is None:
+        inferred_unit = _first_present(
+            base_payload.get("unit"),
+            existing_analysis.get("nutrition_per_100", {}).get("unit") if isinstance(existing_analysis.get("nutrition_per_100"), dict) else None,
+            _get_path(existing_analysis, "meta", "serving", "unit"),
+            payload.get("unit"),
+            "g",
+        )
+        nutrition["unit"] = str(inferred_unit or "g").strip().lower() or "g"
+
+    usable_count = _count_usable_nutrition_fields(nutrition)
+    primary_count = _nutrition_primary_field_count(nutrition)
+    rescued_field_names = [key for key in ("energy_kcal", "fat_g", "carb_g", "sugar_g", "salt_g", "sat_fat_g", "protein_g") if _photo_numeric(nutrition.get(key)) is not None]
+    debug["rescued_field_count"] = usable_count
+    debug["rescued_field_names"] = rescued_field_names
+    if not (usable_count >= 3 or primary_count >= 2):
+        debug["parser_acceptance_reason"] = "insufficient_rescued_fields"
+        return None, debug
+
+    base_payload["nutrition_per_100"] = nutrition
+    base_payload["product_name"] = str(_first_present(base_payload.get("product_name"), existing_product.get("name")) or "").strip() or None
+    base_payload["brand"] = str(_first_present(base_payload.get("brand"), existing_product.get("brand")) or "").strip() or None
+    base_payload["categories"] = _merge_categories(existing_product.get("categories") or [], base_payload.get("categories") or [])
+    base_payload["confidence"] = str(base_payload.get("confidence") or "low").strip().lower() or "low"
+    base_payload["label_kind"] = "nutrition"
+    extracted_fields = [str(item).strip() for item in _as_list(base_payload.get("extracted_fields")) if str(item).strip()]
+    extracted_fields.append("nutrition_per_100")
+    extracted_fields.append("nutrition_photo_context")
+    extracted_fields.extend(rescued_field_names)
+    base_payload["extracted_fields"] = list(dict.fromkeys(extracted_fields))
+    notes = str(base_payload.get("notes") or "").strip()
+    fallback_note = "Nutrition-photo fallback accepted with nutrition-only enrichment for an existing partial product."
+    base_payload["notes"] = f"{notes} {fallback_note}".strip() if notes else fallback_note
+    debug["parser_acceptance_reason"] = "accepted"
+    base_payload["nutrition_ocr_debug"] = debug
+    return _normalize_photo_extracted_payload(base_payload, payload), debug
 
 
 def _build_nutrition_photo_rescue_payload(
@@ -4545,6 +4682,8 @@ def _build_nutrition_photo_rescue_payload(
     raw_text: str = "",
     base: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
+    rescued, _debug = _evaluate_nutrition_photo_rescue(payload, raw_text, base)
+    return rescued
     payload = payload if isinstance(payload, dict) else {}
     nutrition_image = str(payload.get("nutrition_image_data_url") or "").strip()
     if not nutrition_image:
@@ -5731,6 +5870,8 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         "ocr_text_non_empty": False,
         "ocr_text_length": 0,
         "rescued_field_count": 0,
+        "rescued_field_names": [],
+        "parser_acceptance_reason": "",
         "local_ocr_enabled": _local_nutrition_ocr_enabled(),
         "local_ocr_engine_available": False,
         "local_ocr_engine_name": "",
@@ -5751,19 +5892,25 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         nutrition_ocr_debug["local_ocr_status"] = str(local_ocr_debug.get("local_ocr_status") or "")
         nutrition_ocr_debug["ocr_text_non_empty"] = bool(str(nutrition_ocr_text or "").strip())
         nutrition_ocr_debug["ocr_text_length"] = len(str(nutrition_ocr_text or "").strip())
-        nutrition_fallback = _build_nutrition_photo_rescue_payload(payload, nutrition_ocr_text)
+        nutrition_fallback, rescue_debug = _evaluate_nutrition_photo_rescue(payload, nutrition_ocr_text)
+        nutrition_ocr_debug["rescued_field_count"] = int(rescue_debug.get("rescued_field_count") or 0)
+        nutrition_ocr_debug["rescued_field_names"] = [str(item) for item in _as_list(rescue_debug.get("rescued_field_names")) if str(item)]
+        nutrition_ocr_debug["parser_acceptance_reason"] = str(rescue_debug.get("parser_acceptance_reason") or "")
         if isinstance(nutrition_fallback, dict):
-            debug_payload = nutrition_fallback.get("nutrition_ocr_debug") if isinstance(nutrition_fallback.get("nutrition_ocr_debug"), dict) else {}
-            nutrition_ocr_debug["rescued_field_count"] = int(debug_payload.get("rescued_field_count") or 0)
             extracted = nutrition_fallback
         else:
             context_fallback = _build_photo_context_water_fallback(payload)
             if context_fallback is None:
                 extracted = copy.deepcopy(extracted)
+                if nutrition_ocr_debug["ocr_text_non_empty"]:
+                    extracted = _scan_error("PHOTO_EXTRACTION_FAILED", "Could not extract enough nutrition data from the photo.", 422)
+                    extracted.update(_lookup_state_payload("found_but_incomplete"))
+                    extracted["analysis_state"] = "insufficient_data"
+                    extracted["analysis_confidence"] = "low"
                 nutrition_ocr_debug["final_error_branch"] = str(extracted.get("error_code") or extracted.get("error", {}).get("code") or "photo_extraction_error").strip().lower()
                 extracted["photo_extraction_debug"] = nutrition_ocr_debug
                 logger.info(
-                    "photo nutrition rescue failed key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s final_error_branch=%s",
+                    "photo nutrition rescue failed key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s rescued_names=%s parser_reason=%s final_error_branch=%s",
                     str(payload.get("existing_key") or _get_path(payload, "existing_analysis", "key") or ""),
                     nutrition_ocr_debug["nutrition_upload_present"],
                     nutrition_ocr_debug["nutrition_crop_applied"],
@@ -5777,6 +5924,8 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                     nutrition_ocr_debug["ocr_text_non_empty"],
                     nutrition_ocr_debug["ocr_text_length"],
                     nutrition_ocr_debug["rescued_field_count"],
+                    ",".join(nutrition_ocr_debug["rescued_field_names"]),
+                    nutrition_ocr_debug["parser_acceptance_reason"],
                     nutrition_ocr_debug["final_error_branch"],
                 )
                 return extracted
@@ -5859,7 +6008,7 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
         }
         if result["photo_extraction"]["used_nutrition_photo"]:
             logger.info(
-                "photo nutrition rescue success key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s",
+                "photo nutrition rescue success key=%s upload_present=%s crop_applied=%s image_chars=%s ocr_invoked=%s local_ocr_enabled=%s engine_available=%s engine_name=%s retry_used=%s local_ocr_status=%s ocr_non_empty=%s ocr_text_length=%s rescued_fields=%s rescued_names=%s parser_reason=%s",
                 str(existing_key or ""),
                 nutrition_ocr_debug["nutrition_upload_present"],
                 nutrition_ocr_debug["nutrition_crop_applied"],
@@ -5873,6 +6022,8 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 nutrition_ocr_debug["ocr_text_non_empty"],
                 nutrition_ocr_debug["ocr_text_length"],
                 nutrition_ocr_debug["rescued_field_count"],
+                ",".join(nutrition_ocr_debug["rescued_field_names"]),
+                nutrition_ocr_debug["parser_acceptance_reason"],
             )
         if isinstance(result.get("meta"), dict):
             result["meta"]["photo_extraction"] = result["photo_extraction"]
