@@ -318,6 +318,76 @@ def tx(lang: str, key: str) -> str:
     return VITASCORE_EXPLANATION_I18N.get(lang_key, {}).get(key) or VITASCORE_EXPLANATION_I18N["en"].get(key) or key
 
 
+ANALYSIS_CONFIDENCE_I18N: Dict[str, Dict[str, str]] = {
+    "en": {
+        "reason_barcode_confirmed": "Barcode product identity was confirmed.",
+        "reason_barcode_catalog": "Barcode-linked product data was available.",
+        "reason_manual_entry": "Nutrition data was entered manually.",
+        "reason_photo_used": "Nutrition data was partially extracted from OCR.",
+        "reason_photo_rescued_low": "Only {count} nutrition fields were rescued from OCR.",
+        "reason_photo_rescued_some": "{count} nutrition fields were rescued from OCR.",
+        "reason_core_complete": "Core nutrition fields were available.",
+        "reason_core_missing": "{count} core nutrition fields are missing.",
+        "reason_partial_analysis": "The result is based on a partial analysis.",
+        "reason_limited_estimate": "The result is based on a limited estimate.",
+        "reason_lookup_incomplete": "Product data was incomplete for full verification.",
+        "reason_serving_missing": "Serving information was not fully available.",
+        "reason_safety_conditional": "Safety alert confidence is conditional.",
+    },
+    "el": {
+        "reason_barcode_confirmed": "\u0397 \u03c4\u03b1\u03c5\u03c4\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2 \u03b5\u03c0\u03b9\u03b2\u03b5\u03b2\u03b1\u03b9\u03ce\u03b8\u03b7\u03ba\u03b5 \u03bc\u03b5 barcode.",
+        "reason_barcode_catalog": "\u0389\u03c4\u03b1\u03bd \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2 \u03c3\u03c5\u03bd\u03b4\u03b5\u03b4\u03b5\u03bc\u03ad\u03bd\u03b1 \u03bc\u03b5 barcode.",
+        "reason_manual_entry": "\u03a4\u03b1 \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03b1 \u03b4\u03cc\u03b8\u03b7\u03ba\u03b1\u03bd \u03c7\u03b5\u03b9\u03c1\u03bf\u03ba\u03af\u03bd\u03b7\u03c4\u03b1.",
+        "reason_photo_used": "\u03a4\u03b1 \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03b1 \u03b5\u03be\u03ae\u03c7\u03b8\u03b7\u03ba\u03b1\u03bd \u03bc\u03b5\u03c1\u03b9\u03ba\u03ce\u03c2 \u03b1\u03c0\u03cc OCR.",
+        "reason_photo_rescued_low": "\u039c\u03cc\u03bd\u03bf {count} \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c0\u03b5\u03b4\u03af\u03b1 \u03b1\u03bd\u03b1\u03ba\u03c4\u03ae\u03b8\u03b7\u03ba\u03b1\u03bd \u03b1\u03c0\u03cc OCR.",
+        "reason_photo_rescued_some": "\u0391\u03bd\u03b1\u03ba\u03c4\u03ae\u03b8\u03b7\u03ba\u03b1\u03bd {count} \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c0\u03b5\u03b4\u03af\u03b1 \u03b1\u03c0\u03cc OCR.",
+        "reason_core_complete": "\u0389\u03c4\u03b1\u03bd \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b1 \u03c4\u03b1 \u03b2\u03b1\u03c3\u03b9\u03ba\u03ac \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c0\u03b5\u03b4\u03af\u03b1.",
+        "reason_core_missing": "\u039b\u03b5\u03af\u03c0\u03bf\u03c5\u03bd {count} \u03b2\u03b1\u03c3\u03b9\u03ba\u03ac \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c0\u03b5\u03b4\u03af\u03b1.",
+        "reason_partial_analysis": "\u03a4\u03bf \u03b1\u03c0\u03bf\u03c4\u03ad\u03bb\u03b5\u03c3\u03bc\u03b1 \u03b2\u03b1\u03c3\u03af\u03b6\u03b5\u03c4\u03b1\u03b9 \u03c3\u03b5 \u03bc\u03b5\u03c1\u03b9\u03ba\u03ae \u03b1\u03bd\u03ac\u03bb\u03c5\u03c3\u03b7.",
+        "reason_limited_estimate": "\u03a4\u03bf \u03b1\u03c0\u03bf\u03c4\u03ad\u03bb\u03b5\u03c3\u03bc\u03b1 \u03b2\u03b1\u03c3\u03af\u03b6\u03b5\u03c4\u03b1\u03b9 \u03c3\u03b5 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b7 \u03b5\u03ba\u03c4\u03af\u03bc\u03b7\u03c3\u03b7.",
+        "reason_lookup_incomplete": "\u03a4\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2 \u03b4\u03b5\u03bd \u03ae\u03c4\u03b1\u03bd \u03c0\u03bb\u03ae\u03c1\u03b7 \u03b3\u03b9\u03b1 \u03c0\u03bb\u03ae\u03c1\u03b7 \u03b5\u03c0\u03b1\u03bb\u03ae\u03b8\u03b5\u03c5\u03c3\u03b7.",
+        "reason_serving_missing": "\u0394\u03b5\u03bd \u03ae\u03c4\u03b1\u03bd \u03c0\u03bb\u03ae\u03c1\u03c9\u03c2 \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b5\u03c2 \u03bf\u03b9 \u03c0\u03bb\u03b7\u03c1\u03bf\u03c6\u03bf\u03c1\u03af\u03b5\u03c2 \u03bc\u03b5\u03c1\u03af\u03b4\u03b1\u03c2.",
+        "reason_safety_conditional": "\u0397 \u03b2\u03b5\u03b2\u03b1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c4\u03b7\u03c2 \u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7\u03c2 \u03b1\u03c3\u03c6\u03ac\u03bb\u03b5\u03b9\u03b1\u03c2 \u03b5\u03af\u03bd\u03b1\u03b9 \u03c5\u03c0\u03cc \u03cc\u03c1\u03bf\u03c5\u03c2.",
+    },
+    "de": {
+        "reason_barcode_confirmed": "Die Produktidentit\u00e4t wurde per Barcode best\u00e4tigt.",
+        "reason_barcode_catalog": "Barcode-verkn\u00fcpfte Produktdaten waren verf\u00fcgbar.",
+        "reason_manual_entry": "Die N\u00e4hrwerte wurden manuell eingegeben.",
+        "reason_photo_used": "Die N\u00e4hrwertdaten wurden teilweise per OCR extrahiert.",
+        "reason_photo_rescued_low": "Nur {count} N\u00e4hrwertfelder wurden per OCR gerettet.",
+        "reason_photo_rescued_some": "{count} N\u00e4hrwertfelder wurden per OCR gerettet.",
+        "reason_core_complete": "Die zentralen N\u00e4hrwertfelder waren verf\u00fcgbar.",
+        "reason_core_missing": "{count} zentrale N\u00e4hrwertfelder fehlen.",
+        "reason_partial_analysis": "Das Ergebnis basiert auf einer Teilanalyse.",
+        "reason_limited_estimate": "Das Ergebnis basiert auf einer begrenzten Sch\u00e4tzung.",
+        "reason_lookup_incomplete": "Die Produktdaten waren f\u00fcr eine vollst\u00e4ndige Verifikation unvollst\u00e4ndig.",
+        "reason_serving_missing": "Portionsangaben waren nicht vollst\u00e4ndig verf\u00fcgbar.",
+        "reason_safety_conditional": "Die Konfidenz des Sicherheitshinweises ist bedingt.",
+    },
+    "fr": {
+        "reason_barcode_confirmed": "L'identit\u00e9 du produit a \u00e9t\u00e9 confirm\u00e9e par le code-barres.",
+        "reason_barcode_catalog": "Des donn\u00e9es produit li\u00e9es au code-barres \u00e9taient disponibles.",
+        "reason_manual_entry": "Les valeurs nutritionnelles ont \u00e9t\u00e9 saisies manuellement.",
+        "reason_photo_used": "Les donn\u00e9es nutritionnelles ont \u00e9t\u00e9 partiellement extraites par OCR.",
+        "reason_photo_rescued_low": "Seulement {count} champs nutritionnels ont \u00e9t\u00e9 r\u00e9cup\u00e9r\u00e9s par OCR.",
+        "reason_photo_rescued_some": "{count} champs nutritionnels ont \u00e9t\u00e9 r\u00e9cup\u00e9r\u00e9s par OCR.",
+        "reason_core_complete": "Les champs nutritionnels de base \u00e9taient disponibles.",
+        "reason_core_missing": "{count} champs nutritionnels de base sont manquants.",
+        "reason_partial_analysis": "Le r\u00e9sultat repose sur une analyse partielle.",
+        "reason_limited_estimate": "Le r\u00e9sultat repose sur une estimation limit\u00e9e.",
+        "reason_lookup_incomplete": "Les donn\u00e9es produit \u00e9taient incompl\u00e8tes pour une v\u00e9rification compl\u00e8te.",
+        "reason_serving_missing": "Les informations de portion n'\u00e9taient pas enti\u00e8rement disponibles.",
+        "reason_safety_conditional": "La confiance de l'alerte de s\u00e9curit\u00e9 est conditionnelle.",
+    },
+}
+
+
+def tc(lang: str, key: str, **kwargs: Any) -> str:
+    lang_key = lang if lang in SUPPORTED_LANGS else "en"
+    template = ANALYSIS_CONFIDENCE_I18N.get(lang_key, {}).get(key) or ANALYSIS_CONFIDENCE_I18N["en"].get(key) or key
+    return template.format(**kwargs)
+
+
 # -----------------------------
 # Helpers
 # -----------------------------
@@ -4029,6 +4099,108 @@ def _align_analysis_confidence(
     return dq_tier if _confidence_rank(dq_tier) < _confidence_rank(current) else current
 
 
+def _append_confidence_reason(items: List[str], value: str) -> None:
+    text = str(value or "").strip()
+    if text and text not in items:
+        items.append(text)
+
+
+def _apply_analysis_confidence_layer(result: Dict[str, Any], lang: str) -> Dict[str, Any]:
+    if not isinstance(result, dict) or result.get("error"):
+        return result
+
+    analysis_state = str(result.get("analysis_state") or _get_path(result, "meta", "analysis_state") or "").strip().lower()
+    current_confidence = str(result.get("analysis_confidence") or _get_path(result, "meta", "analysis_confidence") or "").strip().lower() or "low"
+    source = str(result.get("source") or "").strip().lower()
+    matched_by = str(result.get("matched_by") or "").strip().lower()
+    lookup_state = str(result.get("lookup_state") or _get_path(result, "meta", "lookup_state") or "").strip().lower()
+    data_quality = result.get("data_quality") if isinstance(result.get("data_quality"), dict) else {}
+    photo_meta = result.get("photo_extraction") if isinstance(result.get("photo_extraction"), dict) else {}
+    photo_debug = photo_meta.get("debug") if isinstance(photo_meta.get("debug"), dict) else {}
+    safety_alerts = result.get("safety_alerts") if isinstance(result.get("safety_alerts"), list) else []
+
+    rank = _confidence_rank(current_confidence)
+    reasons: List[str] = []
+
+    missing_core_fields = _as_list(data_quality.get("missing_core_fields"))
+    missing_core_count = len(missing_core_fields)
+    if missing_core_count:
+        _append_confidence_reason(reasons, tc(lang, "reason_core_missing", count=missing_core_count))
+    else:
+        _append_confidence_reason(reasons, tc(lang, "reason_core_complete"))
+
+    if not bool(data_quality.get("has_serving")):
+        _append_confidence_reason(reasons, tc(lang, "reason_serving_missing"))
+        rank = min(rank, 2)
+
+    if matched_by in {"local_db", "barcode_or_key"}:
+        _append_confidence_reason(reasons, tc(lang, "reason_barcode_confirmed" if lookup_state == "found_and_analyzable" else "reason_barcode_catalog"))
+    elif matched_by == "manual_entry" or source == "manual":
+        _append_confidence_reason(reasons, tc(lang, "reason_manual_entry"))
+        rank = min(rank, 2)
+
+    if lookup_state == "not_found" or (lookup_state == "found_but_incomplete" and missing_core_count > 0):
+        _append_confidence_reason(reasons, tc(lang, "reason_lookup_incomplete"))
+        rank = min(rank, 2)
+
+    if analysis_state == "limited_estimate":
+        _append_confidence_reason(reasons, tc(lang, "reason_limited_estimate"))
+        rank = 1
+    elif analysis_state == "partial_analysis":
+        _append_confidence_reason(reasons, tc(lang, "reason_partial_analysis"))
+        rank = min(rank, 2)
+
+    if photo_meta:
+        _append_confidence_reason(reasons, tc(lang, "reason_photo_used"))
+        photo_confidence = str(photo_meta.get("confidence") or "").strip().lower()
+        rescued_field_count = int(photo_debug.get("rescued_field_count") or 0)
+        if rescued_field_count <= 0:
+            extracted_fields = _as_list(photo_meta.get("extracted_fields"))
+            rescued_field_count = sum(
+                1 for field in ("energy_kcal", "fat_g", "carb_g", "sugar_g", "salt_g", "sat_fat_g", "protein_g")
+                if field in extracted_fields
+            )
+        if rescued_field_count > 0:
+            reason_key = "reason_photo_rescued_low" if rescued_field_count <= 3 else "reason_photo_rescued_some"
+            _append_confidence_reason(reasons, tc(lang, reason_key, count=rescued_field_count))
+        if photo_confidence == "low":
+            rank = 1
+        elif photo_confidence == "medium":
+            rank = min(rank, 2)
+        elif photo_confidence == "high" and rescued_field_count > 0 and rescued_field_count <= 3:
+            rank = min(rank, 2)
+
+    if missing_core_count >= 3:
+        rank = 1
+    elif missing_core_count >= 1:
+        rank = min(rank, 2)
+
+    if any(str(item.get("confidence") or "").strip().lower() == "conditional" for item in safety_alerts if isinstance(item, dict)):
+        _append_confidence_reason(reasons, tc(lang, "reason_safety_conditional"))
+        rank = min(rank, 2)
+
+    final_confidence = "high" if rank >= 3 else ("medium" if rank == 2 else "low")
+    result["analysis_confidence"] = final_confidence
+    result["confidence_reasons"] = reasons[:5]
+
+    meta = result.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        result["meta"] = meta
+    meta["analysis_confidence"] = final_confidence
+    meta["confidence_reasons"] = list(result["confidence_reasons"])
+
+    breakdown = result.get("vitascore_breakdown")
+    if isinstance(breakdown, dict):
+        analysis_mode = breakdown.get("analysis_mode")
+        if not isinstance(analysis_mode, dict):
+            analysis_mode = {}
+            breakdown["analysis_mode"] = analysis_mode
+        analysis_mode["confidence"] = final_confidence
+
+    return result
+
+
 
 # -------------------------
 # Public API used by routes
@@ -5538,7 +5710,7 @@ def _fallback_assessment_response(
     if isinstance(qty, str) and qty.strip().startswith("0"):
         qty = None
     serving_amount = _to_float(_get_path(norm, "nutrition_per_100", "serving_size") or _get_path(norm, "serving", "value"))
-    return {
+    return _apply_analysis_confidence_layer({
         "key": key,
         "source": source,
         "matched_by": matched_by,
@@ -5589,7 +5761,7 @@ def _fallback_assessment_response(
             "safety_alerts_source": safety_lookup.get("source"),
             "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
         },
-    }
+    }, lang)
 
 
 def _analyze_normalized_product(
@@ -5792,7 +5964,7 @@ def _analyze_normalized_product(
         "barcode": key if key and not key.startswith("manual:") else None,
     }
 
-    return {
+    return _apply_analysis_confidence_layer({
         "key": key,
         "source": source,
         "matched_by": matched_by,
@@ -5836,7 +6008,7 @@ def _analyze_normalized_product(
             "safety_alerts_source": safety_lookup.get("source"),
             "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
         },
-    }
+    }, lang)
 
 
 async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
@@ -6358,4 +6530,5 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 }
             if isinstance(result.get("lookup_missing_fields"), list):
                 result["meta"]["lookup_missing_fields"] = result["lookup_missing_fields"]
+        result = _apply_analysis_confidence_layer(result, lang)
     return result
