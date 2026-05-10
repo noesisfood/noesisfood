@@ -672,6 +672,8 @@ def _nutrients_per_100(normalized: Dict[str, Any]) -> Dict[str, Optional[float]]
     if isinstance(per100, dict) and per100:
         return {
             "energy_kcal": _to_float(per100.get("energy_kcal")),
+            "fat_g": _to_float(per100.get("fat_g")),
+            "carb_g": _to_float(per100.get("carb_g")),
             "sugar_g": _to_float(per100.get("sugar_g")),
             "saturated_fat_g": _to_float(per100.get("saturated_fat_g")),
             "salt_g": _to_float(per100.get("salt_g")),
@@ -685,6 +687,8 @@ def _nutrients_per_100(normalized: Dict[str, Any]) -> Dict[str, Optional[float]]
         old = {}
     return {
         "energy_kcal": _to_float(old.get("energy_kcal")),
+        "fat_g": _to_float(old.get("fat_g") if "fat_g" in old else old.get("fat")),
+        "carb_g": _to_float(old.get("carb_g") if "carb_g" in old else old.get("carbs_g")),
         "sugar_g": _to_float(old.get("sugar_g")),
         "saturated_fat_g": _to_float(old.get("sat_fat_g") if "sat_fat_g" in old else old.get("saturated_fat_g")),
         "salt_g": _to_float(old.get("salt_g")),

@@ -2783,6 +2783,15 @@
       };
     }
 
+    function correctionValue(source, keys, fallback = ""){
+      if (!source || typeof source !== "object") return fallback;
+      for (const key of Array.isArray(keys) ? keys : [keys]){
+        const value = source?.[key];
+        if (value !== null && value !== undefined && String(value).trim() !== "") return value;
+      }
+      return fallback;
+    }
+
     function openCorrectionForm(data){
       const d = data || state.data || {};
       const product = d?.product || {};
@@ -2795,14 +2804,14 @@
         ingredients_text: Array.isArray(d?.ingredients) && d.ingredients.length
           ? d.ingredients.map(item => String(item?.name || "").trim()).filter(Boolean).join(", ")
           : String(existingForm.ingredients_text || ""),
-        energy_kcal: nutrition?.energy_kcal ?? existingForm.energy_kcal ?? "",
-        fat_g: nutrition?.fat_g ?? existingForm.fat_g ?? "",
-        carb_g: nutrition?.carb_g ?? existingForm.carb_g ?? "",
-        sugar_g: nutrition?.sugar_g ?? existingForm.sugar_g ?? "",
-        salt_g: nutrition?.salt_g ?? existingForm.salt_g ?? "",
-        sat_fat_g: nutrition?.sat_fat_g ?? existingForm.sat_fat_g ?? "",
-        protein_g: nutrition?.protein_g ?? existingForm.protein_g ?? "",
-        unit: String(nutrition?.unit || existingForm.unit || "g").trim() || "g",
+        energy_kcal: correctionValue(nutrition, ["energy_kcal", "calories"], existingForm.energy_kcal || ""),
+        fat_g: correctionValue(nutrition, ["fat_g", "fat"], existingForm.fat_g || ""),
+        carb_g: correctionValue(nutrition, ["carb_g", "carbs_g", "carbohydrates_g"], existingForm.carb_g || ""),
+        sugar_g: correctionValue(nutrition, ["sugar_g", "sugar"], existingForm.sugar_g || ""),
+        salt_g: correctionValue(nutrition, ["salt_g", "salt"], existingForm.salt_g || ""),
+        sat_fat_g: correctionValue(nutrition, ["sat_fat_g", "saturated_fat_g"], existingForm.sat_fat_g || ""),
+        protein_g: correctionValue(nutrition, ["protein_g", "protein"], existingForm.protein_g || ""),
+        unit: String(correctionValue(nutrition, ["unit"], existingForm.unit || "g")).trim() || "g",
       };
       state.recoveryOpen = true;
       render();
