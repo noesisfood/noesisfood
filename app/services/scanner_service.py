@@ -209,6 +209,115 @@ def t(lang: str, key: str, **kwargs: Any) -> str:
     return template.format(**kwargs)
 
 
+VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
+    "en": {
+        "factor_high_sugar": "High sugar content",
+        "factor_low_sugar": "Low sugar content",
+        "factor_high_salt": "High salt content",
+        "factor_high_sat_fat": "High saturated fat content",
+        "factor_high_protein": "High protein content",
+        "factor_minimal_processing": "Low processing level",
+        "factor_high_processing": "High processing level",
+        "factor_additives_present": "Multiple additives detected",
+        "factor_preservatives_present": "Preservatives detected",
+        "factor_simple_profile": "Simple ingredient profile",
+        "adj_non_sugar_sweetener_presence": "Non-sugar sweeteners lowered the final score",
+        "adj_multiple_non_sugar_sweeteners": "Multiple sweeteners lowered the final score",
+        "adj_additive_heavy_zero_beverage": "A complex zero-sugar formulation lowered the final score",
+        "adj_reduced_fat_dairy_simple": "Simple reduced-fat dairy composition improved the final score",
+        "adj_reduced_fat_dairy_additive_heavy": "Processed reduced-fat dairy formulation lowered the final score",
+        "adj_whole_food_floor": "Whole-food profile lifted the final score",
+        "adj_whole_food_cap": "Whole-food cap kept the final score conservative",
+        "note_partial_analysis": "This is a partial analysis based on the available data.",
+        "note_limited_estimate": "This is a limited estimate because core nutrition data is incomplete.",
+        "note_confidence_medium": "Confidence is medium.",
+        "note_confidence_low": "Confidence is low.",
+        "note_missing_core_fields": "Some core nutrition fields are missing.",
+        "note_nutrition_guard": "Incomplete nutrition data kept the baseline nutrition score conservative.",
+    },
+    "el": {
+        "factor_high_sugar": "\u03a5\u03c8\u03b7\u03bb\u03ae \u03c0\u03b5\u03c1\u03b9\u03b5\u03ba\u03c4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c3\u03b5 \u03b6\u03ac\u03c7\u03b1\u03c1\u03b7",
+        "factor_low_sugar": "\u03a7\u03b1\u03bc\u03b7\u03bb\u03ae \u03c0\u03b5\u03c1\u03b9\u03b5\u03ba\u03c4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c3\u03b5 \u03b6\u03ac\u03c7\u03b1\u03c1\u03b7",
+        "factor_high_salt": "\u03a5\u03c8\u03b7\u03bb\u03ae \u03c0\u03b5\u03c1\u03b9\u03b5\u03ba\u03c4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c3\u03b5 \u03b1\u03bb\u03ac\u03c4\u03b9",
+        "factor_high_sat_fat": "\u03a5\u03c8\u03b7\u03bb\u03ac \u03ba\u03bf\u03c1\u03b5\u03c3\u03bc\u03ad\u03bd\u03b1 \u03bb\u03b9\u03c0\u03b1\u03c1\u03ac",
+        "factor_high_protein": "\u03a5\u03c8\u03b7\u03bb\u03ae \u03c0\u03b5\u03c1\u03b9\u03b5\u03ba\u03c4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c3\u03b5 \u03c0\u03c1\u03c9\u03c4\u03b5\u0390\u03bd\u03b7",
+        "factor_minimal_processing": "\u03a7\u03b1\u03bc\u03b7\u03bb\u03cc \u03b5\u03c0\u03af\u03c0\u03b5\u03b4\u03bf \u03b5\u03c0\u03b5\u03be\u03b5\u03c1\u03b3\u03b1\u03c3\u03af\u03b1\u03c2",
+        "factor_high_processing": "\u03a5\u03c8\u03b7\u03bb\u03cc \u03b5\u03c0\u03af\u03c0\u03b5\u03b4\u03bf \u03b5\u03c0\u03b5\u03be\u03b5\u03c1\u03b3\u03b1\u03c3\u03af\u03b1\u03c2",
+        "factor_additives_present": "\u0395\u03bd\u03c4\u03bf\u03c0\u03af\u03c3\u03c4\u03b7\u03ba\u03b1\u03bd \u03c0\u03bf\u03bb\u03bb\u03b1\u03c0\u03bb\u03ac \u03c0\u03c1\u03cc\u03c3\u03b8\u03b5\u03c4\u03b1",
+        "factor_preservatives_present": "\u0395\u03bd\u03c4\u03bf\u03c0\u03af\u03c3\u03c4\u03b7\u03ba\u03b1\u03bd \u03c3\u03c5\u03bd\u03c4\u03b7\u03c1\u03b7\u03c4\u03b9\u03ba\u03ac",
+        "factor_simple_profile": "\u0391\u03c0\u03bb\u03cc \u03c0\u03c1\u03bf\u03c6\u03af\u03bb \u03c3\u03c5\u03c3\u03c4\u03b1\u03c4\u03b9\u03ba\u03ce\u03bd",
+        "adj_non_sugar_sweetener_presence": "\u03a4\u03b1 \u03b3\u03bb\u03c5\u03ba\u03b1\u03bd\u03c4\u03b9\u03ba\u03ac \u03c7\u03c9\u03c1\u03af\u03c2 \u03b6\u03ac\u03c7\u03b1\u03c1\u03b7 \u03bc\u03b5\u03af\u03c9\u03c3\u03b1\u03bd \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1",
+        "adj_multiple_non_sugar_sweeteners": "\u03a0\u03bf\u03bb\u03bb\u03b1\u03c0\u03bb\u03ac \u03b3\u03bb\u03c5\u03ba\u03b1\u03bd\u03c4\u03b9\u03ba\u03ac \u03bc\u03b5\u03af\u03c9\u03c3\u03b1\u03bd \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1",
+        "adj_additive_heavy_zero_beverage": "\u0397 \u03c3\u03cd\u03bd\u03b8\u03b5\u03c4\u03b7 \u03c3\u03cd\u03bd\u03b8\u03b5\u03c3\u03b7 \u03c1\u03bf\u03c6\u03ae\u03bc\u03b1\u03c4\u03bf\u03c2 \u03c7\u03c9\u03c1\u03af\u03c2 \u03b6\u03ac\u03c7\u03b1\u03c1\u03b7 \u03bc\u03b5\u03af\u03c9\u03c3\u03b5 \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1",
+        "adj_reduced_fat_dairy_simple": "\u0397 \u03b1\u03c0\u03bb\u03ae \u03c3\u03cd\u03bd\u03b8\u03b5\u03c3\u03b7 light \u03b3\u03b1\u03bb\u03b1\u03ba\u03c4\u03bf\u03ba\u03bf\u03bc\u03b9\u03ba\u03bf\u03cd \u03b2\u03b5\u03bb\u03c4\u03af\u03c9\u03c3\u03b5 \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1",
+        "adj_reduced_fat_dairy_additive_heavy": "\u0397 \u03b5\u03c0\u03b5\u03be\u03b5\u03c1\u03b3\u03b1\u03c3\u03bc\u03ad\u03bd\u03b7 \u03c3\u03cd\u03bd\u03b8\u03b5\u03c3\u03b7 light \u03b3\u03b1\u03bb\u03b1\u03ba\u03c4\u03bf\u03ba\u03bf\u03bc\u03b9\u03ba\u03bf\u03cd \u03bc\u03b5\u03af\u03c9\u03c3\u03b5 \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1",
+        "adj_whole_food_floor": "\u03a4\u03bf \u03c0\u03c1\u03bf\u03c6\u03af\u03bb \u03bf\u03bb\u03cc\u03ba\u03bb\u03b7\u03c1\u03b7\u03c2 \u03c4\u03c1\u03bf\u03c6\u03ae\u03c2 \u03b1\u03bd\u03ad\u03b2\u03b1\u03c3\u03b5 \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1",
+        "adj_whole_food_cap": "\u03a4\u03bf \u03b1\u03bd\u03ce\u03c4\u03b1\u03c4\u03bf \u03cc\u03c1\u03b9\u03bf \u03bf\u03bb\u03cc\u03ba\u03bb\u03b7\u03c1\u03b7\u03c2 \u03c4\u03c1\u03bf\u03c6\u03ae\u03c2 \u03ba\u03c1\u03ac\u03c4\u03b7\u03c3\u03b5 \u03c4\u03bf \u03c4\u03b5\u03bb\u03b9\u03ba\u03cc \u03c3\u03ba\u03bf\u03c1 \u03c0\u03b9\u03bf \u03c3\u03c5\u03bd\u03c4\u03b7\u03c1\u03b7\u03c4\u03b9\u03ba\u03cc",
+        "note_partial_analysis": "\u03a0\u03c1\u03cc\u03ba\u03b5\u03b9\u03c4\u03b1\u03b9 \u03b3\u03b9\u03b1 \u03bc\u03b5\u03c1\u03b9\u03ba\u03ae \u03b1\u03bd\u03ac\u03bb\u03c5\u03c3\u03b7 \u03bc\u03b5 \u03b2\u03ac\u03c3\u03b7 \u03c4\u03b1 \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1.",
+        "note_limited_estimate": "\u03a0\u03c1\u03cc\u03ba\u03b5\u03b9\u03c4\u03b1\u03b9 \u03b3\u03b9\u03b1 \u03c0\u03b5\u03c1\u03b9\u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b7 \u03b5\u03ba\u03c4\u03af\u03bc\u03b7\u03c3\u03b7 \u03b5\u03c0\u03b5\u03b9\u03b4\u03ae \u03bb\u03b5\u03af\u03c0\u03bf\u03c5\u03bd \u03b2\u03b1\u03c3\u03b9\u03ba\u03ac \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03b1.",
+        "note_confidence_medium": "\u0397 \u03b2\u03b5\u03b2\u03b1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b1 \u03b5\u03af\u03bd\u03b1\u03b9 \u03bc\u03ad\u03c4\u03c1\u03b9\u03b1.",
+        "note_confidence_low": "\u0397 \u03b2\u03b5\u03b2\u03b1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b1 \u03b5\u03af\u03bd\u03b1\u03b9 \u03c7\u03b1\u03bc\u03b7\u03bb\u03ae.",
+        "note_missing_core_fields": "\u039b\u03b5\u03af\u03c0\u03bf\u03c5\u03bd \u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b1 \u03b2\u03b1\u03c3\u03b9\u03ba\u03ac \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03b1.",
+        "note_nutrition_guard": "\u0397 \u03b5\u03bb\u03bb\u03b9\u03c0\u03ae\u03c2 \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ae \u03c0\u03bb\u03b7\u03c1\u03bf\u03c6\u03cc\u03c1\u03b7\u03c3\u03b7 \u03ba\u03c1\u03ac\u03c4\u03b7\u03c3\u03b5 \u03c0\u03b9\u03bf \u03c3\u03c5\u03bd\u03c4\u03b7\u03c1\u03b7\u03c4\u03b9\u03ba\u03ae \u03c4\u03b7 \u03b2\u03b1\u03c3\u03b9\u03ba\u03ae \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ae \u03b1\u03be\u03b9\u03bf\u03bb\u03cc\u03b3\u03b7\u03c3\u03b7.",
+    },
+    "de": {
+        "factor_high_sugar": "Hoher Zuckergehalt",
+        "factor_low_sugar": "Niedriger Zuckergehalt",
+        "factor_high_salt": "Hoher Salzgehalt",
+        "factor_high_sat_fat": "Hoher Gehalt an ges\u00e4ttigten Fetts\u00e4uren",
+        "factor_high_protein": "Hoher Proteingehalt",
+        "factor_minimal_processing": "Niedriger Verarbeitungsgrad",
+        "factor_high_processing": "Hoher Verarbeitungsgrad",
+        "factor_additives_present": "Mehrere Zusatzstoffe erkannt",
+        "factor_preservatives_present": "Konservierungsstoffe erkannt",
+        "factor_simple_profile": "Einfache Zutatenzusammensetzung",
+        "adj_non_sugar_sweetener_presence": "Nichtzucker-S\u00fc\u00dfstoffe haben den Endscore gesenkt",
+        "adj_multiple_non_sugar_sweeteners": "Mehrere S\u00fc\u00dfstoffe haben den Endscore gesenkt",
+        "adj_additive_heavy_zero_beverage": "Eine komplexe zuckerfreie Formulierung hat den Endscore gesenkt",
+        "adj_reduced_fat_dairy_simple": "Die einfache fettreduzierte Milchzusammensetzung hat den Endscore verbessert",
+        "adj_reduced_fat_dairy_additive_heavy": "Die stark verarbeitete fettreduzierte Milchzusammensetzung hat den Endscore gesenkt",
+        "adj_whole_food_floor": "Das Whole-Food-Profil hat den Endscore angehoben",
+        "adj_whole_food_cap": "Die Whole-Food-Obergrenze hat den Endscore konservativ gehalten",
+        "note_partial_analysis": "Dies ist eine Teilanalyse auf Basis der verf\u00fcgbaren Daten.",
+        "note_limited_estimate": "Dies ist eine begrenzte Sch\u00e4tzung, weil zentrale N\u00e4hrwertdaten unvollst\u00e4ndig sind.",
+        "note_confidence_medium": "Die Konfidenz ist mittel.",
+        "note_confidence_low": "Die Konfidenz ist niedrig.",
+        "note_missing_core_fields": "Einige zentrale N\u00e4hrwertfelder fehlen.",
+        "note_nutrition_guard": "Unvollst\u00e4ndige N\u00e4hrwertdaten haben die grundlegende Ern\u00e4hrungsbewertung konservativer gehalten.",
+    },
+    "fr": {
+        "factor_high_sugar": "Teneur \u00e9lev\u00e9e en sucre",
+        "factor_low_sugar": "Faible teneur en sucre",
+        "factor_high_salt": "Teneur \u00e9lev\u00e9e en sel",
+        "factor_high_sat_fat": "Teneur \u00e9lev\u00e9e en graisses satur\u00e9es",
+        "factor_high_protein": "Teneur \u00e9lev\u00e9e en prot\u00e9ines",
+        "factor_minimal_processing": "Faible niveau de transformation",
+        "factor_high_processing": "Niveau de transformation \u00e9lev\u00e9",
+        "factor_additives_present": "Plusieurs additifs d\u00e9tect\u00e9s",
+        "factor_preservatives_present": "Conservateurs d\u00e9tect\u00e9s",
+        "factor_simple_profile": "Profil d'ingr\u00e9dients simple",
+        "adj_non_sugar_sweetener_presence": "Les \u00e9dulcorants sans sucre ont abaiss\u00e9 le score final",
+        "adj_multiple_non_sugar_sweeteners": "Plusieurs \u00e9dulcorants ont abaiss\u00e9 le score final",
+        "adj_additive_heavy_zero_beverage": "Une formulation sans sucre complexe a abaiss\u00e9 le score final",
+        "adj_reduced_fat_dairy_simple": "La composition simple de ce produit laitier all\u00e9g\u00e9 a am\u00e9lior\u00e9 le score final",
+        "adj_reduced_fat_dairy_additive_heavy": "La formulation transform\u00e9e de ce produit laitier all\u00e9g\u00e9 a abaiss\u00e9 le score final",
+        "adj_whole_food_floor": "Le profil d'aliment entier a relev\u00e9 le score final",
+        "adj_whole_food_cap": "Le plafond Whole Food a maintenu un score final prudent",
+        "note_partial_analysis": "Il s'agit d'une analyse partielle fond\u00e9e sur les donn\u00e9es disponibles.",
+        "note_limited_estimate": "Il s'agit d'une estimation limit\u00e9e car les donn\u00e9es nutritionnelles de base sont incompl\u00e8tes.",
+        "note_confidence_medium": "La confiance est moyenne.",
+        "note_confidence_low": "La confiance est faible.",
+        "note_missing_core_fields": "Certains champs nutritionnels de base sont manquants.",
+        "note_nutrition_guard": "Des donn\u00e9es nutritionnelles incompl\u00e8tes ont rendu l'\u00e9valuation nutritionnelle de base plus prudente.",
+    },
+}
+
+
+def tx(lang: str, key: str) -> str:
+    lang_key = lang if lang in SUPPORTED_LANGS else "en"
+    return VITASCORE_EXPLANATION_I18N.get(lang_key, {}).get(key) or VITASCORE_EXPLANATION_I18N["en"].get(key) or key
+
+
 # -----------------------------
 # Helpers
 # -----------------------------
@@ -3584,6 +3693,168 @@ def _build_explanations(
     return why[:5], tips[:5]
 
 
+def _append_unique_text(items: List[str], value: str) -> None:
+    text = str(value or "").strip()
+    if text and text not in items:
+        items.append(text)
+
+
+def _adjustment_reason_text(rule_id: str, lang: str, fallback: str = "") -> str:
+    mapping = {
+        "non_sugar_sweetener_presence": "adj_non_sugar_sweetener_presence",
+        "multiple_non_sugar_sweeteners": "adj_multiple_non_sugar_sweeteners",
+        "additive_heavy_zero_beverage": "adj_additive_heavy_zero_beverage",
+        "reduced_fat_dairy_simple": "adj_reduced_fat_dairy_simple",
+        "reduced_fat_dairy_additive_heavy": "adj_reduced_fat_dairy_additive_heavy",
+    }
+    key = mapping.get(str(rule_id or "").strip())
+    if key:
+        return tx(lang, key)
+    return str(fallback or rule_id or "").strip()
+
+
+def _nutrition_factor_lists(
+    per100: Dict[str, Optional[float]],
+    intelligence: Dict[str, Any],
+    lang: str,
+) -> Tuple[List[str], List[str]]:
+    positive: List[str] = []
+    negative: List[str] = []
+    markers = intelligence.get("markers") if isinstance(intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+
+    sugar = _to_float(per100.get("sugar_g"))
+    salt = _to_float(per100.get("salt_g"))
+    satfat = _to_float(per100.get("saturated_fat_g"))
+    protein = _to_float(per100.get("protein_g"))
+    processing_score = _to_float(intelligence.get("processing_score")) if isinstance(intelligence, dict) else None
+    e_count = len(_as_list(intelligence.get("detected_e_numbers"))) if isinstance(intelligence, dict) else 0
+    if not e_count:
+        e_count = len(_as_list(intelligence.get("e_number_details"))) if isinstance(intelligence, dict) else 0
+
+    if protein is not None and protein >= 8:
+        _append_unique_text(positive, tx(lang, "factor_high_protein"))
+    if sugar is not None and sugar <= 5:
+        _append_unique_text(positive, tx(lang, "factor_low_sugar"))
+    if processing_score is not None and processing_score <= 2:
+        _append_unique_text(positive, tx(lang, "factor_minimal_processing"))
+    if e_count <= 1 and all(int(markers.get(key) or 0) == 0 for key in ("preservatives", "colorants", "sweeteners")):
+        _append_unique_text(positive, tx(lang, "factor_simple_profile"))
+
+    if sugar is not None and sugar >= 10:
+        _append_unique_text(negative, tx(lang, "factor_high_sugar"))
+    if salt is not None and salt >= 1:
+        _append_unique_text(negative, tx(lang, "factor_high_salt"))
+    if satfat is not None and satfat >= 5:
+        _append_unique_text(negative, tx(lang, "factor_high_sat_fat"))
+    if processing_score is not None and processing_score >= 6:
+        _append_unique_text(negative, tx(lang, "factor_high_processing"))
+    if e_count >= 3:
+        _append_unique_text(negative, tx(lang, "factor_additives_present"))
+    if int(markers.get("preservatives") or 0) > 0:
+        _append_unique_text(negative, tx(lang, "factor_preservatives_present"))
+
+    return positive[:5], negative[:5]
+
+
+def _confidence_note_items(
+    analysis_state: str,
+    analysis_confidence: str,
+    data_quality: Dict[str, Any],
+    breakdown: Dict[str, Any],
+    lang: str,
+) -> List[str]:
+    notes: List[str] = []
+    state_key = str(analysis_state or "").strip().lower()
+    confidence_key = str(analysis_confidence or "").strip().lower()
+    if state_key == "partial_analysis":
+        _append_unique_text(notes, tx(lang, "note_partial_analysis"))
+    elif state_key == "limited_estimate":
+        _append_unique_text(notes, tx(lang, "note_limited_estimate"))
+
+    if confidence_key == "medium":
+        _append_unique_text(notes, tx(lang, "note_confidence_medium"))
+    elif confidence_key == "low":
+        _append_unique_text(notes, tx(lang, "note_confidence_low"))
+
+    if len(_as_list((data_quality or {}).get("missing_core_fields"))) > 0:
+        _append_unique_text(notes, tx(lang, "note_missing_core_fields"))
+
+    if bool(_get_path(breakdown, "who_baseline", "score_guard_applied")):
+        _append_unique_text(notes, tx(lang, "note_nutrition_guard"))
+
+    return notes[:4]
+
+
+def _build_vitascore_explanation(
+    *,
+    basic_nutrition_score: Optional[int],
+    final_score: int,
+    per100: Dict[str, Optional[float]],
+    intelligence: Dict[str, Any],
+    breakdown: Dict[str, Any],
+    analysis_state: str,
+    analysis_confidence: str,
+    data_quality: Dict[str, Any],
+    lang: str,
+) -> Dict[str, Any]:
+    positive_factors, negative_factors = _nutrition_factor_lists(per100, intelligence, lang)
+    score_adjustments: List[Dict[str, Any]] = []
+
+    pattern_adjustments = _as_list(_get_path(breakdown, "pattern_adjustments", "applied"))
+    for item in pattern_adjustments:
+        if not isinstance(item, dict):
+            continue
+        impact = int(item.get("delta", 0) or 0)
+        if impact == 0:
+            continue
+        score_adjustments.append({
+            "code": str(item.get("rule_id") or "pattern_adjustment"),
+            "reason": _adjustment_reason_text(str(item.get("rule_id") or ""), lang, str(item.get("message") or "")),
+            "impact": impact,
+        })
+
+    for item in _as_list(_get_path(breakdown, "balance_adjustments", "applied")):
+        if not isinstance(item, dict):
+            continue
+        impact = int(item.get("delta", 0) or 0)
+        if impact == 0:
+            continue
+        score_adjustments.append({
+            "code": str(item.get("rule_id") or "balance_adjustment"),
+            "reason": str(item.get("message") or _adjustment_reason_text(str(item.get("rule_id") or ""), lang)).strip(),
+            "impact": impact,
+        })
+
+    floor_delta = int(_get_path(breakdown, "floor_adjustments", "floor_delta") or 0)
+    if floor_delta:
+        score_adjustments.append({
+            "code": "whole_food_floor",
+            "reason": tx(lang, "adj_whole_food_floor"),
+            "impact": floor_delta,
+        })
+
+    cap_delta = int(_get_path(breakdown, "cap_adjustments", "cap_delta") or 0)
+    if cap_delta:
+        score_adjustments.append({
+            "code": "whole_food_cap",
+            "reason": tx(lang, "adj_whole_food_cap"),
+            "impact": cap_delta,
+        })
+
+    score_adjustments.sort(key=lambda item: abs(int(item.get("impact") or 0)), reverse=True)
+
+    return {
+        "basic_nutrition_score": basic_nutrition_score,
+        "vita_score": int(final_score),
+        "positive_factors": positive_factors,
+        "negative_factors": negative_factors,
+        "score_adjustments": score_adjustments,
+        "confidence_notes": _confidence_note_items(analysis_state, analysis_confidence, data_quality, breakdown, lang),
+    }
+
+
 def _localize_intelligence(intel: Dict[str, Any], lang: str) -> Dict[str, Any]:
     if not isinstance(intel, dict):
         return intel
@@ -5188,7 +5459,8 @@ def _fallback_assessment_response(
     except Exception:
         per100 = {"energy_kcal": None, "sugar_g": None, "salt_g": None, "saturated_fat_g": None, "fiber_g": None, "protein_g": None, "fruits_veg_percent": None}
     ingredients_intelligence = _recalibrate_processing_intelligence(norm, per100, ingredients, ingredients_intelligence)
-    score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
+    basic_score = _limited_estimate_score(per100, ingredients, ingredients_intelligence)
+    score = basic_score
     clean_water_floor = _clean_water_score_floor(
         norm,
         per100,
@@ -5226,6 +5498,42 @@ def _fallback_assessment_response(
         score = min(score, cap_score)
     score = int(round(_clamp(score, 1.0, 100.0)))
     lookup_missing = _lookup_missing_fields(norm, raw)
+    data_quality = {
+        "confidence": 0.2,
+        "missing_core_fields": lookup_missing,
+        "has_serving": False,
+        "beverage_detection": {"value": _get_path(norm, "meta", "is_beverage"), "signal": "fallback_estimate"},
+    }
+    vitascore_breakdown = {
+        "model": "v3_hybrid_pro",
+        "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
+        "per_100": {"inputs": {
+            "sugar_g_per_100": per100.get("sugar_g"),
+            "salt_g_per_100": per100.get("salt_g"),
+            "saturated_fat_g_per_100": per100.get("saturated_fat_g"),
+            "protein_g_per_100": per100.get("protein_g"),
+            "energy_kcal_per_100": per100.get("energy_kcal"),
+        }},
+        "per_serving": {"inputs": {}},
+        "hybrid_score": score,
+        "who_baseline": {"score": basic_score},
+        "pre_pattern_score": basic_score,
+        "balance_adjustments": balance_adjustments,
+        "floor_adjustments": floor_adjustments,
+        "cap_adjustments": cap_adjustments,
+        "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
+    }
+    vitascore_explanation = _build_vitascore_explanation(
+        basic_nutrition_score=basic_score,
+        final_score=score,
+        per100=per100,
+        intelligence=ingredients_intelligence,
+        breakdown=vitascore_breakdown,
+        analysis_state="limited_estimate",
+        analysis_confidence="low",
+        data_quality=data_quality,
+        lang=lang,
+    )
     qty = norm.get("quantity")
     if isinstance(qty, str) and qty.strip().startswith("0"):
         qty = None
@@ -5264,28 +5572,12 @@ def _fallback_assessment_response(
         },
         "vitascore": score,
         "vitascore_version": "v3_hybrid_pro",
-        "vitascore_breakdown": {
-            "model": "v3_hybrid_pro",
-            "weights": {"per_100": _cfg.w_per100, "per_serving": _cfg.w_serving},
-            "per_100": {"inputs": {
-                "sugar_g_per_100": per100.get("sugar_g"),
-                "salt_g_per_100": per100.get("salt_g"),
-                "saturated_fat_g_per_100": per100.get("saturated_fat_g"),
-                "protein_g_per_100": per100.get("protein_g"),
-                "energy_kcal_per_100": per100.get("energy_kcal"),
-            }},
-            "per_serving": {"inputs": {}},
-            "hybrid_score": score,
-            "who_baseline": {"score": score},
-            "balance_adjustments": balance_adjustments,
-            "floor_adjustments": floor_adjustments,
-            "cap_adjustments": cap_adjustments,
-            "analysis_mode": {"state": "limited_estimate", "confidence": "low"},
-        },
+        "vitascore_breakdown": vitascore_breakdown,
+        "vitascore_explanation": vitascore_explanation,
         "why_this_score": [],
         "tips": [],
         "who_impact": None,
-        "data_quality": {"confidence": 0.2, "missing_core_fields": lookup_missing, "has_serving": False, "beverage_detection": {"value": _get_path(norm, "meta", "is_beverage"), "signal": "fallback_estimate"}},
+        "data_quality": data_quality,
         "meta": {
             "is_beverage": bool(_get_path(norm, "meta", "is_beverage")),
             "serving": {"amount": None, "unit": None, "source": "fallback_estimate"},
@@ -5461,6 +5753,17 @@ def _analyze_normalized_product(
         why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
         dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
         analysis_confidence = _align_analysis_confidence(analysis_state, analysis_confidence, dq)
+        vitascore_explanation = _build_vitascore_explanation(
+            basic_nutrition_score=base_score if base_score_available else None,
+            final_score=score,
+            per100=per100,
+            intelligence=ingredients_intelligence,
+            breakdown=breakdown,
+            analysis_state=analysis_state,
+            analysis_confidence=analysis_confidence,
+            data_quality=dq,
+            lang=lang,
+        )
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
         return _fallback_assessment_response(
@@ -5517,6 +5820,7 @@ def _analyze_normalized_product(
         "vitascore": score,
         "vitascore_version": "v3_hybrid_pro",
         "vitascore_breakdown": breakdown,
+        "vitascore_explanation": vitascore_explanation,
         "why_this_score": why,
         "tips": tips,
         "who_impact": who,

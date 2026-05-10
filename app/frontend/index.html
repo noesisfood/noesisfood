@@ -4864,6 +4864,33 @@
     }
 
     function quickReasonItems(data){
+      const backend = data?.vitascore_explanation || {};
+      const items = [];
+      const pushMessage = (message) => {
+        const text = String(message || "").trim();
+        if (!text) return;
+        if (items.some(item => item.message === text)) return;
+        items.push({ message: text });
+      };
+
+      for (const item of Array.isArray(backend?.score_adjustments) ? backend.score_adjustments : []){
+        const reason = String(item?.reason || "").trim();
+        const impact = Number(item?.impact);
+        if (!reason) continue;
+        const suffix = Number.isFinite(impact) ? ` (${impact > 0 ? "+" : ""}${impact})` : "";
+        pushMessage(`${reason}${suffix}`);
+      }
+      for (const message of Array.isArray(backend?.negative_factors) ? backend.negative_factors : []){
+        pushMessage(message);
+      }
+      for (const message of Array.isArray(backend?.positive_factors) ? backend.positive_factors : []){
+        pushMessage(message);
+      }
+      for (const message of Array.isArray(backend?.confidence_notes) ? backend.confidence_notes : []){
+        pushMessage(message);
+      }
+      if (items.length) return items.slice(0, 5);
+
       const structured = evaluateScoreExplanations(data);
       return [...structured.negative, ...structured.positive, ...structured.neutral].slice(0, 5);
     }
