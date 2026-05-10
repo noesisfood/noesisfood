@@ -687,6 +687,10 @@
         confidence_high: "high",
         confidence_medium: "medium",
         confidence_low: "low",
+        confidence_badge_high: "High confidence",
+        confidence_badge_medium: "Medium confidence",
+        confidence_badge_low: "Low confidence",
+        confidence_reasons_title: "Why this confidence",
         sugar: "Sugar",
         salt: "Salt",
         sat_fat: "Sat. fat",
@@ -951,6 +955,10 @@
         confidence_high: "υψηλή",
         confidence_medium: "μέτρια",
         confidence_low: "χαμηλή",
+        confidence_badge_high: "Υψηλή βεβαιότητα",
+        confidence_badge_medium: "Μέτρια βεβαιότητα",
+        confidence_badge_low: "Χαμηλή βεβαιότητα",
+        confidence_reasons_title: "Γιατί αυτή η βεβαιότητα",
         sugar: "Ζάχαρη",
         salt: "Αλάτι",
         sat_fat: "Κορεσμένα",
@@ -1209,6 +1217,10 @@
         confidence_high: "hoch",
         confidence_medium: "mittel",
         confidence_low: "niedrig",
+        confidence_badge_high: "Hohe Konfidenz",
+        confidence_badge_medium: "Mittlere Konfidenz",
+        confidence_badge_low: "Niedrige Konfidenz",
+        confidence_reasons_title: "Warum diese Konfidenz",
         sugar: "Zucker",
         salt: "Salz",
         sat_fat: "Ges. Fett",
@@ -1467,6 +1479,10 @@
         confidence_high: "élevée",
         confidence_medium: "moyenne",
         confidence_low: "faible",
+        confidence_badge_high: "Confiance élevée",
+        confidence_badge_medium: "Confiance moyenne",
+        confidence_badge_low: "Confiance faible",
+        confidence_reasons_title: "Pourquoi ce niveau de confiance",
         sugar: "Sucre",
         salt: "Sel",
         sat_fat: "Graisses sat.",
@@ -2541,6 +2557,14 @@
       return value || "-";
     }
 
+    function localizedConfidenceBadgeLabel(value){
+      const key = String(value || "").toLowerCase();
+      if (key === "high") return t("confidence_badge_high");
+      if (key === "medium") return t("confidence_badge_medium");
+      if (key === "low") return t("confidence_badge_low");
+      return value || "-";
+    }
+
     function localizedPhotoUnavailableMessage(){
       if (lang === "el") return "Η εξαγωγή στοιχείων από φωτογραφία δεν είναι προσωρινά διαθέσιμη αυτή τη στιγμή. Δοκίμασε ξανά αργότερα, συνέχισε με χειροκίνητη εισαγωγή ή χρησιμοποίησε φωτογραφία συστατικών αν αυτό βοηθά.";
       if (lang === "de") return "Die Fotoextraktion ist derzeit vorübergehend nicht verfügbar. Versuche es später erneut, fahre mit der manuellen Eingabe fort oder nutze ein Zutatenfoto, falls das hilfreich ist.";
@@ -2586,6 +2610,38 @@
         .map(localizedMissingFieldLabel)
         .filter(Boolean);
       return Array.from(new Set(mapped));
+    }
+
+    function fallbackConfidenceReasonItems(data){
+      const items = [];
+      const push = (message) => {
+        const text = String(message || "").trim();
+        if (!text) return;
+        if (items.includes(text)) return;
+        items.push(text);
+      };
+      const analysisState = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
+      if (analysisState === "partial_analysis") push(t("partial_assessment_note"));
+      if (analysisState === "limited_estimate") push(t("limited_estimate_note"));
+      const missing = summarizedMissingFields(data);
+      if (missing.length) push(`${t("missing_fields")}: ${missing.join(", ")}`);
+      const photoMeta = data?.photo_extraction || data?.meta?.photo_extraction || null;
+      if (photoMeta?.confidence) push(`${t("photo_source_note")} (${localizedConfidenceTier(photoMeta.confidence)})`);
+      return items.slice(0, 4);
+    }
+
+    function renderConfidenceSummary(data){
+      const confidenceKey = resolvedAnalysisConfidenceKey(data);
+      const badgeLabel = localizedConfidenceBadgeLabel(confidenceKey);
+      const badgeClass = confidenceKey === "high" ? "good" : (confidenceKey === "medium" ? "warn" : "bad");
+      const backendReasons = Array.isArray(data?.confidence_reasons) ? data.confidence_reasons : [];
+      const reasons = backendReasons.length ? backendReasons : fallbackConfidenceReasonItems(data);
+      return `
+        <div style="margin-top:10px;">
+          <span class="pill ${badgeClass}">${_escapeHtml(badgeLabel)}</span>
+          ${reasons.length ? `<div class="whyFoot" style="margin-top:10px;"><b>${t("confidence_reasons_title")}</b><br/>${reasons.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+        </div>
+      `;
     }
 
     function renderAnalysisStateNotice(data){
@@ -5239,6 +5295,7 @@
                   <div class="mini">${assessmentLabel}</div>
                   <div class="scoreLine"><div class="score">${score ?? "-"}</div><div class="scoreMax">/100</div></div>
                   <div class="mini">${assessmentSubline}</div>
+                  ${renderConfidenceSummary(d)}
                 </div>
                 <div class="tier" style="background:${tier.color}; border-color:${tier.border};">${tier.label}</div>
               </div>
