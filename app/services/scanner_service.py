@@ -5735,6 +5735,8 @@ def _fallback_assessment_response(
         "ingredients_intelligence": ingredients_intelligence,
         "nutrition_per_100": {
             "unit": str(per100.get("unit") or _get_path(norm, "nutrition_per_100", "unit") or "g").strip().lower() or "g",
+            "fat_g": per100.get("fat_g"),
+            "carb_g": per100.get("carb_g"),
             "sugar_g": per100.get("sugar_g"),
             "salt_g": per100.get("salt_g"),
             "sat_fat_g": per100.get("saturated_fat_g"),
@@ -5982,6 +5984,8 @@ def _analyze_normalized_product(
         "ingredients_intelligence": ingredients_intelligence,
         "nutrition_per_100": {
             "unit": str(per100.get("unit") or _get_path(norm, "nutrition_per_100", "unit") or "g").strip().lower() or "g",
+            "fat_g": per100.get("fat_g"),
+            "carb_g": per100.get("carb_g"),
             "sugar_g": per100.get("sugar_g"),
             "salt_g": per100.get("salt_g"),
             "sat_fat_g": per100.get("saturated_fat_g"),

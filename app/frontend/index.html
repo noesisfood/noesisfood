@@ -558,6 +558,9 @@
         name:"",
         brand:"",
         ingredients_text:"",
+        energy_kcal:"",
+        fat_g:"",
+        carb_g:"",
         sugar_g:"",
         salt_g:"",
         sat_fat_g:"",
@@ -804,6 +807,9 @@
         manual_name: "Product name",
         manual_brand: "Brand",
         manual_ingredients: "Ingredients",
+        manual_calories: "Calories per 100",
+        manual_fat: "Fat per 100",
+        manual_carbs: "Carbs per 100",
         manual_sugar: "Sugar per 100",
         manual_salt: "Salt per 100",
         manual_sat_fat: "Sat. fat per 100",
@@ -811,6 +817,7 @@
         manual_unit: "Unit",
         manual_submit: "Analyze manually",
         manual_cancel: "Cancel",
+        correct_nutrition_values: "Correct nutrition values",
         tier_na: "N/A",
         tier_excellent: "Excellent",
         tier_good: "Good",
@@ -1066,6 +1073,9 @@
         manual_name: "Όνομα προϊόντος",
         manual_brand: "Μάρκα",
         manual_ingredients: "Συστατικά",
+        manual_calories: "Θερμίδες ανά 100",
+        manual_fat: "Λιπαρά ανά 100",
+        manual_carbs: "Υδατάνθρακες ανά 100",
         manual_sugar: "Ζάχαρη ανά 100",
         manual_salt: "Αλάτι ανά 100",
         manual_sat_fat: "Κορεσμένα ανά 100",
@@ -1073,6 +1083,7 @@
         manual_unit: "Μονάδα",
         manual_submit: "Χειροκίνητη ανάλυση",
         manual_cancel: "Ακύρωση",
+        correct_nutrition_values: "Διόρθωση διατροφικών τιμών",
         tier_na: "N/A",
         tier_excellent: "Εξαιρετικό",
         tier_good: "Καλό",
@@ -1328,6 +1339,9 @@
         manual_name: "Produktname",
         manual_brand: "Marke",
         manual_ingredients: "Zutaten",
+        manual_calories: "Kalorien pro 100",
+        manual_fat: "Fett pro 100",
+        manual_carbs: "Kohlenhydrate pro 100",
         manual_sugar: "Zucker pro 100",
         manual_salt: "Salz pro 100",
         manual_sat_fat: "Ges. Fett pro 100",
@@ -1335,6 +1349,7 @@
         manual_unit: "Einheit",
         manual_submit: "Manuell analysieren",
         manual_cancel: "Abbrechen",
+        correct_nutrition_values: "Nährwerte korrigieren",
         tier_na: "N/A",
         tier_excellent: "Exzellent",
         tier_good: "Gut",
@@ -1590,6 +1605,9 @@
         manual_name: "Nom du produit",
         manual_brand: "Marque",
         manual_ingredients: "Ingrédients",
+        manual_calories: "Calories pour 100",
+        manual_fat: "Matières grasses pour 100",
+        manual_carbs: "Glucides pour 100",
         manual_sugar: "Sucre pour 100",
         manual_salt: "Sel pour 100",
         manual_sat_fat: "Graisses sat. pour 100",
@@ -1597,6 +1615,7 @@
         manual_unit: "Unité",
         manual_submit: "Analyser manuellement",
         manual_cancel: "Annuler",
+        correct_nutrition_values: "Corriger les valeurs nutritionnelles",
         tier_na: "N/A",
         tier_excellent: "Excellent",
         tier_good: "Bon",
@@ -2704,6 +2723,18 @@
               <textarea id="manualIngredients" style="width:100%;min-height:92px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);padding:12px;color:var(--text);outline:none;font-size:14px;">${_escapeHtml(form.ingredients_text || "")}</textarea>
             </div>
             <div>
+              <div class="mini">${t("manual_calories")}</div>
+              <input id="manualEnergy" value="${_escapeHtml(form.energy_kcal || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_fat")}</div>
+              <input id="manualFat" value="${_escapeHtml(form.fat_g || "")}" />
+            </div>
+            <div>
+              <div class="mini">${t("manual_carbs")}</div>
+              <input id="manualCarbs" value="${_escapeHtml(form.carb_g || "")}" />
+            </div>
+            <div>
               <div class="mini">${t("manual_sugar")}</div>
               <input id="manualSugar" value="${_escapeHtml(form.sugar_g || "")}" />
             </div>
@@ -2740,6 +2771,9 @@
         name: document.getElementById("manualName")?.value || "",
         brand: document.getElementById("manualBrand")?.value || "",
         ingredients_text: document.getElementById("manualIngredients")?.value || "",
+        energy_kcal: document.getElementById("manualEnergy")?.value || "",
+        fat_g: document.getElementById("manualFat")?.value || "",
+        carb_g: document.getElementById("manualCarbs")?.value || "",
         sugar_g: document.getElementById("manualSugar")?.value || "",
         salt_g: document.getElementById("manualSalt")?.value || "",
         sat_fat_g: document.getElementById("manualSatFat")?.value || "",
@@ -2747,6 +2781,31 @@
         unit: document.getElementById("manualUnit")?.value || "g",
         timestamp: Date.now(),
       };
+    }
+
+    function openCorrectionForm(data){
+      const d = data || state.data || {};
+      const product = d?.product || {};
+      const nutrition = d?.nutrition_per_100 || {};
+      const existingForm = state.manualForm || {};
+      state.manualForm = {
+        ...existingForm,
+        name: String(product?.name || existingForm.name || "").trim(),
+        brand: String(product?.brand || existingForm.brand || "").trim(),
+        ingredients_text: Array.isArray(d?.ingredients) && d.ingredients.length
+          ? d.ingredients.map(item => String(item?.name || "").trim()).filter(Boolean).join(", ")
+          : String(existingForm.ingredients_text || ""),
+        energy_kcal: nutrition?.energy_kcal ?? existingForm.energy_kcal ?? "",
+        fat_g: nutrition?.fat_g ?? existingForm.fat_g ?? "",
+        carb_g: nutrition?.carb_g ?? existingForm.carb_g ?? "",
+        sugar_g: nutrition?.sugar_g ?? existingForm.sugar_g ?? "",
+        salt_g: nutrition?.salt_g ?? existingForm.salt_g ?? "",
+        sat_fat_g: nutrition?.sat_fat_g ?? existingForm.sat_fat_g ?? "",
+        protein_g: nutrition?.protein_g ?? existingForm.protein_g ?? "",
+        unit: String(nutrition?.unit || existingForm.unit || "g").trim() || "g",
+      };
+      state.recoveryOpen = true;
+      render();
     }
 
     async function doManualAnalysis(){
@@ -2777,6 +2836,7 @@
         state.error = "";
         state.errorCode = "";
         state.loading = false;
+        state.recoveryOpen = false;
         _storeRecentProduct(data, data?.key || "manual:entry");
         _storeAnalysisHistory(data, data?.key || "manual:entry");
         step = 2;
@@ -3306,6 +3366,7 @@
       const resetCropBtn = document.getElementById("resetCropBtn");
       const retakePhotoBtn = document.getElementById("retakePhotoBtn");
       const manualEntryBtn = document.getElementById("manualEntryBtn");
+      const correctNutritionBtn = document.getElementById("correctNutritionBtn");
       const manualSubmitBtn = document.getElementById("manualSubmitBtn");
       const manualCancelBtn = document.getElementById("manualCancelBtn");
       if (ingredientPhotoBtn){
@@ -3411,6 +3472,11 @@
         manualEntryBtn.onclick = () => {
           state.recoveryOpen = true;
           render();
+        };
+      }
+      if (correctNutritionBtn){
+        correctNutritionBtn.onclick = () => {
+          openCorrectionForm(state.data || {});
         };
       }
       if (manualSubmitBtn){
@@ -5312,11 +5378,15 @@
               ${quickSignals.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_signals_title")}</b><br/>${quickSignals.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
               <div class="whyFoot" style="margin-top:10px;">${t("baseline_helper")} <span class="mini">(${t("baseline_criteria")})</span></div>
               <div class="mini" style="margin-top:8px;">${t("quick_verdict_note")}</div>
+              <div class="btns" style="margin-top:10px;">
+                <button class="ghost" id="correctNutritionBtn">${t("correct_nutrition_values")}</button>
+              </div>
             </div>
             ${renderAnalysisStateNotice(d)}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
             ${renderEnrichmentBlock(d)}
+            ${state.recoveryOpen ? renderManualEntryForm() : ``}
             <div class="section" style="margin-top:12px;">
               <div class="sectionTitle">${t("full_details_title")}</div>
               <div class="mini">${t("full_details_note")}</div>
