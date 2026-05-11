@@ -5961,13 +5961,15 @@ def _analyze_normalized_product(
     if isinstance(qty, str) and qty.strip().startswith("0"):
         qty = None
 
+    corrected_in_session = bool(_get_path(raw, "corrected_in_session")) or bool(_get_path(raw, "correction_applied"))
+
     product_block = {
         "name": norm.get("name"),
         "brand": norm.get("brand"),
         "image_url": norm.get("image_url"),
         "quantity": qty,
         "categories": product_categories,
-        "barcode": key if key and not key.startswith("manual:") else None,
+        "barcode": str(norm.get("barcode") or "").strip() or (key if key and not key.startswith("manual:") else None),
     }
 
     return _apply_analysis_confidence_layer({
@@ -6005,6 +6007,7 @@ def _analyze_normalized_product(
         "tips": tips,
         "who_impact": who,
         "data_quality": dq,
+        "corrected_in_session": corrected_in_session,
         "meta": {
             "is_beverage": is_bev,
             "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
@@ -6015,6 +6018,7 @@ def _analyze_normalized_product(
             "safety_alerts_checked": bool(safety_lookup.get("checked")),
             "safety_alerts_source": safety_lookup.get("source"),
             "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
+            "corrected_in_session": corrected_in_session,
         },
     }, lang)
 
@@ -6297,18 +6301,21 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
     payload = payload if isinstance(payload, dict) else {}
     name = str(payload.get("name") or "").strip() or "Manual product"
     brand = str(payload.get("brand") or "").strip() or None
+    barcode = str(payload.get("barcode") or "").strip() or None
+    existing_key = str(payload.get("key") or "").strip() or None
     unit = str(payload.get("unit") or "g").strip().lower()
     unit = "ml" if unit == "ml" else "g"
     ingredients_text = str(payload.get("ingredients_text") or "").strip()
     ingredients = _manual_ingredients_from_text(ingredients_text, note=str(payload.get("ingredients_note") or "From manual"))
+    existing_meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
     nutrition = {
         "unit": unit,
         "energy_kcal": _to_float(payload.get("energy_kcal")),
         "fat_g": _to_float(payload.get("fat_g")),
-        "carb_g": _to_float(payload.get("carb_g")),
+        "carb_g": _to_float(_first_present(payload.get("carb_g"), payload.get("carbs_g"))),
         "sugar_g": _to_float(payload.get("sugar_g")),
         "salt_g": _to_float(payload.get("salt_g")),
-        "sat_fat_g": _to_float(payload.get("sat_fat_g")),
+        "sat_fat_g": _to_float(_first_present(payload.get("sat_fat_g"), payload.get("saturated_fat_g"))),
         "protein_g": _to_float(payload.get("protein_g")),
         "serving_size": _to_float(payload.get("serving_size")),
     }
@@ -6317,14 +6324,18 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
         categories = [c.strip() for c in categories.split(",") if c.strip()]
     elif not isinstance(categories, list):
         categories = []
+    categories_tags = payload.get("categories_tags") or []
+    if not isinstance(categories_tags, list):
+        categories_tags = []
 
     norm = {
         "name": name,
         "brand": brand,
+        "barcode": barcode,
         "image_url": str(payload.get("image_url") or "").strip() or None,
         "quantity": str(payload.get("quantity") or "").strip() or None,
         "categories": categories,
-        "categories_tags": [],
+        "categories_tags": [str(item).strip() for item in categories_tags if str(item).strip()],
         "ingredients": ingredients,
         "nutrition_per_100": nutrition,
         "serving": {
@@ -6332,6 +6343,7 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
             "unit": unit,
         },
         "meta": {
+            **existing_meta,
             "is_beverage": unit == "ml",
         },
     }
@@ -6342,8 +6354,10 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
         err["analysis_confidence"] = "low"
         return err
 
+    analysis_key = existing_key or barcode or f"manual:{re.sub(r'[^0-9]', '', str(payload.get('timestamp') or '')) or 'entry'}"
+
     return _analyze_normalized_product(
-        key=f"manual:{re.sub(r'[^0-9]', '', str(payload.get('timestamp') or '')) or 'entry'}",
+        key=analysis_key,
         norm=norm,
         raw=payload,
         source="manual",

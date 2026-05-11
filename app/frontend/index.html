@@ -565,7 +565,16 @@
         salt_g:"",
         sat_fat_g:"",
         protein_g:"",
+        serving_size:"",
         unit:"g",
+        key:"",
+        barcode:"",
+        image_url:"",
+        quantity:"",
+        categories:[],
+        categories_tags:[],
+        meta:null,
+        corrected_in_session:false,
       }
     };
 
@@ -825,9 +834,11 @@
         manual_salt: "Salt per 100",
         manual_sat_fat: "Sat. fat per 100",
         manual_protein: "Protein per 100",
+        manual_serving_size: "Serving size",
         manual_unit: "Unit",
         manual_submit: "Analyze manually",
         manual_cancel: "Cancel",
+        corrected_in_session_notice: "Updated with your corrected values",
         correct_nutrition_values: "Correct nutrition values",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -1102,9 +1113,11 @@
         manual_salt: "Αλάτι ανά 100",
         manual_sat_fat: "Κορεσμένα ανά 100",
         manual_protein: "Πρωτεΐνη ανά 100",
+        manual_serving_size: "Μέγεθος μερίδας",
         manual_unit: "Μονάδα",
         manual_submit: "Χειροκίνητη ανάλυση",
         manual_cancel: "Ακύρωση",
+        corrected_in_session_notice: "Ενημερώθηκε με τις διορθωμένες τιμές σας",
         correct_nutrition_values: "Διόρθωση διατροφικών τιμών",
         tier_na: "N/A",
         tier_excellent: "Εξαιρετικό",
@@ -1379,9 +1392,11 @@
         manual_salt: "Salz pro 100",
         manual_sat_fat: "Ges. Fett pro 100",
         manual_protein: "Protein pro 100",
+        manual_serving_size: "Portionsgröße",
         manual_unit: "Einheit",
         manual_submit: "Manuell analysieren",
         manual_cancel: "Abbrechen",
+        corrected_in_session_notice: "Mit Ihren korrigierten Werten aktualisiert",
         correct_nutrition_values: "Nährwerte korrigieren",
         tier_na: "N/A",
         tier_excellent: "Exzellent",
@@ -1656,9 +1671,11 @@
         manual_salt: "Sel pour 100",
         manual_sat_fat: "Graisses sat. pour 100",
         manual_protein: "Protéines pour 100",
+        manual_serving_size: "Taille de portion",
         manual_unit: "Unité",
         manual_submit: "Analyser manuellement",
         manual_cancel: "Annuler",
+        corrected_in_session_notice: "Mis à jour avec vos valeurs corrigées",
         correct_nutrition_values: "Corriger les valeurs nutritionnelles",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -2765,6 +2782,15 @@
       `;
     }
 
+    function renderCorrectedSessionNotice(data){
+      if (!data?.corrected_in_session) return "";
+      return `
+        <div class="ok" style="margin-top:12px;">
+          <b>${t("corrected_in_session_notice")}</b>
+        </div>
+      `;
+    }
+
     function renderManualEntryForm(){
       const form = state.manualForm || {};
       return `
@@ -2812,6 +2838,10 @@
               <input id="manualProtein" value="${_escapeHtml(form.protein_g || "")}" />
             </div>
             <div>
+              <div class="mini">${t("manual_serving_size")}</div>
+              <input id="manualServingSize" value="${_escapeHtml(form.serving_size || "")}" />
+            </div>
+            <div>
               <div class="mini">${t("manual_unit")}</div>
               <select id="manualUnit" class="langSel" style="width:100%;padding:12px;">
                 <option value="g" ${form.unit !== "ml" ? "selected" : ""}>g</option>
@@ -2839,7 +2869,16 @@
         salt_g: document.getElementById("manualSalt")?.value || "",
         sat_fat_g: document.getElementById("manualSatFat")?.value || "",
         protein_g: document.getElementById("manualProtein")?.value || "",
+        serving_size: document.getElementById("manualServingSize")?.value || "",
         unit: document.getElementById("manualUnit")?.value || "g",
+        key: state.manualForm?.key || "",
+        barcode: state.manualForm?.barcode || "",
+        image_url: state.manualForm?.image_url || "",
+        quantity: state.manualForm?.quantity || "",
+        categories: Array.isArray(state.manualForm?.categories) ? [...state.manualForm.categories] : [],
+        categories_tags: Array.isArray(state.manualForm?.categories_tags) ? [...state.manualForm.categories_tags] : [],
+        meta: state.manualForm?.meta && typeof state.manualForm.meta === "object" ? { ...state.manualForm.meta } : null,
+        corrected_in_session: !!state.manualForm?.corrected_in_session,
         timestamp: Date.now(),
       };
     }
@@ -2872,15 +2911,54 @@
         salt_g: correctionValue(nutrition, ["salt_g", "salt"], existingForm.salt_g || ""),
         sat_fat_g: correctionValue(nutrition, ["sat_fat_g", "saturated_fat_g"], existingForm.sat_fat_g || ""),
         protein_g: correctionValue(nutrition, ["protein_g", "protein"], existingForm.protein_g || ""),
+        serving_size: correctionValue(nutrition, ["serving_size"], existingForm.serving_size || ""),
         unit: String(correctionValue(nutrition, ["unit"], existingForm.unit || "g")).trim() || "g",
+        key: String(d?.key || existingForm.key || "").trim(),
+        barcode: String(product?.barcode || existingForm.barcode || "").trim(),
+        image_url: String(product?.image_url || existingForm.image_url || "").trim(),
+        quantity: String(product?.quantity || existingForm.quantity || "").trim(),
+        categories: Array.isArray(product?.categories) ? [...product.categories] : (Array.isArray(existingForm.categories) ? [...existingForm.categories] : []),
+        categories_tags: Array.isArray(d?.product?.categories_tags) ? [...d.product.categories_tags] : (Array.isArray(existingForm.categories_tags) ? [...existingForm.categories_tags] : []),
+        meta: d?.meta && typeof d.meta === "object" ? { ...d.meta } : (existingForm.meta && typeof existingForm.meta === "object" ? { ...existingForm.meta } : null),
+        corrected_in_session: true,
       };
       state.recoveryOpen = true;
       render();
     }
 
+    function buildCorrectionPayload(currentData, form){
+      const data = currentData && typeof currentData === "object" ? currentData : {};
+      const sourceForm = form && typeof form === "object" ? form : {};
+      const product = data?.product || {};
+      return {
+        name: String(sourceForm.name || product?.name || "").trim(),
+        brand: String(sourceForm.brand || product?.brand || "").trim(),
+        ingredients_text: String(sourceForm.ingredients_text || "").trim(),
+        energy_kcal: sourceForm.energy_kcal || "",
+        fat_g: sourceForm.fat_g || "",
+        carb_g: sourceForm.carb_g || "",
+        sugar_g: sourceForm.sugar_g || "",
+        salt_g: sourceForm.salt_g || "",
+        sat_fat_g: sourceForm.sat_fat_g || "",
+        protein_g: sourceForm.protein_g || "",
+        serving_size: sourceForm.serving_size || "",
+        unit: String(sourceForm.unit || data?.nutrition_per_100?.unit || "g").trim() || "g",
+        key: String(sourceForm.key || data?.key || "").trim(),
+        barcode: String(sourceForm.barcode || product?.barcode || "").trim(),
+        image_url: String(sourceForm.image_url || product?.image_url || "").trim(),
+        quantity: String(sourceForm.quantity || product?.quantity || "").trim(),
+        categories: Array.isArray(sourceForm.categories) ? [...sourceForm.categories] : (Array.isArray(product?.categories) ? [...product.categories] : []),
+        categories_tags: Array.isArray(sourceForm.categories_tags) ? [...sourceForm.categories_tags] : [],
+        meta: sourceForm.meta && typeof sourceForm.meta === "object" ? { ...sourceForm.meta } : (data?.meta && typeof data.meta === "object" ? { ...data.meta } : null),
+        corrected_in_session: !!sourceForm.corrected_in_session,
+        timestamp: sourceForm.timestamp || Date.now(),
+      };
+    }
+
     async function doManualAnalysis(){
       const requestId = beginAnalysisRequest();
       state.manualForm = readManualForm();
+      const payload = buildCorrectionPayload(state.data, state.manualForm);
       state.loading = true;
       state.scanStatusMessage = "";
       state.error = "";
@@ -2890,7 +2968,7 @@
         const res = await fetch(`/scan/manual?lang=${lang}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(state.manualForm),
+          body: JSON.stringify(payload),
         });
         const data = await res.json().catch(()=> ({}));
         if (!isCurrentAnalysisRequest(requestId)) return;
@@ -2903,6 +2981,7 @@
           return;
         }
         state.data = data;
+        state.manualForm = { ...state.manualForm, corrected_in_session: false };
         state.error = "";
         state.errorCode = "";
         state.loading = false;
@@ -5449,6 +5528,7 @@
                 <button class="ghost" id="correctNutritionBtn">${t("correct_nutrition_values")}</button>
               </div>
             </div>
+            ${renderCorrectedSessionNotice(d)}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
             ${renderEnrichmentBlock(d)}
