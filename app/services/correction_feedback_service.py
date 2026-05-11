@@ -1,8 +1,11 @@
 import hashlib
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from app.services.monitoring_service import log_event
 
 
 SUPPORTED_LANGS = {"el", "en", "de", "fr"}
@@ -174,9 +177,11 @@ def submit_correction_feedback(payload: Dict[str, Any], lang: str = "en", store_
     lang = lang if lang in SUPPORTED_LANGS else "en"
     raw_json = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
     if len(raw_json.encode("utf-8")) > MAX_PAYLOAD_BYTES:
+        log_event(logging.getLogger("noesisfood.scan"), "feedback_validation_failed", lang=lang, error_code="PAYLOAD_TOO_LARGE")
         return _err("PAYLOAD_TOO_LARGE", "Feedback payload is too large.", 413)
 
     if not bool(body.get("corrected_in_session")):
+        log_event(logging.getLogger("noesisfood.scan"), "feedback_validation_failed", lang=lang, error_code="CORRECTION_REQUIRED")
         return _err("CORRECTION_REQUIRED", "Only corrected session results can be submitted as feedback.")
 
     product = body.get("product") if isinstance(body.get("product"), dict) else {}
@@ -187,16 +192,19 @@ def submit_correction_feedback(payload: Dict[str, Any], lang: str = "en", store_
         "key": _trim_text(product.get("key") or body.get("key"), 120),
     }
     if not any(product_block.values()):
+        log_event(logging.getLogger("noesisfood.scan"), "feedback_validation_failed", lang=lang, error_code="PRODUCT_ID_REQUIRED")
         return _err("PRODUCT_ID_REQUIRED", "At least one product identifier is required.")
 
     corrected = _normalize_nutrition(body.get("corrected_nutrition_per_100"))
     original = _normalize_nutrition(body.get("original_nutrition_per_100"))
     changed_fields = _meaningful_changes(original, corrected)
     if not changed_fields:
+        log_event(logging.getLogger("noesisfood.scan"), "feedback_validation_failed", lang=lang, error_code="NO_CHANGED_FIELDS")
         return _err("NO_CHANGED_FIELDS", "At least one nutrition value must be changed.")
 
     range_error = _validate_nutrition_ranges(corrected)
     if range_error:
+        log_event(logging.getLogger("noesisfood.scan"), "feedback_validation_failed", lang=lang, error_code="UNREALISTIC_VALUES")
         return _err("UNREALISTIC_VALUES", range_error)
 
     source_type = str(body.get("source_type") or "").strip().lower()
@@ -227,10 +235,20 @@ def submit_correction_feedback(payload: Dict[str, Any], lang: str = "en", store_
 
     target = store_path or FEEDBACK_STORE_PATH
     if _recent_duplicate_exists(target, submission_hash, submitted_at):
+        log_event(logging.getLogger("noesisfood.scan"), "feedback_validation_failed", lang=lang, error_code="DUPLICATE_FEEDBACK")
         return _err("DUPLICATE_FEEDBACK", "A similar correction feedback was already submitted recently.", 409)
 
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+    log_event(
+        logging.getLogger("noesisfood.scan"),
+        "correction_feedback_submitted",
+        lang=lang,
+        source_type=source_type,
+        barcode=product_block.get("barcode"),
+        key=product_block.get("key"),
+        changed_fields=changed_fields,
+    )
     return _ok("Thank you for helping improve nutrition accuracy.", feedback_saved=True)

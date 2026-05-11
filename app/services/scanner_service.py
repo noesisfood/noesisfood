@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
+from app.services.monitoring_service import log_event
 try:
     from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageOps
 except Exception:  # pragma: no cover - optional dependency
@@ -4202,6 +4203,15 @@ def _apply_analysis_confidence_layer(result: Dict[str, Any], lang: str) -> Dict[
             breakdown["analysis_mode"] = analysis_mode
         analysis_mode["confidence"] = final_confidence
 
+    log_event(
+        logger,
+        "analysis_confidence_assigned",
+        source=source,
+        matched_by=matched_by,
+        analysis_state=analysis_state,
+        analysis_confidence=final_confidence,
+    )
+
     return result
 
 
@@ -6299,6 +6309,15 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
 async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> Dict[str, Any]:
     lang = lang if lang in SUPPORTED_LANGS else "en"
     payload = payload if isinstance(payload, dict) else {}
+    if bool(payload.get("corrected_in_session")):
+        log_event(
+            logger,
+            "correction_submitted",
+            source="manual",
+            lang=lang,
+            key=str(payload.get("key") or ""),
+            barcode=str(payload.get("barcode") or ""),
+        )
     name = str(payload.get("name") or "").strip() or "Manual product"
     brand = str(payload.get("brand") or "").strip() or None
     barcode = str(payload.get("barcode") or "").strip() or None
@@ -6438,6 +6457,15 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                     nutrition_ocr_debug["parser_acceptance_reason"],
                     nutrition_ocr_debug["final_error_branch"],
                 )
+                log_event(
+                    logger,
+                    "ocr_failed",
+                    source="photo",
+                    lang=lang,
+                    key=str(payload.get("existing_key") or _get_path(payload, "existing_analysis", "key") or ""),
+                    local_ocr_status=nutrition_ocr_debug["local_ocr_status"],
+                    rescued_field_count=nutrition_ocr_debug["rescued_field_count"],
+                )
                 return extracted
             extracted = context_fallback
     else:
@@ -6536,6 +6564,15 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 nutrition_ocr_debug["rescued_field_count"],
                 ",".join(nutrition_ocr_debug["rescued_field_names"]),
                 nutrition_ocr_debug["parser_acceptance_reason"],
+            )
+            log_event(
+                logger,
+                "ocr_partial_rescue" if int(nutrition_ocr_debug["rescued_field_count"] or 0) > 0 else "ocr_success",
+                source="photo",
+                lang=lang,
+                key=str(existing_key or ""),
+                local_ocr_status=nutrition_ocr_debug["local_ocr_status"],
+                rescued_field_count=int(nutrition_ocr_debug["rescued_field_count"] or 0),
             )
         if isinstance(result.get("meta"), dict):
             result["meta"]["photo_extraction"] = result["photo_extraction"]

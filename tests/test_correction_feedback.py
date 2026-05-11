@@ -109,6 +109,11 @@ class CorrectionFeedbackTests(unittest.TestCase):
         self.assertIn('submit_correction_feedback: "Korrekturfeedback senden"', content)
         self.assertIn('submit_correction_feedback: "Envoyer le retour de correction"', content)
         self.assertIn('feedback_thanks: "Thank you for helping improve nutrition accuracy"', content)
+        self.assertIn('beta_title: "Public Beta"', content)
+        self.assertIn('beta_title: "Δημόσιο Beta"', content)
+        self.assertIn('beta_title: "Öffentliche Beta"', content)
+        self.assertIn('beta_title: "Bêta publique"', content)
+        self.assertIn('err_photo_extract: "We could not read enough nutrition data. Try a sharper photo or crop closer to the nutrition table."', content)
 
 
 if __name__ == "__main__":

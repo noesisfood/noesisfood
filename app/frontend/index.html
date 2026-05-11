@@ -620,6 +620,11 @@
         compare_col_additives: "Additives / E-numbers",
         compare_col_caffeine: "Caffeine",
         compare_col_sweeteners: "Sweeteners",
+        beta_badge: "Soft Beta",
+        beta_title: "Public Beta",
+        beta_body: "Results are educational and may improve over time. They are not medical advice.",
+        beta_confidence_note: "Confidence reflects the reliability of the available data, not healthiness itself.",
+        beta_correction_note: "You can help improve accuracy with corrections and optional feedback.",
         compare_col_colorants: "Colorants",
         compare_col_flavourings: "Flavourings",
         compare_col_reasons: "Top reasons",
@@ -764,16 +769,16 @@
         no: "no",
         scan_another: "Scan another",
         err_enter_key: "Please enter a product id or barcode.",
-        err_invalid_barcode: "Invalid barcode.",
-        err_not_found: "Product not found.",
-        err_unanalyzable: "This product could not be analyzed.",
-        err_missing_data: "Key data required for product assessment is missing.",
-        err_found_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
-        err_photo_extract: "We could not extract enough data from this photo. Try a flat, close, glare-free photo of the ingredients, nutrition table, or for water products the mineral composition table and product name.",
+        err_invalid_barcode: "We could not use this barcode. Check the digits or enter the product details manually.",
+        err_not_found: "We could not find this product yet. Try a photo or manual entry to continue.",
+        err_unanalyzable: "We could not complete the analysis for this product. Try again or continue with manual correction.",
+        err_missing_data: "Some key product data is missing. You can continue with a photo or correct the missing nutrition values.",
+        err_found_incomplete: "This result is partial because some product data is missing. You can correct the missing values.",
+        err_photo_extract: "We could not read enough nutrition data. Try a sharper photo or crop closer to the nutrition table.",
         err_photo_unavailable: "Photo extraction is temporarily unavailable right now. Try again later, continue with manual entry, or use an ingredient photo if that would help.",
-        err_photo_parse: "We could not extract the label data reliably from this photo. Retake one clear label section close-up. For water products, use the product name or mineral composition table.",
+        err_photo_parse: "We could not read this label reliably. Retake one clear close-up of a single label section.",
         err_photo_retry: "Try a clearer photo with better lighting.",
-        err_network: "Network error. Is the server running?",
+        err_network: "We could not reach the service. Please try again in a moment.",
         fallback_title: "Alternative analysis path",
         fallback_not_found: "This product was not found in the available database.",
         fallback_incomplete: "The product was found, but the available data is not sufficient for full analysis.",
@@ -843,7 +848,7 @@
         corrected_in_session_notice: "Updated with your corrected values",
         submit_correction_feedback: "Submit correction feedback",
         feedback_thanks: "Thank you for helping improve nutrition accuracy",
-        feedback_failed: "Correction feedback could not be submitted",
+        feedback_failed: "Correction feedback could not be submitted. Please try again later.",
         correct_nutrition_values: "Correct nutrition values",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -908,6 +913,11 @@
         compare_col_additives: "Πρόσθετα / αριθμοί E",
         compare_col_caffeine: "Καφεΐνη",
         compare_col_sweeteners: "Γλυκαντικά",
+        beta_badge: "Soft Beta",
+        beta_title: "Δημόσιο Beta",
+        beta_body: "Τα αποτελέσματα είναι ενημερωτικά και μπορεί να βελτιώνονται με τον χρόνο. Δεν αποτελούν ιατρική συμβουλή.",
+        beta_confidence_note: "Η βεβαιότητα δείχνει την αξιοπιστία των διαθέσιμων δεδομένων, όχι το πόσο υγιεινό είναι το προϊόν.",
+        beta_correction_note: "Μπορείτε να βοηθήσετε στη βελτίωση της ακρίβειας με διορθώσεις και προαιρετική ανατροφοδότηση.",
         compare_col_colorants: "Χρωστικές",
         compare_col_flavourings: "Αρώματα",
         compare_col_reasons: "Κύριοι λόγοι",
@@ -1052,15 +1062,15 @@
         no: "όχι",
         scan_another: "Νέα σάρωση",
         err_enter_key: "Βάλε product id ή barcode.",
-        err_invalid_barcode: "Μη έγκυρο barcode.",
-        err_not_found: "Το προϊόν δεν βρέθηκε.",
-        err_unanalyzable: "Δεν ήταν δυνατή η ανάλυση αυτού του προϊόντος.",
-        err_missing_data: "Λείπουν βασικά στοιχεία για την αξιολόγηση του προϊόντος.",
-        err_found_incomplete: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν ακόμη για αξιολόγηση.",
-        err_photo_extract: "Δεν ήταν δυνατή η εξαγωγή αρκετών στοιχείων από αυτή τη φωτογραφία. Δοκίμασε μια επίπεδη, κοντινή φωτογραφία χωρίς αντανακλάσεις από τα συστατικά, τον διατροφικό πίνακα ή για νερά από τον πίνακα ανόργανης σύστασης και το όνομα προϊόντος.",
-        err_photo_parse: "Δεν ήταν δυνατή η αξιόπιστη εξαγωγή των στοιχείων της ετικέτας από αυτή τη φωτογραφία. Τράβηξε ξανά ένα καθαρό κοντινό μιας μόνο ενότητας ετικέτας. Για νερά, χρησιμοποίησε το όνομα προϊόντος ή τον πίνακα ανόργανης σύστασης.",
+        err_invalid_barcode: "Δεν μπορέσαμε να χρησιμοποιήσουμε αυτό το barcode. Έλεγξε τα ψηφία ή συνέχισε με χειροκίνητη εισαγωγή.",
+        err_not_found: "Δεν βρήκαμε ακόμη αυτό το προϊόν. Μπορείς να συνεχίσεις με φωτογραφία ή χειροκίνητη εισαγωγή.",
+        err_unanalyzable: "Δεν ολοκληρώθηκε η ανάλυση για αυτό το προϊόν. Δοκίμασε ξανά ή συνέχισε με χειροκίνητη διόρθωση.",
+        err_missing_data: "Λείπουν βασικά στοιχεία προϊόντος. Μπορείς να συνεχίσεις με φωτογραφία ή να διορθώσεις τις διατροφικές τιμές.",
+        err_found_incomplete: "Το αποτέλεσμα είναι μερικό επειδή λείπουν κάποια στοιχεία προϊόντος. Μπορείς να διορθώσεις τις τιμές που λείπουν.",
+        err_photo_extract: "Δεν μπορέσαμε να διαβάσουμε αρκετά διατροφικά στοιχεία. Δοκίμασε πιο καθαρή φωτογραφία ή crop πιο κοντά στον διατροφικό πίνακα.",
+        err_photo_parse: "Δεν μπορέσαμε να διαβάσουμε αξιόπιστα αυτή την ετικέτα. Τράβηξε ξανά ένα καθαρό κοντινό μιας μόνο ενότητας ετικέτας.",
         err_photo_retry: "Δοκίμασε μια πιο καθαρή φωτογραφία με καλό φωτισμό.",
-        err_network: "Σφάλμα δικτύου. Τρέχει ο server;",
+        err_network: "Δεν ήταν δυνατή η επικοινωνία με την υπηρεσία. Προσπάθησε ξανά σε λίγο.",
         fallback_title: "Εναλλακτική πορεία ανάλυσης",
         fallback_not_found: "Το προϊόν δεν βρέθηκε στη διαθέσιμη βάση δεδομένων.",
         fallback_incomplete: "Το προϊόν βρέθηκε, αλλά τα διαθέσιμα στοιχεία δεν επαρκούν για πλήρη ανάλυση.",
@@ -1125,7 +1135,7 @@
         corrected_in_session_notice: "Ενημερώθηκε με τις διορθωμένες τιμές σας",
         submit_correction_feedback: "Υποβολή ανατροφοδότησης διόρθωσης",
         feedback_thanks: "Σας ευχαριστούμε που βοηθάτε στη βελτίωση της ακρίβειας των διατροφικών στοιχείων",
-        feedback_failed: "Δεν ήταν δυνατή η υποβολή της ανατροφοδότησης διόρθωσης",
+        feedback_failed: "Δεν ήταν δυνατή η υποβολή της ανατροφοδότησης διόρθωσης. Προσπάθησε ξανά αργότερα.",
         correct_nutrition_values: "Διόρθωση διατροφικών τιμών",
         tier_na: "N/A",
         tier_excellent: "Εξαιρετικό",
@@ -1190,6 +1200,11 @@
         compare_col_additives: "Zusatzstoffe / E-Nummern",
         compare_col_caffeine: "Koffein",
         compare_col_sweeteners: "Süßstoffe",
+        beta_badge: "Soft Beta",
+        beta_title: "Öffentliche Beta",
+        beta_body: "Die Ergebnisse sind informativ und können sich im Lauf der Zeit verbessern. Sie sind keine medizinische Beratung.",
+        beta_confidence_note: "Die Konfidenz zeigt die Zuverlässigkeit der verfügbaren Daten, nicht die gesundheitliche Qualität des Produkts.",
+        beta_correction_note: "Mit Korrekturen und optionalem Feedback können Sie helfen, die Genauigkeit zu verbessern.",
         compare_col_colorants: "Farbstoffe",
         compare_col_flavourings: "Aromen",
         compare_col_reasons: "Wichtigste Gründe",
@@ -1334,15 +1349,15 @@
         no: "nein",
         scan_another: "Weiteres Produkt scannen",
         err_enter_key: "Bitte Produkt-ID oder Barcode eingeben.",
-        err_invalid_barcode: "Ungültiger Barcode.",
-        err_not_found: "Produkt nicht gefunden.",
-        err_unanalyzable: "Dieses Produkt konnte nicht analysiert werden.",
-        err_missing_data: "Für die Bewertung fehlen wichtige Produktdaten.",
-        err_found_incomplete: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen noch nicht für eine Bewertung aus.",
-        err_photo_extract: "Aus diesem Foto konnten nicht genügend Daten extrahiert werden. Versuche ein flaches, nahes, blendfreies Foto von Zutatenliste, Nährwerttabelle oder bei Wasser vom Produktnamen und der Mineralstofftabelle.",
-        err_photo_parse: "Die Etikettendaten konnten aus diesem Foto nicht zuverlässig extrahiert werden. Nimm eine klare Nahaufnahme von nur einem Etikettenabschnitt auf. Bei Wasser verwende den Produktnamen oder die Mineralstofftabelle.",
+        err_invalid_barcode: "Dieser Barcode konnte nicht verwendet werden. Prüfen Sie die Ziffern oder fahren Sie manuell fort.",
+        err_not_found: "Dieses Produkt wurde noch nicht gefunden. Sie können mit Foto oder manueller Eingabe fortfahren.",
+        err_unanalyzable: "Die Analyse für dieses Produkt konnte nicht abgeschlossen werden. Versuchen Sie es erneut oder korrigieren Sie die Werte manuell.",
+        err_missing_data: "Wichtige Produktdaten fehlen. Sie können mit einem Foto fortfahren oder die fehlenden Nährwerte korrigieren.",
+        err_found_incomplete: "Dieses Ergebnis ist teilweise, weil Produktdaten fehlen. Sie können die fehlenden Werte korrigieren.",
+        err_photo_extract: "Wir konnten nicht genug Nährwertdaten lesen. Versuchen Sie ein schärferes Foto oder schneiden Sie näher an die Nährwerttabelle.",
+        err_photo_parse: "Dieses Etikett konnte nicht zuverlässig gelesen werden. Machen Sie eine klare Nahaufnahme von nur einem Etikettenabschnitt.",
         err_photo_retry: "Versuche es mit einem klareren Foto bei besserem Licht.",
-        err_network: "Netzwerkfehler. Läuft der Server?",
+        err_network: "Der Dienst konnte nicht erreicht werden. Bitte versuchen Sie es gleich noch einmal.",
         fallback_title: "Alternativer Analyseweg",
         fallback_not_found: "Dieses Produkt wurde in der verfügbaren Datenbank nicht gefunden.",
         fallback_incomplete: "Das Produkt wurde gefunden, aber die verfügbaren Daten reichen für eine vollständige Analyse nicht aus.",
@@ -1407,7 +1422,7 @@
         corrected_in_session_notice: "Mit Ihren korrigierten Werten aktualisiert",
         submit_correction_feedback: "Korrekturfeedback senden",
         feedback_thanks: "Danke, dass Sie helfen, die Genauigkeit der Nährwertdaten zu verbessern",
-        feedback_failed: "Das Korrekturfeedback konnte nicht übermittelt werden",
+        feedback_failed: "Das Korrekturfeedback konnte nicht übermittelt werden. Bitte versuchen Sie es später erneut.",
         correct_nutrition_values: "Nährwerte korrigieren",
         tier_na: "N/A",
         tier_excellent: "Exzellent",
@@ -1472,6 +1487,11 @@
         compare_col_additives: "Additifs / numéros E",
         compare_col_caffeine: "Caféine",
         compare_col_sweeteners: "Édulcorants",
+        beta_badge: "Soft Beta",
+        beta_title: "Bêta publique",
+        beta_body: "Les résultats sont informatifs et peuvent s’améliorer avec le temps. Ils ne constituent pas un avis médical.",
+        beta_confidence_note: "La confiance reflète la fiabilité des données disponibles, pas le caractère sain du produit.",
+        beta_correction_note: "Vous pouvez aider à améliorer la précision grâce aux corrections et au retour facultatif.",
         compare_col_colorants: "Colorants",
         compare_col_flavourings: "Arômes",
         compare_col_reasons: "Raisons principales",
@@ -1616,15 +1636,15 @@
         no: "non",
         scan_another: "Scanner un autre",
         err_enter_key: "Entrez un id produit ou un code-barres.",
-        err_invalid_barcode: "Code-barres invalide.",
-        err_not_found: "Produit introuvable.",
-        err_unanalyzable: "Ce produit n’a pas pu être analysé.",
-        err_missing_data: "Des données essentielles manquent pour évaluer ce produit.",
-        err_found_incomplete: "Le produit a été trouvé, mais les données disponibles ne suffisent pas encore pour une évaluation.",
-        err_photo_extract: "Impossible d’extraire suffisamment de données à partir de cette photo. Essayez une photo plate, rapprochée et sans reflets de la liste des ingrédients, du tableau nutritionnel ou, pour l’eau, du nom du produit et du tableau de composition minérale.",
-        err_photo_parse: "Les données de l’étiquette n’ont pas pu être extraites de façon fiable à partir de cette photo. Reprenez un gros plan net d’une seule zone de l’étiquette. Pour l’eau, utilisez le nom du produit ou le tableau de composition minérale.",
+        err_invalid_barcode: "Ce code-barres n’a pas pu être utilisé. Vérifiez les chiffres ou poursuivez avec une saisie manuelle.",
+        err_not_found: "Nous n’avons pas encore trouvé ce produit. Vous pouvez continuer avec une photo ou une saisie manuelle.",
+        err_unanalyzable: "Nous n’avons pas pu terminer l’analyse de ce produit. Réessayez ou corrigez les valeurs manuellement.",
+        err_missing_data: "Certaines données essentielles du produit manquent. Vous pouvez continuer avec une photo ou corriger les valeurs nutritionnelles.",
+        err_found_incomplete: "Ce résultat est partiel car certaines données produit manquent. Vous pouvez corriger les valeurs manquantes.",
+        err_photo_extract: "Nous n’avons pas pu lire assez de données nutritionnelles. Essayez une photo plus nette ou recadrez plus près du tableau nutritionnel.",
+        err_photo_parse: "Cette étiquette n’a pas pu être lue de façon fiable. Reprenez un gros plan net d’une seule zone de l’étiquette.",
         err_photo_retry: "Essayez avec une photo plus nette et mieux éclairée.",
-        err_network: "Erreur réseau. Le serveur est-il démarré ?",
+        err_network: "Le service n’a pas pu être contacté. Réessayez dans un instant.",
         fallback_title: "Parcours d’analyse alternatif",
         fallback_not_found: "Ce produit n’a pas été trouvé dans la base de données disponible.",
         fallback_incomplete: "Le produit a été trouvé, mais les données disponibles ne suffisent pas pour une analyse complète.",
@@ -1689,7 +1709,7 @@
         corrected_in_session_notice: "Mis à jour avec vos valeurs corrigées",
         submit_correction_feedback: "Envoyer le retour de correction",
         feedback_thanks: "Merci de contribuer à améliorer la précision des données nutritionnelles",
-        feedback_failed: "Le retour de correction n'a pas pu être envoyé",
+        feedback_failed: "Le retour de correction n'a pas pu être envoyé. Réessayez plus tard.",
         correct_nutrition_values: "Corriger les valeurs nutritionnelles",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -2812,6 +2832,18 @@
       return `
         <div class="${cssClass}" style="margin-top:12px;">
           ${_escapeHtml(String(status.message || ""))}
+        </div>
+      `;
+    }
+
+    function renderBetaNotice(mode = "home"){
+      const compact = mode !== "home";
+      return `
+        <div class="section" style="margin-top:${compact ? "12px" : "0"}; border-color:rgba(123,212,255,.22); background:rgba(123,212,255,.06);">
+          <div class="sectionTitle">${t("beta_title")} <span class="pill warn" style="margin-left:8px;">${t("beta_badge")}</span></div>
+          <div class="mini">${t("beta_body")}</div>
+          <div class="mini" style="margin-top:6px;">${t("beta_confidence_note")}</div>
+          <div class="mini" style="margin-top:6px;">${t("beta_correction_note")}</div>
         </div>
       `;
     }
@@ -5522,6 +5554,7 @@
             <div class="scanHero">
               <h1 class="homeTitle">${t("home_title")}</h1>
               <div class="homeSubtitle">${t("home_subtitle")}</div>
+              ${renderBetaNotice("home")}
               ${state.error ? `<div class="err">${state.error}</div>` : ``}
               ${(state.loading || state.scanStatusMessage) ? `<div class="ok"><b>${_escapeHtml(scanLoadingTitle())}</b><br/>${_escapeHtml(state.scanStatusMessage || scanLoadingHint(false))}</div>` : ``}
               <div class="homeActions">
@@ -5636,6 +5669,7 @@
             </div>
             ${renderCorrectedSessionNotice(d)}
             ${renderFeedbackStatusNotice()}
+            ${renderBetaNotice("result")}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
             ${renderEnrichmentBlock(d)}
