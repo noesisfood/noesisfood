@@ -521,6 +521,8 @@
       errorCode:"",
       data:null,
       refreshNotice:null,
+      feedbackStatus:null,
+      correctionFeedbackContext:null,
       translateIngredients:false,
       compareTargetKey:"",
       scanner:{
@@ -839,6 +841,9 @@
         manual_submit: "Analyze manually",
         manual_cancel: "Cancel",
         corrected_in_session_notice: "Updated with your corrected values",
+        submit_correction_feedback: "Submit correction feedback",
+        feedback_thanks: "Thank you for helping improve nutrition accuracy",
+        feedback_failed: "Correction feedback could not be submitted",
         correct_nutrition_values: "Correct nutrition values",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -1118,6 +1123,9 @@
         manual_submit: "Χειροκίνητη ανάλυση",
         manual_cancel: "Ακύρωση",
         corrected_in_session_notice: "Ενημερώθηκε με τις διορθωμένες τιμές σας",
+        submit_correction_feedback: "Υποβολή ανατροφοδότησης διόρθωσης",
+        feedback_thanks: "Σας ευχαριστούμε που βοηθάτε στη βελτίωση της ακρίβειας των διατροφικών στοιχείων",
+        feedback_failed: "Δεν ήταν δυνατή η υποβολή της ανατροφοδότησης διόρθωσης",
         correct_nutrition_values: "Διόρθωση διατροφικών τιμών",
         tier_na: "N/A",
         tier_excellent: "Εξαιρετικό",
@@ -1397,6 +1405,9 @@
         manual_submit: "Manuell analysieren",
         manual_cancel: "Abbrechen",
         corrected_in_session_notice: "Mit Ihren korrigierten Werten aktualisiert",
+        submit_correction_feedback: "Korrekturfeedback senden",
+        feedback_thanks: "Danke, dass Sie helfen, die Genauigkeit der Nährwertdaten zu verbessern",
+        feedback_failed: "Das Korrekturfeedback konnte nicht übermittelt werden",
         correct_nutrition_values: "Nährwerte korrigieren",
         tier_na: "N/A",
         tier_excellent: "Exzellent",
@@ -1676,6 +1687,9 @@
         manual_submit: "Analyser manuellement",
         manual_cancel: "Annuler",
         corrected_in_session_notice: "Mis à jour avec vos valeurs corrigées",
+        submit_correction_feedback: "Envoyer le retour de correction",
+        feedback_thanks: "Merci de contribuer à améliorer la précision des données nutritionnelles",
+        feedback_failed: "Le retour de correction n'a pas pu être envoyé",
         correct_nutrition_values: "Corriger les valeurs nutritionnelles",
         tier_na: "N/A",
         tier_excellent: "Excellent",
@@ -2791,6 +2805,39 @@
       `;
     }
 
+    function renderFeedbackStatusNotice(){
+      const status = state.feedbackStatus;
+      if (!status || typeof status !== "object") return "";
+      const cssClass = status.kind === "success" ? "ok" : "err";
+      return `
+        <div class="${cssClass}" style="margin-top:12px;">
+          ${_escapeHtml(String(status.message || ""))}
+        </div>
+      `;
+    }
+
+    function sourceTypeForFeedback(data){
+      const source = String(data?.source || "").trim().toLowerCase();
+      if (source === "photo") return "photo";
+      if (source === "manual") return "manual";
+      return "barcode";
+    }
+
+    function nutritionSnapshot(data){
+      const nutrition = data?.nutrition_per_100 || {};
+      return {
+        unit: String(nutrition?.unit || "g").trim() || "g",
+        energy_kcal: correctionValue(nutrition, ["energy_kcal", "calories"], null),
+        fat_g: correctionValue(nutrition, ["fat_g", "fat"], null),
+        carb_g: correctionValue(nutrition, ["carb_g", "carbs_g", "carbohydrates_g"], null),
+        sugar_g: correctionValue(nutrition, ["sugar_g", "sugar"], null),
+        salt_g: correctionValue(nutrition, ["salt_g", "salt"], null),
+        sat_fat_g: correctionValue(nutrition, ["sat_fat_g", "saturated_fat_g"], null),
+        protein_g: correctionValue(nutrition, ["protein_g", "protein"], null),
+        serving_size: correctionValue(nutrition, ["serving_size"], null),
+      };
+    }
+
     function renderManualEntryForm(){
       const form = state.manualForm || {};
       return `
@@ -2955,14 +3002,71 @@
       };
     }
 
+    function buildCorrectionFeedbackPayload(currentData){
+      const data = currentData && typeof currentData === "object" ? currentData : {};
+      const ctx = state.correctionFeedbackContext && typeof state.correctionFeedbackContext === "object"
+        ? state.correctionFeedbackContext
+        : null;
+      const product = data?.product || {};
+      return {
+        product: {
+          name: String(product?.name || ctx?.product?.name || "").trim(),
+          brand: String(product?.brand || ctx?.product?.brand || "").trim(),
+          barcode: String(product?.barcode || ctx?.product?.barcode || "").trim(),
+          key: String(data?.key || ctx?.key || "").trim(),
+        },
+        source_type: sourceTypeForFeedback(ctx?.analysis || data),
+        lang,
+        timestamp: new Date().toISOString(),
+        original_nutrition_per_100: ctx?.originalNutrition || nutritionSnapshot(ctx?.analysis || {}),
+        corrected_nutrition_per_100: nutritionSnapshot(data),
+        analysis_confidence: String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").trim().toLowerCase(),
+        confidence_reasons: Array.isArray(data?.confidence_reasons) ? [...data.confidence_reasons] : [],
+        corrected_in_session: !!data?.corrected_in_session,
+      };
+    }
+
+    async function submitCorrectionFeedback(){
+      const payload = buildCorrectionFeedbackPayload(state.data || {});
+      state.feedbackStatus = null;
+      render();
+      try{
+        const res = await fetch(`/feedback/correction?lang=${lang}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok || data?.ok === false){
+          state.feedbackStatus = { kind: "error", message: t("feedback_failed") };
+          render();
+          return;
+        }
+        state.feedbackStatus = { kind: "success", message: t("feedback_thanks") };
+        render();
+      }catch(_e){
+        state.feedbackStatus = { kind: "error", message: t("feedback_failed") };
+        render();
+      }
+    }
+
     async function doManualAnalysis(){
       const requestId = beginAnalysisRequest();
       state.manualForm = readManualForm();
       const payload = buildCorrectionPayload(state.data, state.manualForm);
+      const originalFeedbackContext = payload.corrected_in_session ? (
+        state.correctionFeedbackContext || {
+          analysis: state.data && typeof state.data === "object" ? { ...state.data } : {},
+          key: String(state.data?.key || "").trim(),
+          product: state.data?.product && typeof state.data.product === "object" ? { ...state.data.product } : {},
+          originalNutrition: nutritionSnapshot(state.data || {}),
+        }
+      ) : null;
       state.loading = true;
       state.scanStatusMessage = "";
       state.error = "";
       state.refreshNotice = null;
+      state.feedbackStatus = null;
       render();
       try{
         const res = await fetch(`/scan/manual?lang=${lang}`, {
@@ -2982,6 +3086,7 @@
         }
         state.data = data;
         state.manualForm = { ...state.manualForm, corrected_in_session: false };
+        state.correctionFeedbackContext = data?.corrected_in_session ? originalFeedbackContext : null;
         state.error = "";
         state.errorCode = "";
         state.loading = false;
@@ -5526,9 +5631,11 @@
               <div class="mini" style="margin-top:8px;">${t("quick_verdict_note")}</div>
               <div class="btns" style="margin-top:10px;">
                 <button class="ghost" id="correctNutritionBtn">${t("correct_nutrition_values")}</button>
+                ${d?.corrected_in_session ? `<button class="ghost" id="submitCorrectionFeedbackBtn">${t("submit_correction_feedback")}</button>` : ``}
               </div>
             </div>
             ${renderCorrectedSessionNotice(d)}
+            ${renderFeedbackStatusNotice()}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
             ${renderEnrichmentBlock(d)}
@@ -5561,6 +5668,7 @@
         ensureScoreExplanationRulesLoaded();
         const compareSelect = document.getElementById("compareSelect");
         const compareBtn = document.getElementById("compareBtn");
+        const submitCorrectionFeedbackBtn = document.getElementById("submitCorrectionFeedbackBtn");
         bindEnrichmentActions();
         if (compareSelect){
           compareSelect.onchange = (e) => {
@@ -5575,6 +5683,11 @@
               _storeComparisonHistory(d, targetEntry.data, state.key, targetEntry.key);
             }
             render();
+          };
+        }
+        if (submitCorrectionFeedbackBtn){
+          submitCorrectionFeedbackBtn.onclick = () => {
+            submitCorrectionFeedback();
           };
         }
         document.getElementById("backBtn").onclick = () => { step = 1; render(); };

@@ -5,6 +5,7 @@ import time
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
+from app.services.correction_feedback_service import submit_correction_feedback
 from app.services.scanner_service import _decode_image_data_url, analyze_manual_product, analyze_photo_product, scan_product
 
 logger = logging.getLogger("noesisfood.scan")
@@ -140,5 +141,25 @@ async def scan_photo_endpoint(payload: dict = Body(default={}), lang: str = Quer
             content={
                 "error": "This product could not be analyzed.",
                 "error_code": "PHOTO_EXTRACTION_FAILED",
+            },
+        )
+
+
+@router.post("/feedback/correction")
+async def correction_feedback_endpoint(payload: dict = Body(default={}), lang: str = Query("en")):
+    try:
+        lang = lang if lang in {"el", "en", "de", "fr"} else "en"
+        data = submit_correction_feedback(payload or {}, lang=lang)
+        if isinstance(data, dict) and not data.get("ok"):
+            return JSONResponse(status_code=int(data.get("status_code") or 422), content=data)
+        return data
+    except Exception:
+        logger.exception("Correction feedback submission failed")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ok": False,
+                "error": "Correction feedback could not be submitted.",
+                "error_code": "FEEDBACK_UNAVAILABLE",
             },
         )
