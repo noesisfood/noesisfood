@@ -1,11 +1,13 @@
 # app/api/routes/scan.py
 
 import logging
+import os
 import time
-from fastapi import APIRouter, Body, Query
+from fastapi import APIRouter, Body, Header, Query
 from fastapi.responses import JSONResponse
 
 from app.services.correction_feedback_service import submit_correction_feedback
+from app.services.internal_beta_review_service import get_internal_beta_review_summary
 from app.services.monitoring_service import log_event
 from app.services.scanner_service import _decode_image_data_url, analyze_manual_product, analyze_photo_product, scan_product
 
@@ -52,6 +54,14 @@ def _photo_payload_summary(payload: dict) -> dict:
         "nutrition_image_bytes_present": bool(_decode_image_data_url(nutrition_data_url)),
         "existing_key": str(body.get("existing_key") or existing_analysis.get("key") or ""),
     }
+
+
+def _beta_review_token_valid(header_value: str | None) -> tuple[bool, bool]:
+    configured = str(os.environ.get("BETA_REVIEW_TOKEN") or "").strip()
+    if not configured:
+        return False, False
+    provided = str(header_value or "").strip()
+    return provided == configured, True
 
 @router.get("/scan/{key}")
 async def scan_endpoint(key: str, lang: str = Query("en")):
@@ -265,3 +275,15 @@ async def correction_feedback_endpoint(payload: dict = Body(default={}), lang: s
                 "error_code": "FEEDBACK_UNAVAILABLE",
             },
         )
+
+
+@router.get("/internal/beta/feedback-summary")
+async def internal_beta_feedback_summary_endpoint(
+    x_beta_review_token: str | None = Header(default=None),
+):
+    authorized, configured = _beta_review_token_valid(x_beta_review_token)
+    if not configured:
+        return JSONResponse(status_code=404, content={"detail": "Not found"})
+    if not authorized:
+        return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+    return get_internal_beta_review_summary()

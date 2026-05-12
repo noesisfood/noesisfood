@@ -2,6 +2,52 @@
 
 Use this once per day during the 10-user soft beta.
 
+## 0. Production review endpoint
+
+For live Render review, use the protected internal endpoint instead of reading server files directly.
+
+Endpoint:
+
+`GET /internal/beta/feedback-summary`
+
+Required header:
+
+`X-Beta-Review-Token: <token>`
+
+Generate a token in PowerShell:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Render setup:
+
+1. Open the Render Dashboard
+2. Open the NoesisFood service
+3. Open `Environment`
+4. Add Environment Variable
+5. Key: `BETA_REVIEW_TOKEN`
+6. Value: generated token
+7. Save and deploy or redeploy
+
+Production usage:
+
+```powershell
+curl.exe -H "X-Beta-Review-Token: <token>" https://noesisfood.onrender.com/internal/beta/feedback-summary
+```
+
+Monitoring note:
+
+- `monitoring_window` is reported as `current_process_lifetime`
+- these counters reset when the Render instance restarts or the service redeploys
+
+Important:
+
+- never put the token in frontend code
+- never commit the token
+- never share screenshots containing the token
+- rotate the token if it is exposed or shared too widely
+
 ## 1. Review correction feedback
 
 Feedback queue path:
