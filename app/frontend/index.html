@@ -6,17 +6,18 @@
   <title>NoesisFood</title>
   <style>
     :root{
-      --bg:#0b0f14; --card:#0f1622; --card2:#0c121c; --text:#e8eef7; --muted:#9fb0c3;
-      --line:rgba(255,255,255,.08); --accent:#7bd4ff; --btn:#131c2a; --btn2:#1a2740;
-      --shadow: 0 12px 40px rgba(0,0,0,.55);
+      --bg:#f4faf5; --card:#ffffff; --card2:#f7fcf8; --text:#173128; --muted:#5f7b71;
+      --line:rgba(44,95,77,.12); --accent:#27b7b4; --accent2:#63c88d; --btn:#f6fbf7; --btn2:#e8f7f0;
+      --shadow: 0 16px 42px rgba(31, 84, 64, .10);
       --r:18px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: radial-gradient(1200px 800px at 20% -10%, rgba(123,212,255,.14), transparent 60%),
-                  radial-gradient(900px 700px at 80% 0%, rgba(110,255,190,.08), transparent 55%),
+      background: radial-gradient(1200px 800px at 18% -10%, rgba(39,183,180,.12), transparent 58%),
+                  radial-gradient(900px 700px at 82% 0%, rgba(99,200,141,.13), transparent 54%),
+                  linear-gradient(180deg, #fbfefb 0%, #f1f8f3 100%),
                   var(--bg);
       color:var(--text);
     }
@@ -35,19 +36,19 @@
     .topRight{display:flex; align-items:center; gap:10px;}
     .langSel{
       border-radius: 10px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
+      border:1px solid rgba(44,95,77,.14);
+      background: rgba(255,255,255,.92);
       color: var(--text);
       padding:6px 8px;
       font-size:12px;
       font-weight:700;
     }
-    .bar{width:160px; height:8px; border-radius:999px; background: rgba(255,255,255,.08); overflow:hidden;}
-    .bar > i{display:block; height:100%; width:0%; background: linear-gradient(90deg, rgba(123,212,255,.95), rgba(110,255,190,.9));}
+    .bar{width:160px; height:8px; border-radius:999px; background: rgba(39,183,180,.12); overflow:hidden;}
+    .bar > i{display:block; height:100%; width:0%; background: linear-gradient(90deg, rgba(39,183,180,.96), rgba(99,200,141,.92));}
 
     .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
-      border:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,252,248,.96));
+      border:1px solid rgba(44,95,77,.10);
       border-radius: var(--r);
       box-shadow: var(--shadow);
       overflow:hidden;
@@ -56,8 +57,8 @@
     .row{display:flex; gap:14px; flex-wrap:wrap}
     .col{flex:1 1 320px}
     .section{
-      background: rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.80);
+      border:1px solid rgba(44,95,77,.10);
       border-radius: 16px;
       padding:14px;
       margin-top: 12px;
@@ -67,56 +68,56 @@
     .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
     button{
       cursor:pointer;
-      border:1px solid rgba(255,255,255,.10);
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(44,95,77,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,249,243,.98));
       color:var(--text);
       padding:10px 12px;
       border-radius: 14px;
       font-weight:700;
     }
-    button:hover{border-color: rgba(123,212,255,.35)}
+    button:hover{border-color: rgba(39,183,180,.35)}
     button.primary{
-      background: linear-gradient(180deg, rgba(123,212,255,.32), rgba(123,212,255,.12));
-      border-color: rgba(123,212,255,.35);
+      background: linear-gradient(180deg, rgba(39,183,180,.20), rgba(99,200,141,.18));
+      border-color: rgba(39,183,180,.32);
     }
-    button.ghost{background: rgba(255,255,255,.02);}
+    button.ghost{background: rgba(255,255,255,.72);}
     input{
       width:100%;
       border-radius: 14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.22);
+      border:1px solid rgba(44,95,77,.14);
+      background: rgba(255,255,255,.94);
       padding:12px 12px;
       color:var(--text);
       outline:none;
       font-size:14px;
     }
-    input:focus{border-color: rgba(123,212,255,.45)}
+    input:focus{border-color: rgba(39,183,180,.45)}
     .pillRow{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
     .pill{
       font-size:12px;
       padding:6px 10px;
       border-radius: 999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: rgba(232,238,247,.92);
+      border:1px solid rgba(44,95,77,.12);
+      background: rgba(245,250,247,.96);
+      color: var(--text);
     }
-    .pill.good{border-color: rgba(110,255,190,.35); background: rgba(110,255,190,.10)}
-    .pill.warn{border-color: rgba(255,210,110,.35); background: rgba(255,210,110,.10)}
-    .pill.bad{border-color: rgba(255,120,120,.35); background: rgba(255,120,120,.10)}
+    .pill.good{border-color: rgba(99,200,141,.34); background: rgba(99,200,141,.15)}
+    .pill.warn{border-color: rgba(215,170,77,.36); background: rgba(255,236,188,.62)}
+    .pill.bad{border-color: rgba(208,111,98,.34); background: rgba(255,230,224,.84)}
 
     .err{
-      background: rgba(255,60,60,.08);
-      border:1px solid rgba(255,60,60,.24);
-      color: rgba(255,210,210,.95);
+      background: rgba(255,241,236,.96);
+      border:1px solid rgba(208,111,98,.24);
+      color: #8b3d32;
       padding:10px 12px;
       border-radius: 14px;
       font-size:13px;
       margin-top: 10px;
     }
     .ok{
-      background: rgba(110,255,190,.08);
-      border:1px solid rgba(110,255,190,.22);
-      color: rgba(210,255,235,.95);
+      background: rgba(236,248,240,.96);
+      border:1px solid rgba(99,200,141,.24);
+      color: #1b5f45;
       padding:10px 12px;
       border-radius: 14px;
       font-size:13px;
@@ -126,8 +127,8 @@
     .prodHead{display:flex; gap:12px; align-items:center;}
     .prodImg{
       width:72px; height:72px; border-radius: 16px;
-      background: rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.08);
+      background: rgba(243,250,245,.95);
+      border:1px solid rgba(44,95,77,.10);
       object-fit: cover;
       flex:0 0 auto;
     }
@@ -137,11 +138,11 @@
     .scoreWrap{display:flex; align-items:center; justify-content:space-between; gap:12px}
     .score{font-size:42px; font-weight:900; letter-spacing:-.8px;}
     .scoreLine{display:flex; align-items:baseline; gap:8px;}
-    .scoreMax{font-size:18px; font-weight:900; letter-spacing:-.2px; color:rgba(159,176,195,.95);}
+    .scoreMax{font-size:18px; font-weight:900; letter-spacing:-.2px; color:#6d877d;}
     .tier{
       font-size:12px; font-weight:800;
       padding:6px 10px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
+      border:1px solid rgba(44,95,77,.12);
     }
 
     .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px}
@@ -151,8 +152,8 @@
       justify-content:space-between;
       gap:12px;
       padding:12px 14px;
-      background: rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.08);
+      background: rgba(248,252,249,.95);
+      border:1px solid rgba(44,95,77,.10);
       border-radius: 16px;
       margin-top:12px;
     }
@@ -201,8 +202,8 @@
     }
     .kv{
       padding:10px 10px;
-      background: rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.08);
+      background: rgba(248,252,249,.96);
+      border:1px solid rgba(44,95,77,.09);
       border-radius: 14px;
     }
     .kv small{display:block; color:var(--muted); font-size:11px}
@@ -211,15 +212,15 @@
     .whyGrid{display:grid; grid-template-columns: 1fr; gap:8px;}
     .whyRow{
       padding:10px 10px;
-      background: rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.08);
+      background: rgba(248,252,249,.96);
+      border:1px solid rgba(44,95,77,.09);
       border-radius: 14px;
       display:flex;
       justify-content:space-between;
       gap:10px;
       font-size:13px;
     }
-    .whyRow span{color: rgba(232,238,247,.92); font-weight:800}
+    .whyRow span{color: var(--text); font-weight:800}
 
     .whyFoot{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35;}
 
@@ -228,8 +229,8 @@
     @media (max-width: 820px){ .split{grid-template-columns: 1fr;} }
 
     .box{
-      background: rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.08);
+      background: rgba(249,253,250,.96);
+      border:1px solid rgba(44,95,77,.09);
       border-radius: 14px;
       padding:12px;
     }
@@ -238,8 +239,8 @@
       display:flex; justify-content:space-between; gap:10px;
       padding:10px 10px;
       border-radius: 12px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.16);
+      border:1px solid rgba(44,95,77,.08);
+      background: rgba(255,255,255,.92);
       margin-top:8px;
     }
     .eLeft b{display:block; font-size:13px}
@@ -250,23 +251,23 @@
       display:flex; justify-content:space-between; gap:10px;
       padding:10px 10px;
       border-radius: 12px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.14);
+      border:1px solid rgba(44,95,77,.08);
+      background: rgba(255,255,255,.94);
       margin-top:8px;
     }
     .ingLeft b{display:block; font-size:13px}
     .ingLeft small{display:block; font-size:11px; color:var(--muted); margin-top:3px}
     .risk{font-size:11px; font-weight:900; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.10);}
-    .risk.low{border-color: rgba(110,255,190,.35); background: rgba(110,255,190,.08)}
-    .risk.medium{border-color: rgba(255,210,110,.35); background: rgba(255,210,110,.08)}
-    .risk.high{border-color: rgba(255,120,120,.35); background: rgba(255,120,120,.08)}
+    .risk.low{border-color: rgba(99,200,141,.34); background: rgba(99,200,141,.12)}
+    .risk.medium{border-color: rgba(215,170,77,.36); background: rgba(255,236,188,.62)}
+    .risk.high{border-color: rgba(208,111,98,.34); background: rgba(255,230,224,.84)}
 
     .groupTitle{
       margin-top:14px;
       font-weight:900;
       font-size:12px;
       letter-spacing:.2px;
-      color: rgba(232,238,247,.92);
+      color: var(--text);
       opacity:.92;
     }
     .step.hidden{display:none}
@@ -274,9 +275,9 @@
     .scanHero{
       padding:18px;
       background:
-        linear-gradient(180deg, rgba(123,212,255,.10), rgba(255,255,255,.02)),
-        rgba(0,0,0,.18);
-      border:1px solid rgba(123,212,255,.16);
+        linear-gradient(180deg, rgba(39,183,180,.10), rgba(255,255,255,.72)),
+        rgba(246,252,248,.96);
+      border:1px solid rgba(39,183,180,.16);
       border-radius: 18px;
     }
     .homeTitle{
@@ -316,7 +317,7 @@
     .inputLabel{
       font-size:12px;
       font-weight:800;
-      color:rgba(232,238,247,.92);
+      color:var(--text);
     }
     .homeInputRow{
       display:grid;
@@ -338,8 +339,8 @@
       gap:12px;
     }
     .secondarySection{
-      background: rgba(0,0,0,.12);
-      border:1px solid rgba(255,255,255,.06);
+      background: rgba(251,254,252,.94);
+      border:1px solid rgba(44,95,77,.08);
       border-radius: 16px;
       padding:14px;
     }
@@ -361,8 +362,8 @@
       gap:10px;
       padding:12px;
       border-radius:14px;
-      background: rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.07);
+      background: rgba(247,252,248,.96);
+      border:1px solid rgba(44,95,77,.08);
     }
     .historyEntryMeta{
       min-width:0;
@@ -407,7 +408,7 @@
       position:fixed;
       inset:0;
       z-index:1000;
-      background: rgba(4, 8, 14, .86);
+      background: rgba(35, 58, 48, .34);
       display:flex;
       align-items:flex-end;
       justify-content:center;
@@ -416,8 +417,8 @@
     }
     .scannerSheet{
       width:min(100%, 680px);
-      background: linear-gradient(180deg, rgba(16,23,35,.98), rgba(10,15,24,.98));
-      border:1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.99), rgba(245,251,247,.99));
+      border:1px solid rgba(44,95,77,.12);
       border-radius: 22px;
       box-shadow: var(--shadow);
       overflow:hidden;
@@ -440,9 +441,9 @@
       border-radius:18px;
       overflow:hidden;
       background:
-        radial-gradient(circle at top, rgba(123,212,255,.14), transparent 55%),
-        rgba(0,0,0,.40);
-      border:1px solid rgba(255,255,255,.08);
+        radial-gradient(circle at top, rgba(39,183,180,.12), transparent 55%),
+        rgba(228,240,232,.88);
+      border:1px solid rgba(44,95,77,.10);
     }
     .scannerViewport video{
       width:100%;
@@ -474,20 +475,20 @@
       bottom:12px;
       padding:10px 12px;
       border-radius:14px;
-      background: rgba(3,8,14,.74);
-      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.90);
+      border:1px solid rgba(44,95,77,.12);
       font-size:13px;
       line-height:1.4;
     }
     .scannerStatus.error{
-      color: rgba(255,210,210,.95);
-      border-color: rgba(255,60,60,.24);
-      background: rgba(90,10,18,.68);
+      color: #8b3d32;
+      border-color: rgba(208,111,98,.24);
+      background: rgba(255,241,236,.95);
     }
     .scannerStatus.success{
-      color: rgba(210,255,235,.96);
-      border-color: rgba(110,255,190,.30);
-      background: rgba(10,62,42,.68);
+      color: #1b5f45;
+      border-color: rgba(99,200,141,.28);
+      background: rgba(236,248,240,.96);
     }
     .scannerActions{
       display:flex;
@@ -2671,7 +2672,7 @@
           <div class="mini">${t("photo_preview_note")}</div>
           <div class="mini" style="margin-top:6px;">${_escapeHtml(pending.fileName || "")}</div>
           <div class="mini" style="margin-top:8px;"><b>${t("photo_crop_title")}</b><br/>${t("photo_crop_hint")}</div>
-          <div id="photoCropStage" style="position:relative; width:100%; margin-top:10px; border-radius:14px; border:1px solid rgba(255,255,255,.12); overflow:hidden; touch-action:none; max-height:320px; background:rgba(255,255,255,.03);">
+          <div id="photoCropStage" style="position:relative; width:100%; margin-top:10px; border-radius:14px; border:1px solid rgba(44,95,77,.12); overflow:hidden; touch-action:none; max-height:320px; background:rgba(248,252,249,.96);">
             <img id="photoCropImage" src="${_escapeHtml(pending.dataUrl)}" alt="${_escapeHtml(title)}" style="display:block; width:100%; object-fit:cover; max-height:320px; user-select:none; -webkit-user-drag:none;" />
             <div id="photoCropBox" style="position:absolute; left:${(crop.x * 100).toFixed(3)}%; top:${(crop.y * 100).toFixed(3)}%; width:${(crop.width * 100).toFixed(3)}%; height:${(crop.height * 100).toFixed(3)}%; border:2px solid rgba(255,255,255,.96); background:rgba(255,255,255,.12); box-shadow:0 0 0 9999px rgba(0,0,0,.28); border-radius:12px; cursor:move; touch-action:none;">
               <div id="photoCropHandle" style="position:absolute; right:-1px; bottom:-1px; width:22px; height:22px; border-radius:50%; background:#fff; border:2px solid rgba(0,0,0,.25); cursor:nwse-resize; touch-action:none;"></div>
