@@ -114,6 +114,8 @@ class CorrectionFeedbackTests(unittest.TestCase):
         self.assertIn('beta_title: "Öffentliche Beta"', content)
         self.assertIn('beta_title: "Bêta publique"', content)
         self.assertIn('err_photo_extract: "We could not read enough nutrition data. Try a sharper photo or crop closer to the nutrition table."', content)
+        self.assertIn("function renderDetailsScoreSummary(data)", content)
+        self.assertIn('${renderDetailsScoreSummary(state.data || {})}', content)
 
 
 if __name__ == "__main__":

@@ -145,6 +145,60 @@
     }
 
     .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px}
+    .scoreSummaryCompact{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      background: rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      margin-top:12px;
+    }
+    .scoreSummaryCompactMeta{
+      min-width:0;
+      flex:1 1 auto;
+    }
+    .scoreSummaryCompactMeta b{
+      display:block;
+      font-size:14px;
+      line-height:1.35;
+    }
+    .scoreSummaryCompactScore{
+      display:flex;
+      align-items:baseline;
+      gap:6px;
+      margin-top:4px;
+      flex-wrap:wrap;
+    }
+    .scoreSummaryCompactValue{
+      font-size:26px;
+      font-weight:900;
+      letter-spacing:-.04em;
+      line-height:1;
+    }
+    .scoreSummaryCompactAside{
+      flex:0 0 auto;
+      text-align:right;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:8px;
+    }
+    .scoreSummaryCompactAside .pill{
+      margin:0;
+    }
+    @media (max-width: 520px){
+      .scoreSummaryCompact{
+        flex-direction:column;
+      }
+      .scoreSummaryCompactAside{
+        width:100%;
+        align-items:flex-start;
+        text-align:left;
+      }
+    }
     .kv{
       padding:10px 10px;
       background: rgba(255,255,255,.03);
@@ -2754,6 +2808,34 @@
         <div style="margin-top:10px;">
           <span class="pill ${badgeClass}">${_escapeHtml(badgeLabel)}</span>
           ${reasons.length ? `<div class="whyFoot" style="margin-top:10px;"><b>${t("confidence_reasons_title")}</b><br/>${reasons.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+        </div>
+      `;
+    }
+
+    function renderDetailsScoreSummary(data){
+      const d = data || {};
+      const product = d?.product || {};
+      const score = Number.isFinite(Number(d?.vitascore)) ? `${Number(d.vitascore)}/100` : "-";
+      const baselineScore = d?.vitascore_explanation?.basic_nutrition_score ?? d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
+      const baselineText = Number.isFinite(Number(baselineScore)) ? `${Number(baselineScore)}/100` : "";
+      const confidenceKey = resolvedAnalysisConfidenceKey(d);
+      const confidenceLabel = localizedConfidenceBadgeLabel(confidenceKey);
+      const confidenceClass = confidenceKey === "high" ? "good" : "warn";
+      const productName = String(product?.name || t("unknown_product")).trim() || t("unknown_product");
+      return `
+        <div class="scoreSummaryCompact">
+          <div class="scoreSummaryCompactMeta">
+            <div class="mini">${t("final_assessment")}</div>
+            <b>${_escapeHtml(productName)}</b>
+            <div class="scoreSummaryCompactScore">
+              <span class="scoreSummaryCompactValue">${_escapeHtml(score)}</span>
+              ${baselineText ? `<span class="mini">${t("baseline_score_label")}: ${_escapeHtml(baselineText)}</span>` : ``}
+            </div>
+          </div>
+          <div class="scoreSummaryCompactAside">
+            <div class="mini">${t("confidence")}</div>
+            <span class="pill ${confidenceClass}">${_escapeHtml(confidenceLabel)}</span>
+          </div>
         </div>
       `;
     }
@@ -5734,6 +5816,7 @@
           <div class="section">
             <div class="sectionTitle">${t("full_details_title")}</div>
             <div class="mini">${t("full_details_note")}</div>
+            ${renderDetailsScoreSummary(state.data || {})}
           </div>
           ${buildWhyScoreHTML(state.data || {})}
           ${whoServingBlock(state.data || {})}
