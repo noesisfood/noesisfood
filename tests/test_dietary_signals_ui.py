@@ -44,6 +44,10 @@ class DietarySignalsUiTests(unittest.TestCase):
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
         self.assertLess(content.index('${renderAllergenCard(d)}'), content.index('${renderDietarySignalsCard(d)}'))
 
+    def test_frontend_orders_dietary_signals_vegan_then_vegetarian_then_halal(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+        self.assertIn('const order = ["vegan", "vegetarian", "halal"];', content)
+
     def test_frontend_avoids_forbidden_dietary_claims(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8").lower()
 

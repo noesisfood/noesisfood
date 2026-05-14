@@ -3088,7 +3088,7 @@
     function renderDietarySignalsCard(data){
       const dietary = data?.dietary_signals || data?.meta?.dietary_signals || null;
       if (!dietary || typeof dietary !== "object") return "";
-      const order = ["halal", "vegan", "vegetarian"];
+      const order = ["vegan", "vegetarian", "halal"];
       const renderItems = (items) => items.map(item => `
         <div class="eRow">
           <div class="eLeft">
