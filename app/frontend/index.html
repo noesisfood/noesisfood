@@ -768,6 +768,18 @@
         confidence_badge_medium: "Medium confidence",
         confidence_badge_low: "Partial confidence",
         confidence_reasons_title: "Why this confidence",
+        allergen_title: "Allergen signals",
+        allergen_intro: "Allergen information from available label data",
+        allergen_detected_title: "Detected allergen signals",
+        allergen_possible_title: "Possible allergen signals",
+        allergen_none_found: "No allergen signals were detected in the available data.",
+        allergen_coverage: "Coverage",
+        allergen_sources_checked: "Sources checked",
+        allergen_source_barcode_product_data: "Barcode/product data",
+        allergen_source_ingredient_text: "Ingredient text",
+        allergen_source_ocr_ingredient_photo: "OCR ingredient photo",
+        allergen_source_manual_input: "Manual input",
+        allergen_warning_fallback: "Always check the official product label if you have allergies.",
         source_language_missing: "Ingredient language was not detected",
         sugar: "Sugar",
         salt: "Salt",
@@ -1061,6 +1073,18 @@
         confidence_badge_medium: "Μέτρια βεβαιότητα",
         confidence_badge_low: "Μερική βεβαιότητα",
         confidence_reasons_title: "Γιατί αυτή η βεβαιότητα",
+        allergen_title: "Ενδείξεις αλλεργιογόνων",
+        allergen_intro: "Οι πληροφορίες βασίζονται στα διαθέσιμα δεδομένα ετικέτας.",
+        allergen_detected_title: "Εντοπισμένες ενδείξεις αλλεργιογόνων",
+        allergen_possible_title: "Πιθανές ενδείξεις αλλεργιογόνων",
+        allergen_none_found: "Δεν εντοπίστηκαν ενδείξεις αλλεργιογόνων στα διαθέσιμα δεδομένα.",
+        allergen_coverage: "Κάλυψη",
+        allergen_sources_checked: "Πηγές που ελέγχθηκαν",
+        allergen_source_barcode_product_data: "Δεδομένα barcode/προϊόντος",
+        allergen_source_ingredient_text: "Κείμενο συστατικών",
+        allergen_source_ocr_ingredient_photo: "OCR φωτογραφίας συστατικών",
+        allergen_source_manual_input: "Χειροκίνητη εισαγωγή",
+        allergen_warning_fallback: "Αν έχετε αλλεργία, ελέγχετε πάντα την επίσημη συσκευασία.",
         source_language_missing: "Δεν εντοπίστηκε γλώσσα συστατικών",
         sugar: "Ζάχαρη",
         salt: "Αλάτι",
@@ -1348,6 +1372,18 @@
         confidence_badge_medium: "Mittlere Konfidenz",
         confidence_badge_low: "Teilweise Konfidenz",
         confidence_reasons_title: "Warum diese Konfidenz",
+        allergen_title: "Allergensignale",
+        allergen_intro: "Allergeninformationen aus verfügbaren Etikettendaten",
+        allergen_detected_title: "Erkannte Allergensignale",
+        allergen_possible_title: "Mögliche Allergensignale",
+        allergen_none_found: "In den verfügbaren Daten wurden keine Allergensignale erkannt.",
+        allergen_coverage: "Abdeckung",
+        allergen_sources_checked: "Geprüfte Quellen",
+        allergen_source_barcode_product_data: "Barcode-/Produktdaten",
+        allergen_source_ingredient_text: "Zutaten-Text",
+        allergen_source_ocr_ingredient_photo: "OCR-Zutatenfoto",
+        allergen_source_manual_input: "Manuelle Eingabe",
+        allergen_warning_fallback: "Wenn Sie Allergien haben, prüfen Sie immer das offizielle Produktetikett.",
         source_language_missing: "Die Sprache der Zutaten wurde nicht erkannt",
         sugar: "Zucker",
         salt: "Salz",
@@ -1635,6 +1671,18 @@
         confidence_badge_medium: "Confiance moyenne",
         confidence_badge_low: "Confiance partielle",
         confidence_reasons_title: "Pourquoi ce niveau de confiance",
+        allergen_title: "Signaux allergènes",
+        allergen_intro: "Informations allergènes issues des données d'étiquette disponibles",
+        allergen_detected_title: "Signaux allergènes détectés",
+        allergen_possible_title: "Signaux allergènes possibles",
+        allergen_none_found: "Aucun signal allergène n'a été détecté dans les données disponibles.",
+        allergen_coverage: "Couverture",
+        allergen_sources_checked: "Sources vérifiées",
+        allergen_source_barcode_product_data: "Données code-barres/produit",
+        allergen_source_ingredient_text: "Texte des ingrédients",
+        allergen_source_ocr_ingredient_photo: "Photo OCR des ingrédients",
+        allergen_source_manual_input: "Saisie manuelle",
+        allergen_warning_fallback: "Si vous avez des allergies, vérifiez toujours l'étiquette officielle du produit.",
         source_language_missing: "La langue des ingrédients n'a pas été détectée",
         sugar: "Sucre",
         salt: "Sel",
@@ -2809,6 +2857,69 @@
         <div style="margin-top:10px;">
           <span class="pill ${badgeClass}">${_escapeHtml(badgeLabel)}</span>
           ${reasons.length ? `<div class="whyFoot" style="margin-top:10px;"><b>${t("confidence_reasons_title")}</b><br/>${reasons.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+        </div>
+      `;
+    }
+
+    function localizedAllergenSourceLabel(value){
+      const key = String(value || "").toLowerCase();
+      if (key === "barcode_product_data") return t("allergen_source_barcode_product_data");
+      if (key === "ingredient_text") return t("allergen_source_ingredient_text");
+      if (key === "ocr_ingredient_photo") return t("allergen_source_ocr_ingredient_photo");
+      if (key === "manual_input") return t("allergen_source_manual_input");
+      return value || "-";
+    }
+
+    function renderAllergenCard(data){
+      const allergen = data?.allergen_detection || data?.meta?.allergen_detection || null;
+      if (!allergen || typeof allergen !== "object") return "";
+      const detected = Array.isArray(allergen?.detected) ? allergen.detected : [];
+      const possible = Array.isArray(allergen?.possible_signals) ? allergen.possible_signals : [];
+      const coverageKey = String(allergen?.coverage || "").toLowerCase();
+      const coverageLabel = localizedConfidenceBadgeLabel(coverageKey) || localizedConfidenceTier(coverageKey);
+      const coverageClass = coverageKey === "high" ? "good" : "warn";
+      const sourcesChecked = Array.isArray(allergen?.sources_checked) ? allergen.sources_checked : [];
+      const coverageNote = String(allergen?.coverage_note || t("allergen_intro")).trim() || t("allergen_intro");
+      const warning = String(allergen?.warning || t("allergen_warning_fallback")).trim() || t("allergen_warning_fallback");
+      const showNeutralNone = !detected.length && !possible.length && coverageKey !== "low";
+
+      const renderItems = (items) => items.map(item => `
+        <div class="eRow">
+          <div class="eLeft">
+            <b>${_escapeHtml(String(item?.label || "-"))}</b>
+            <small>${_escapeHtml(localizedAllergenSourceLabel(item?.source || ""))}</small>
+          </div>
+          <div class="eRole">${_escapeHtml(localizedConfidenceTier(item?.confidence || ""))}</div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("allergen_title")}</div>
+          <div class="mini">${_escapeHtml(coverageNote)}</div>
+          <div class="pillRow" style="margin-top:10px;">
+            <span class="pill ${coverageClass}">${t("allergen_coverage")}: ${_escapeHtml(coverageLabel)}</span>
+            ${sourcesChecked.map(source => `<span class="pill">${_escapeHtml(localizedAllergenSourceLabel(source))}</span>`).join("")}
+          </div>
+          ${detected.length ? `
+            <div class="box" style="margin-top:12px;">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("allergen_detected_title")}</div>
+              ${renderItems(detected)}
+            </div>
+          ` : ``}
+          ${possible.length ? `
+            <div class="box" style="margin-top:12px;">
+              <div class="sectionTitle" style="margin:0 0 8px 0;">${t("allergen_possible_title")}</div>
+              ${renderItems(possible)}
+            </div>
+          ` : ``}
+          ${showNeutralNone ? `
+            <div class="box" style="margin-top:12px;">
+              <div class="mini">${t("allergen_none_found")}</div>
+            </div>
+          ` : ``}
+          <div class="whyFoot" style="margin-top:12px;"><b>${t("allergen_sources_checked")}</b><br/>${sourcesChecked.length ? sourcesChecked.map(localizedAllergenSourceLabel).map(_escapeHtml).join(", ") : "-"}</div>
+          <div class="err" style="margin-top:10px;">${_escapeHtml(warning)}</div>
         </div>
       `;
     }
@@ -5755,6 +5866,7 @@
             ${renderBetaNotice("result")}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
+            ${renderAllergenCard(d)}
             ${renderEnrichmentBlock(d)}
             ${state.recoveryOpen ? renderManualEntryForm() : ``}
             <div class="section" style="margin-top:12px;">

@@ -19,6 +19,7 @@ import asyncio
 import base64
 import html
 import xml.etree.ElementTree as ET
+import unicodedata
 from io import BytesIO
 from urllib.parse import urljoin
 from dataclasses import dataclass
@@ -58,6 +59,7 @@ PRODUCTS_FILE = DATA_DIR / "products.json"
 RASFF_FILE = DATA_DIR / "rasff.json"
 SAFETY_ALERTS_FILE = DATA_DIR / "rasff_alerts.json"
 PRODUCT_ENRICHMENTS_FILE = DATA_DIR / "product_enrichments.json"
+ALLERGEN_CATALOG_FILE = DATA_DIR / "allergen_catalog.json"
 
 _JSON_CACHE: Dict[str, Dict[str, Any]] = {}
 _SCAN_RESULT_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -389,6 +391,44 @@ def tc(lang: str, key: str, **kwargs: Any) -> str:
     return template.format(**kwargs)
 
 
+ALLERGEN_DETECTION_I18N: Dict[str, Dict[str, str]] = {
+    "en": {
+        "coverage_high": "Allergen information includes product allergen data from the available product record.",
+        "coverage_medium": "Allergen signals were derived from available ingredient text.",
+        "coverage_low": "Allergen signals were derived from limited or partial ingredient text.",
+        "coverage_low_missing": "Available label data was limited, so allergen coverage is incomplete.",
+        "warning": "Always check the official product label if you have allergies.",
+    },
+    "el": {
+        "coverage_high": "Οι πληροφορίες για αλλεργιογόνα περιλαμβάνουν δεδομένα αλλεργιογόνων από το διαθέσιμο αρχείο προϊόντος.",
+        "coverage_medium": "Οι ενδείξεις αλλεργιογόνων προέκυψαν από διαθέσιμο κείμενο συστατικών.",
+        "coverage_low": "Οι ενδείξεις αλλεργιογόνων προέκυψαν από περιορισμένο ή μερικό κείμενο συστατικών.",
+        "coverage_low_missing": "Τα διαθέσιμα δεδομένα ετικέτας ήταν περιορισμένα, οπότε η κάλυψη αλλεργιογόνων είναι ελλιπής.",
+        "warning": "Αν έχετε αλλεργία, ελέγχετε πάντα την επίσημη συσκευασία.",
+    },
+    "de": {
+        "coverage_high": "Die Allergeninformationen enthalten Produktangaben zu Allergenen aus dem verfügbaren Produkteintrag.",
+        "coverage_medium": "Allergensignale wurden aus verfügbarem Zutaten-Text abgeleitet.",
+        "coverage_low": "Allergensignale wurden aus begrenztem oder teilweisem Zutaten-Text abgeleitet.",
+        "coverage_low_missing": "Die verfügbaren Etikettendaten waren begrenzt, daher ist die Allergenabdeckung unvollständig.",
+        "warning": "Wenn Sie Allergien haben, prüfen Sie immer das offizielle Produktetikett.",
+    },
+    "fr": {
+        "coverage_high": "Les informations sur les allergènes incluent des données allergènes issues de la fiche produit disponible.",
+        "coverage_medium": "Les signaux allergènes ont été déduits du texte d'ingrédients disponible.",
+        "coverage_low": "Les signaux allergènes ont été déduits d'un texte d'ingrédients limité ou partiel.",
+        "coverage_low_missing": "Les données d'étiquette disponibles étaient limitées, donc la couverture allergène est incomplète.",
+        "warning": "Si vous avez des allergies, vérifiez toujours l'étiquette officielle du produit.",
+    },
+}
+
+
+def ta(lang: str, key: str, **kwargs: Any) -> str:
+    lang_key = lang if lang in SUPPORTED_LANGS else "en"
+    template = ALLERGEN_DETECTION_I18N.get(lang_key, {}).get(key) or ALLERGEN_DETECTION_I18N["en"].get(key) or key
+    return template.format(**kwargs)
+
+
 # -----------------------------
 # Helpers
 # -----------------------------
@@ -412,6 +452,249 @@ def _load_json(path: Path, default: Any) -> Any:
     except Exception:
         pass
     return default
+
+
+def _load_allergen_catalog() -> List[Dict[str, Any]]:
+    data = _load_json(ALLERGEN_CATALOG_FILE, [])
+    return data if isinstance(data, list) else []
+
+
+_ALLERGEN_PRECAUTIONARY_PHRASES = [
+    "may contain",
+    "may contain traces of",
+    "contains traces of",
+    "traces of",
+    "produced in a facility that also handles",
+    "made in a factory that also handles",
+    "kann enthalten",
+    "kann spuren von enthalten",
+    "kann spuren von",
+    "spuren von",
+    "peut contenir",
+    "peut contenir des traces de",
+    "traces de",
+    "traces possibles de",
+    "μπορεί να περιέχει",
+    "μπορεί να περιέχει ίχνη",
+    "ίχνη από",
+    "ίχνη",
+]
+
+
+def _normalize_allergen_text(value: Any) -> str:
+    text = html.unescape(str(value or ""))
+    if not text:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.casefold()
+    text = text.replace("&", " and ")
+    text = re.sub(r"[_/\\|]+", " ", text)
+    text = re.sub(r"[^0-9a-z\u0370-\u03ff\u1f00-\u1fff]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _allergen_text_contains(text: str, term: str) -> bool:
+    normalized_text = _normalize_allergen_text(text)
+    normalized_term = _normalize_allergen_text(term)
+    if not normalized_text or not normalized_term:
+        return False
+    return f" {normalized_term} " in f" {normalized_text} "
+
+
+def _allergen_source_kind(result: Dict[str, Any], raw: Optional[Dict[str, Any]]) -> str:
+    source = str(result.get("source") or "").strip().lower()
+    matched_by = str(result.get("matched_by") or "").strip().lower()
+    photo_meta = result.get("photo_extraction") if isinstance(result.get("photo_extraction"), dict) else {}
+    if bool(photo_meta.get("used_ingredient_photo")) or bool(_get_path(raw, "ingredient_image_data_url")):
+        return "ocr_ingredient_photo"
+    if matched_by == "photo_enrichment" or source == "photo":
+        return "ocr_ingredient_photo"
+    if matched_by == "manual_entry" or source == "manual":
+        return "manual_input"
+    return "ingredient_text"
+
+
+def _allergen_match_ids_from_text(text: str, catalog: List[Dict[str, Any]]) -> List[str]:
+    found: List[str] = []
+    for entry in catalog:
+        allergen_id = str(entry.get("id") or "").strip()
+        if not allergen_id:
+            continue
+        terms: List[str] = []
+        for item in _as_list(entry.get("official_tags")):
+            terms.append(str(item))
+        labels = entry.get("labels") if isinstance(entry.get("labels"), dict) else {}
+        for value in labels.values():
+            terms.append(str(value))
+        synonyms = entry.get("synonyms") if isinstance(entry.get("synonyms"), dict) else {}
+        for values in synonyms.values():
+            for item in _as_list(values):
+                terms.append(str(item))
+        if any(_allergen_text_contains(text, term) for term in terms if str(term).strip()):
+            found.append(allergen_id)
+    return found
+
+
+def _allergen_label(catalog: List[Dict[str, Any]], allergen_id: str, lang: str) -> str:
+    for entry in catalog:
+        if str(entry.get("id") or "").strip() != allergen_id:
+            continue
+        labels = entry.get("labels") if isinstance(entry.get("labels"), dict) else {}
+        return str(labels.get(lang) or labels.get("en") or allergen_id).strip()
+    return allergen_id
+
+
+def _allergen_ids_from_official_tags(tags: List[str], catalog: List[Dict[str, Any]]) -> List[str]:
+    found: List[str] = []
+    for tag in tags:
+        normalized_tag = _normalize_allergen_text(re.sub(r"^[a-z]{2}:", "", str(tag or "").strip()))
+        if not normalized_tag:
+            continue
+        for entry in catalog:
+            allergen_id = str(entry.get("id") or "").strip()
+            if not allergen_id or allergen_id in found:
+                continue
+            candidates = [_normalize_allergen_text(item) for item in _as_list(entry.get("official_tags"))]
+            if normalized_tag in candidates:
+                found.append(allergen_id)
+    return found
+
+
+def _split_allergen_segments(text: str) -> Tuple[List[str], List[str]]:
+    neutral_segments: List[str] = []
+    precautionary_segments: List[str] = []
+    for segment in re.split(r"[\n\r.;]+", str(text or "")):
+        cleaned = str(segment or "").strip()
+        if not cleaned:
+            continue
+        normalized = _normalize_allergen_text(cleaned)
+        if any(_allergen_text_contains(normalized, phrase) for phrase in _ALLERGEN_PRECAUTIONARY_PHRASES):
+            precautionary_segments.append(cleaned)
+        else:
+            neutral_segments.append(cleaned)
+    return neutral_segments, precautionary_segments
+
+
+def _allergen_entries(ids: List[str], catalog: List[Dict[str, Any]], lang: str, source: str, confidence: str) -> List[Dict[str, str]]:
+    out: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for entry in catalog:
+        allergen_id = str(entry.get("id") or "").strip()
+        if allergen_id not in ids or allergen_id in seen:
+            continue
+        seen.add(allergen_id)
+        out.append(
+            {
+                "id": allergen_id,
+                "label": _allergen_label(catalog, allergen_id, lang),
+                "source": source,
+                "confidence": confidence,
+            }
+        )
+    return out
+
+
+def _dedupe_allergen_entries(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in items:
+        allergen_id = str(item.get("id") or "").strip()
+        if not allergen_id or allergen_id in seen:
+            continue
+        seen.add(allergen_id)
+        out.append(item)
+    return out
+
+
+def _build_allergen_detection(result: Dict[str, Any], normalized: Dict[str, Any], raw: Optional[Dict[str, Any]], lang: str) -> Dict[str, Any]:
+    catalog = _load_allergen_catalog()
+    allergen_info = normalized.get("allergen_info") if isinstance(normalized.get("allergen_info"), dict) else {}
+    official_allergen_text = " ".join(
+        str(allergen_info.get(key) or "").strip()
+        for key in ("allergens", "allergens_from_ingredients")
+        if str(allergen_info.get(key) or "").strip()
+    ).strip()
+    official_trace_text = str(allergen_info.get("traces") or "").strip()
+    official_allergen_tags = [str(item).strip() for item in _as_list(allergen_info.get("allergens_tags")) if str(item).strip()]
+    official_trace_tags = [str(item).strip() for item in _as_list(allergen_info.get("traces_tags")) if str(item).strip()]
+    ingredient_text = str(
+        _first_present(
+            _get_path(raw, "ingredients_text"),
+            normalized.get("ingredients_text"),
+            allergen_info.get("ingredients_text"),
+        )
+        or ""
+    ).strip()
+
+    sources_checked: List[str] = []
+    detected: List[Dict[str, str]] = []
+    possible: List[Dict[str, str]] = []
+
+    official_present = bool(official_allergen_tags or official_trace_tags or official_allergen_text or official_trace_text)
+    if official_present:
+        sources_checked.append("barcode_product_data")
+        official_ids = _allergen_ids_from_official_tags(official_allergen_tags, catalog)
+        official_ids.extend(
+            allergen_id for allergen_id in _allergen_match_ids_from_text(official_allergen_text, catalog) if allergen_id not in official_ids
+        )
+        detected.extend(_allergen_entries(official_ids, catalog, lang, "barcode_product_data", "high"))
+
+        trace_ids = _allergen_ids_from_official_tags(official_trace_tags, catalog)
+        trace_ids.extend(
+            allergen_id for allergen_id in _allergen_match_ids_from_text(official_trace_text, catalog) if allergen_id not in trace_ids
+        )
+        possible.extend(_allergen_entries(trace_ids, catalog, lang, "barcode_product_data", "high"))
+
+    ingredient_source = _allergen_source_kind(result, raw)
+    if ingredient_text:
+        if ingredient_source not in sources_checked:
+            sources_checked.append(ingredient_source)
+        neutral_segments, precautionary_segments = _split_allergen_segments(ingredient_text)
+        ingredient_confidence = "medium" if ingredient_source == "ingredient_text" else "low"
+        detected_ids = _allergen_match_ids_from_text(" ".join(neutral_segments), catalog)
+        possible_ids = _allergen_match_ids_from_text(" ".join(precautionary_segments), catalog)
+        detected.extend(_allergen_entries(detected_ids, catalog, lang, ingredient_source, ingredient_confidence))
+        possible.extend(_allergen_entries(possible_ids, catalog, lang, ingredient_source, ingredient_confidence))
+
+    detected = _dedupe_allergen_entries(detected)
+    detected_ids = {str(item.get("id") or "").strip() for item in detected}
+    possible = [item for item in _dedupe_allergen_entries(possible) if str(item.get("id") or "").strip() not in detected_ids]
+
+    if official_present:
+        coverage = "high"
+        coverage_note = ta(lang, "coverage_high")
+    elif ingredient_text and ingredient_source == "ingredient_text":
+        coverage = "medium"
+        coverage_note = ta(lang, "coverage_medium")
+    elif ingredient_text:
+        coverage = "low"
+        coverage_note = ta(lang, "coverage_low")
+    else:
+        coverage = "low"
+        coverage_note = ta(lang, "coverage_low_missing")
+
+    return {
+        "detected": detected,
+        "possible_signals": possible,
+        "coverage": coverage,
+        "coverage_note": coverage_note,
+        "sources_checked": sources_checked,
+        "warning": ta(lang, "warning"),
+    }
+
+
+def _attach_allergen_detection(result: Dict[str, Any], normalized: Dict[str, Any], raw: Optional[Dict[str, Any]], lang: str) -> Dict[str, Any]:
+    if not isinstance(result, dict) or result.get("error"):
+        return result
+    result["allergen_detection"] = _build_allergen_detection(result, normalized if isinstance(normalized, dict) else {}, raw, lang)
+    meta = result.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        result["meta"] = meta
+    meta["allergen_detection"] = copy.deepcopy(result["allergen_detection"])
+    return result
 
 
 def _save_json(path: Path, data: Any) -> None:
@@ -5724,7 +6007,7 @@ def _fallback_assessment_response(
     if isinstance(qty, str) and qty.strip().startswith("0"):
         qty = None
     serving_amount = _to_float(_get_path(norm, "nutrition_per_100", "serving_size") or _get_path(norm, "serving", "value"))
-    return _apply_analysis_confidence_layer({
+    result = _apply_analysis_confidence_layer({
         "key": key,
         "source": source,
         "matched_by": matched_by,
@@ -5982,7 +6265,7 @@ def _analyze_normalized_product(
         "barcode": str(norm.get("barcode") or "").strip() or (key if key and not key.startswith("manual:") else None),
     }
 
-    return _apply_analysis_confidence_layer({
+    result = _apply_analysis_confidence_layer({
         "key": key,
         "source": source,
         "matched_by": matched_by,
@@ -6031,6 +6314,7 @@ def _analyze_normalized_product(
             "corrected_in_session": corrected_in_session,
         },
     }, lang)
+    return _attach_allergen_detection(result, norm, raw, lang)
 
 
 async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
@@ -6356,6 +6640,8 @@ async def analyze_manual_product(payload: Dict[str, Any], lang: str = "en") -> D
         "categories": categories,
         "categories_tags": [str(item).strip() for item in categories_tags if str(item).strip()],
         "ingredients": ingredients,
+        "ingredients_text": ingredients_text,
+        "allergen_info": {},
         "nutrition_per_100": nutrition,
         "serving": {
             "value": _to_float(payload.get("serving_size")),
@@ -6590,4 +6876,5 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
             if isinstance(result.get("lookup_missing_fields"), list):
                 result["meta"]["lookup_missing_fields"] = result["lookup_missing_fields"]
         result = _apply_analysis_confidence_layer(result, lang)
+        result = _attach_allergen_detection(result, merged_payload, payload, lang)
     return result

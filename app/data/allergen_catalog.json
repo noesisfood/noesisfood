@@ -1,0 +1,226 @@
+[
+  {
+    "id": "gluten",
+    "labels": {
+      "en": "Cereals containing gluten",
+      "de": "Glutenhaltiges Getreide",
+      "fr": "Céréales contenant du gluten",
+      "el": "Δημητριακά με γλουτένη"
+    },
+    "official_tags": ["gluten", "wheat", "barley", "rye", "oats", "spelt", "kamut"],
+    "synonyms": {
+      "en": ["gluten", "wheat", "wheat flour", "barley", "rye", "oats", "spelt", "kamut"],
+      "de": ["gluten", "weizen", "weizenmehl", "gerste", "roggen", "hafer", "hafermehl", "dinkel", "dinkelmehl", "kamut"],
+      "fr": ["gluten", "ble", "farine de ble", "orge", "seigle", "avoine", "epeautre", "kamut"],
+      "el": ["γλουτένη", "σιτάρι", "αλεύρι σίτου", "κριθάρι", "σίκαλη", "βρώμη", "δίκοκκο", "καμούτ"]
+    }
+  },
+  {
+    "id": "crustaceans",
+    "labels": {
+      "en": "Crustaceans",
+      "de": "Krebstiere",
+      "fr": "Crustacés",
+      "el": "Καρκινοειδή"
+    },
+    "official_tags": ["crustaceans", "shrimp", "prawn", "crab", "lobster", "crayfish"],
+    "synonyms": {
+      "en": ["crustaceans", "shrimp", "prawn", "crab", "lobster", "crayfish"],
+      "de": ["krebstiere", "garnele", "garnelen", "krabbe", "krabben", "hummer", "languste"],
+      "fr": ["crustaces", "crevette", "crevettes", "crabe", "crabes", "homard", "langoustine"],
+      "el": ["καρκινοειδή", "γαρίδα", "γαρίδες", "κάβουρας", "καβούρι", "αστακός"]
+    }
+  },
+  {
+    "id": "eggs",
+    "labels": {
+      "en": "Eggs",
+      "de": "Eier",
+      "fr": "Œufs",
+      "el": "Αυγά"
+    },
+    "official_tags": ["eggs", "egg"],
+    "synonyms": {
+      "en": ["egg", "eggs", "egg white", "egg yolk", "albumen"],
+      "de": ["ei", "eier", "eigelb", "eiweiss", "eiweiß"],
+      "fr": ["oeuf", "oeufs", "blanc d oeuf", "jaune d oeuf", "albumine"],
+      "el": ["αυγό", "αυγά", "ασπράδι αυγού", "κρόκος αυγού"]
+    }
+  },
+  {
+    "id": "fish",
+    "labels": {
+      "en": "Fish",
+      "de": "Fisch",
+      "fr": "Poisson",
+      "el": "Ψάρια"
+    },
+    "official_tags": ["fish"],
+    "synonyms": {
+      "en": ["fish", "salmon", "tuna", "anchovy", "anchovies", "cod"],
+      "de": ["fisch", "lachs", "thunfisch", "sardelle", "sardellen", "kabeljau"],
+      "fr": ["poisson", "saumon", "thon", "anchois", "cabillaud"],
+      "el": ["ψάρι", "ψάρια", "σολομός", "τόνος", "αντζούγια", "μπακαλιάρος"]
+    }
+  },
+  {
+    "id": "peanuts",
+    "labels": {
+      "en": "Peanuts",
+      "de": "Erdnüsse",
+      "fr": "Arachides",
+      "el": "Αράπικα φιστίκια"
+    },
+    "official_tags": ["peanuts", "groundnut", "groundnuts"],
+    "synonyms": {
+      "en": ["peanut", "peanuts", "groundnut", "groundnuts"],
+      "de": ["erdnuss", "erdnüsse", "erdnuesse"],
+      "fr": ["arachide", "arachides", "cacahuete", "cacahuetes"],
+      "el": ["αράπικο φιστίκι", "αράπικα φιστίκια", "φιστίκι αράπικο"]
+    }
+  },
+  {
+    "id": "soybeans",
+    "labels": {
+      "en": "Soybeans",
+      "de": "Sojabohnen",
+      "fr": "Soja",
+      "el": "Σόγια"
+    },
+    "official_tags": ["soybeans", "soy", "soya"],
+    "synonyms": {
+      "en": ["soy", "soya", "soybean", "soybeans"],
+      "de": ["soja", "sojabohne", "sojabohnen"],
+      "fr": ["soja", "soya"],
+      "el": ["σόγια", "σόγιας", "σόγιας πρωτεΐνη", "σόγιας λεκιθίνη"]
+    }
+  },
+  {
+    "id": "milk_lactose",
+    "labels": {
+      "en": "Milk / lactose",
+      "de": "Milch / Laktose",
+      "fr": "Lait / lactose",
+      "el": "Γάλα / λακτόζη"
+    },
+    "official_tags": ["milk", "lactose", "whey", "casein"],
+    "synonyms": {
+      "en": ["milk", "lactose", "whey", "casein", "milk powder", "skimmed milk", "buttermilk", "cream"],
+      "de": ["milch", "laktose", "molke", "kasein", "milchpulver", "magermilch", "buttermilch", "sahne"],
+      "fr": ["lait", "lactose", "lactoserum", "petit lait", "caseine", "poudre de lait", "creme", "crème"],
+      "el": ["γάλα", "γαλα", "λακτόζη", "ορός γάλακτος", "καζεΐνη", "σκόνη γάλακτος", "κρέμα γάλακτος"]
+    }
+  },
+  {
+    "id": "nuts",
+    "labels": {
+      "en": "Nuts",
+      "de": "Schalenfrüchte",
+      "fr": "Fruits à coque",
+      "el": "Ξηροί καρποί"
+    },
+    "official_tags": ["nuts", "almonds", "hazelnuts", "walnuts", "cashews", "pecans", "brazil-nuts", "pistachios", "macadamia-nuts"],
+    "synonyms": {
+      "en": ["nuts", "almond", "almonds", "hazelnut", "hazelnuts", "walnut", "walnuts", "cashew", "cashews", "pecan", "pecans", "brazil nut", "brazil nuts", "pistachio", "pistachios", "macadamia", "macadamias"],
+      "de": ["nüsse", "nuesse", "schalenfrüchte", "schalenfruechte", "mandel", "mandeln", "haselnuss", "haselnüsse", "haselnuesse", "walnuss", "walnüsse", "walnuesse", "cashew", "cashews", "pekannuss", "pekannüsse", "paranuss", "paranüsse", "pistazie", "pistazien", "macadamia"],
+      "fr": ["fruits a coque", "fruits à coque", "amande", "amandes", "noisette", "noisettes", "noix", "cajou", "noix de cajou", "pecan", "noix de pécan", "noix du bresil", "noix du brésil", "pistache", "pistaches", "macadamia"],
+      "el": ["ξηροί καρποί", "αμύγδαλο", "αμύγδαλα", "φουντούκι", "φουντούκια", "καρύδι", "καρύδια", "κάσιους", "πεκάν", "βραζιλιάνικο φιστίκι", "φιστίκι μακαντάμια", "μακαντάμια", "φιστίκι αιγίνης"]
+    }
+  },
+  {
+    "id": "celery",
+    "labels": {
+      "en": "Celery",
+      "de": "Sellerie",
+      "fr": "Céleri",
+      "el": "Σέλινο"
+    },
+    "official_tags": ["celery"],
+    "synonyms": {
+      "en": ["celery", "celeriac"],
+      "de": ["sellerie", "knollensellerie"],
+      "fr": ["celeri", "céleri", "celeri rave", "céleri rave"],
+      "el": ["σέλινο", "σελινο", "σελινόριζα"]
+    }
+  },
+  {
+    "id": "mustard",
+    "labels": {
+      "en": "Mustard",
+      "de": "Senf",
+      "fr": "Moutarde",
+      "el": "Μουστάρδα"
+    },
+    "official_tags": ["mustard"],
+    "synonyms": {
+      "en": ["mustard", "mustard seed", "mustard flour"],
+      "de": ["senf", "senfsaat", "senfmehl"],
+      "fr": ["moutarde", "graines de moutarde", "farine de moutarde"],
+      "el": ["μουστάρδα", "σινάπι", "σπόροι μουστάρδας"]
+    }
+  },
+  {
+    "id": "sesame",
+    "labels": {
+      "en": "Sesame",
+      "de": "Sesam",
+      "fr": "Sésame",
+      "el": "Σουσάμι"
+    },
+    "official_tags": ["sesame-seeds", "sesame"],
+    "synonyms": {
+      "en": ["sesame", "sesame seed", "sesame seeds", "tahini"],
+      "de": ["sesam", "sesamsamen", "tahini"],
+      "fr": ["sesame", "sésame", "graines de sesame", "graines de sésame", "tahini"],
+      "el": ["σουσάμι", "σουσαμι", "ταχίνι"]
+    }
+  },
+  {
+    "id": "sulphites",
+    "labels": {
+      "en": "Sulphur dioxide / sulphites",
+      "de": "Schwefeldioxid / Sulfite",
+      "fr": "Anhydride sulfureux / sulfites",
+      "el": "Διοξείδιο του θείου / θειώδη"
+    },
+    "official_tags": ["sulphur-dioxide-and-sulphites", "sulphites", "sulfites"],
+    "synonyms": {
+      "en": ["sulphur dioxide", "sulfur dioxide", "sulphites", "sulfites", "e220", "e221", "e222", "e223", "e224", "e226", "e227", "e228"],
+      "de": ["schwefeldioxid", "sulfite", "sulfiten", "sulfit", "sulfite", "e220", "e221", "e222", "e223", "e224", "e226", "e227", "e228"],
+      "fr": ["anhydride sulfureux", "sulfites", "sulfite", "e220", "e221", "e222", "e223", "e224", "e226", "e227", "e228"],
+      "el": ["διοξείδιο του θείου", "θειώδη", "θειώδες", "e220", "e221", "e222", "e223", "e224", "e226", "e227", "e228"]
+    }
+  },
+  {
+    "id": "lupin",
+    "labels": {
+      "en": "Lupin",
+      "de": "Lupine",
+      "fr": "Lupin",
+      "el": "Λούπινο"
+    },
+    "official_tags": ["lupin"],
+    "synonyms": {
+      "en": ["lupin", "lupine"],
+      "de": ["lupine", "lupinen"],
+      "fr": ["lupin", "farine de lupin"],
+      "el": ["λούπινο", "λουπίνο", "αλεύρι λούπινου"]
+    }
+  },
+  {
+    "id": "molluscs",
+    "labels": {
+      "en": "Molluscs",
+      "de": "Weichtiere",
+      "fr": "Mollusques",
+      "el": "Μαλάκια"
+    },
+    "official_tags": ["molluscs", "mussels", "oysters", "squid", "octopus", "snails"],
+    "synonyms": {
+      "en": ["molluscs", "mussels", "oyster", "oysters", "squid", "octopus", "snails", "clam", "clams"],
+      "de": ["weichtiere", "muschel", "muscheln", "auster", "austern", "tintenfisch", "krake", "schnecken"],
+      "fr": ["mollusques", "moule", "moules", "huitre", "huître", "huitres", "huîtres", "calmar", "poulpe", "escargot", "palourde"],
+      "el": ["μαλάκια", "μύδι", "μύδια", "στρείδι", "στρείδια", "καλαμάρι", "χταπόδι", "σαλιγκάρι", "αχιβάδα"]
+    }
+  }
+]

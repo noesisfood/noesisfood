@@ -403,6 +403,24 @@ def _parse_ingredients_as_objects(off_product: Dict[str, Any]) -> List[Dict[str,
     return out
 
 
+def _collect_allergen_fields(off_product: Dict[str, Any]) -> Dict[str, Any]:
+    ingredients_text_by_lang = {
+        "en": str(off_product.get("ingredients_text_en") or "").strip(),
+        "de": str(off_product.get("ingredients_text_de") or "").strip(),
+        "fr": str(off_product.get("ingredients_text_fr") or "").strip(),
+        "el": str(off_product.get("ingredients_text_el") or "").strip(),
+    }
+    return {
+        "allergens": str(off_product.get("allergens") or "").strip(),
+        "allergens_tags": [str(item).strip() for item in (off_product.get("allergens_tags") or []) if str(item).strip()],
+        "allergens_from_ingredients": str(off_product.get("allergens_from_ingredients") or "").strip(),
+        "traces": str(off_product.get("traces") or "").strip(),
+        "traces_tags": [str(item).strip() for item in (off_product.get("traces_tags") or []) if str(item).strip()],
+        "ingredients_text": _best_ingredients_text(off_product),
+        "ingredients_text_by_lang": {key: value for key, value in ingredients_text_by_lang.items() if value},
+    }
+
+
 def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] = None) -> Dict[str, Any]:
     """
     Input: OFF payload (usually {"status":1, "product": {...}})
@@ -476,6 +494,8 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
         "beverage_inference_reason": bev_reason,
         "serving_size_inferred": bool(serving_size_inferred),
         "ingredients": _parse_ingredients_as_objects(off_product),
+        "ingredients_text": _best_ingredients_text(off_product),
+        "allergen_info": _collect_allergen_fields(off_product),
         "nutrition_per_100": {
             "unit": unit,
             "energy_kcal": _optional_nonneg(energy_kcal),
