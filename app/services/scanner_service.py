@@ -429,6 +429,43 @@ def ta(lang: str, key: str, **kwargs: Any) -> str:
     return template.format(**kwargs)
 
 
+USAGE_CONTEXT_I18N: Dict[str, Dict[str, Any]] = {
+    "en": {
+        "message": "The assessment refers to this product as a seasoning, not as a regular food portion.",
+        "notes": [
+            "This product is normally used in very small amounts.",
+            "The very high salt content should be considered in use.",
+        ],
+    },
+    "el": {
+        "message": "Η αξιολόγηση αφορά το προϊόν ως καρύκευμα, όχι ως τρόφιμο κανονικής μερίδας.",
+        "notes": [
+            "Το προϊόν χρησιμοποιείται συνήθως σε πολύ μικρές ποσότητες.",
+            "Η πολύ υψηλή περιεκτικότητα σε αλάτι πρέπει να λαμβάνεται υπόψη στη χρήση.",
+        ],
+    },
+    "de": {
+        "message": "Die Bewertung bezieht sich auf dieses Produkt als Gewürz/Zutat, nicht als normale Lebensmittelportion.",
+        "notes": [
+            "Dieses Produkt wird normalerweise nur in sehr kleinen Mengen verwendet.",
+            "Der sehr hohe Salzgehalt sollte bei der Verwendung berücksichtigt werden.",
+        ],
+    },
+    "fr": {
+        "message": "L’évaluation concerne ce produit comme assaisonnement, et non comme portion alimentaire normale.",
+        "notes": [
+            "Ce produit est normalement utilisé en très petites quantités.",
+            "La très forte teneur en sel doit être prise en compte lors de l’utilisation.",
+        ],
+    },
+}
+
+
+def tu(lang: str, key: str) -> Any:
+    lang_key = lang if lang in SUPPORTED_LANGS else "en"
+    return copy.deepcopy(USAGE_CONTEXT_I18N.get(lang_key, {}).get(key) or USAGE_CONTEXT_I18N["en"].get(key))
+
+
 # -----------------------------
 # Helpers
 # -----------------------------
@@ -694,6 +731,53 @@ def _attach_allergen_detection(result: Dict[str, Any], normalized: Dict[str, Any
         meta = {}
         result["meta"] = meta
     meta["allergen_detection"] = copy.deepcopy(result["allergen_detection"])
+    return result
+
+
+_SEASONING_CONTEXT_MARKERS = [
+    "salt", "salz", "sel", "αλάτι", "αλατι",
+    "seasoning", "gewurz", "gewürz", "epice", "épice", "καρύκευμα", "καρυκευμα",
+    "spice", "condiment", "bouillon", "broth seasoning", "stock cube", "stock powder",
+]
+
+
+def _build_usage_context(normalized: Dict[str, Any], lang: str) -> Dict[str, Any]:
+    norm = normalized if isinstance(normalized, dict) else {}
+    product_text = _normalized_product_text(norm)
+    salt = _to_float(_get_path(norm, "nutrition_per_100", "salt_g"))
+    has_seasoning_term = _contains_any(product_text, _SEASONING_CONTEXT_MARKERS)
+
+    applies = False
+    severity = ""
+    if salt is not None and salt >= 90.0:
+        applies = True
+        severity = "high_salt_seasoning"
+    elif salt is not None and salt >= 50.0 and has_seasoning_term:
+        applies = True
+        severity = "high_salt_seasoning"
+    elif salt is not None and salt >= 20.0 and has_seasoning_term:
+        applies = True
+        severity = "seasoning"
+
+    context = {
+        "type": "seasoning" if applies else "",
+        "severity": severity,
+        "applies": applies,
+        "message": tu(lang, "message") if applies else "",
+        "notes": tu(lang, "notes") if applies else [],
+    }
+    return context
+
+
+def _attach_usage_context(result: Dict[str, Any], normalized: Dict[str, Any], lang: str) -> Dict[str, Any]:
+    if not isinstance(result, dict) or result.get("error"):
+        return result
+    result["usage_context"] = _build_usage_context(normalized if isinstance(normalized, dict) else {}, lang)
+    meta = result.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        result["meta"] = meta
+    meta["usage_context"] = copy.deepcopy(result["usage_context"])
     return result
 
 
@@ -6314,7 +6398,8 @@ def _analyze_normalized_product(
             "corrected_in_session": corrected_in_session,
         },
     }, lang)
-    return _attach_allergen_detection(result, norm, raw, lang)
+    result = _attach_allergen_detection(result, norm, raw, lang)
+    return _attach_usage_context(result, norm, lang)
 
 
 async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
@@ -6877,4 +6962,5 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 result["meta"]["lookup_missing_fields"] = result["lookup_missing_fields"]
         result = _apply_analysis_confidence_layer(result, lang)
         result = _attach_allergen_detection(result, merged_payload, payload, lang)
+        result = _attach_usage_context(result, merged_payload, lang)
     return result

@@ -745,6 +745,8 @@
         quick_verdict_moderate: "Moderate choice",
         quick_verdict_burdened: "More burdened choice",
         quick_verdict_note: "Detailed product data is available below.",
+        usage_context_label_seasoning: "Seasoning use",
+        usage_context_title: "Usage context",
         quick_reasons_title: "Top reasons",
         quick_signals_title: "Key signals",
         full_details_title: "Full details",
@@ -1849,6 +1851,15 @@
         risk_high: "élevé"
       }
     };
+
+    i18n.en.usage_context_label_seasoning = "Seasoning use";
+    i18n.en.usage_context_title = "Usage context";
+    i18n.el.usage_context_label_seasoning = "\u03a7\u03c1\u03ae\u03c3\u03b7 \u03c9\u03c2 \u03ba\u03b1\u03c1\u03cd\u03ba\u03b5\u03c5\u03bc\u03b1";
+    i18n.el.usage_context_title = "\u03a0\u03bb\u03b1\u03af\u03c3\u03b9\u03bf \u03c7\u03c1\u03ae\u03c3\u03b7\u03c2";
+    i18n.de.usage_context_label_seasoning = "Verwendung als Gew\u00fcrz";
+    i18n.de.usage_context_title = "Nutzungskontext";
+    i18n.fr.usage_context_label_seasoning = "Utilisation comme assaisonnement";
+    i18n.fr.usage_context_title = "Contexte d'utilisation";
 
     Object.assign(i18n.en, {
       photo_crop_title: "Crop to the label section",
@@ -5468,6 +5479,37 @@
       return t("quick_verdict_burdened");
     }
 
+    function usageContextData(data){
+      const usage = data?.usage_context || data?.meta?.usage_context || null;
+      return usage && typeof usage === "object" ? usage : null;
+    }
+
+    function usageContextApplies(data){
+      return !!usageContextData(data)?.applies;
+    }
+
+    function usageContextPrimaryLabel(data){
+      const usage = usageContextData(data);
+      if (!usage?.applies) return "";
+      if (String(usage?.type || "").toLowerCase() === "seasoning") return t("usage_context_label_seasoning");
+      return t("usage_context_title");
+    }
+
+    function renderUsageContextBlock(data){
+      const usage = usageContextData(data);
+      if (!usage?.applies) return "";
+      const notes = Array.isArray(usage?.notes) ? usage.notes.filter(Boolean) : [];
+      const message = String(usage?.message || "").trim();
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("usage_context_title")}</div>
+          <div class="ok" style="margin-top:0;"><b>${_escapeHtml(usageContextPrimaryLabel(data))}</b></div>
+          ${message ? `<div class="whyFoot" style="margin-top:10px;">${_escapeHtml(message)}</div>` : ``}
+          ${notes.length ? `<div class="whyFoot" style="margin-top:10px;">${notes.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+        </div>
+      `;
+    }
+
     function quickReasonItems(data){
       const backend = data?.vitascore_explanation || {};
       const items = [];
@@ -5493,6 +5535,13 @@
       }
       for (const message of Array.isArray(backend?.confidence_notes) ? backend.confidence_notes : []){
         pushMessage(message);
+      }
+      const usage = usageContextData(data);
+      if (usage?.applies){
+        pushMessage(usage?.message || "");
+        for (const note of Array.isArray(usage?.notes) ? usage.notes : []){
+          pushMessage(note);
+        }
       }
       if (items.length) return items.slice(0, 5);
 
@@ -5815,7 +5864,7 @@
         const assessmentSubline = t("final_vita_explainer");
         const quickReasons = quickReasonItems(d);
         const quickSignals = quickSignalItems(d);
-        const quickVerdict = quickVerdictLabel(score);
+        const quickVerdict = usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score);
         const tier = tierFromScore(score);
         const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
         const unit = d?.meta?.serving?.unit || (p?.quantity?.toLowerCase?.().includes("ml") ? "ml" : "g");
@@ -5845,6 +5894,7 @@
                 <div class="tier" style="background:${tier.color}; border-color:${tier.border};">${tier.label}</div>
               </div>
               <div class="ok" style="margin-top:12px;"><b>${quickVerdict}</b></div>
+              ${renderUsageContextBlock(d)}
               <div class="grid2">
                 <div class="kv"><small>${t("baseline_score_label")}</small><b>${baselineScoreText}</b></div>
                 <div class="kv"><small>${t("sugar")}</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
