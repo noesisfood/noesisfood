@@ -753,10 +753,10 @@
         full_details_cta: "See all details",
         full_details_note: "Detailed product data",
         baseline_assessment: "Baseline nutrition assessment",
-        baseline_helper: "The final assessment is adjusted from the baseline nutrition assessment based on the product’s ingredient profile and processing level.",
+        baseline_helper: "The final score is adjusted based on composition, processing, and the quality of the available data.",
         baseline_criteria: "based on international nutrition criteria",
         baseline_score_label: "Basic Nutrition Score",
-        baseline_score_explainer: "Nutrition-only score based on nutrition criteria.",
+        baseline_score_explainer: "The basic nutrition assessment is based on international nutrition criteria.",
         final_vita_explainer: "The final score is adjusted based on composition, processing, and the quality of the available data.",
         full_analysis: "Full analysis",
         partial_analysis: "Partial analysis",
@@ -1058,10 +1058,10 @@
         full_details_cta: "Δες όλα τα στοιχεία",
         full_details_note: "Αναλυτικά δεδομένα προϊόντος",
         baseline_assessment: "Βασική διατροφική αξιολόγηση",
-        baseline_helper: "Η τελική αξιολόγηση προσαρμόζεται από τη βασική διατροφική αξιολόγηση με βάση τη σύνθεση και τον βαθμό επεξεργασίας του προϊόντος.",
+        baseline_helper: "Η τελική βαθμολογία προσαρμόζεται με βάση τη σύνθεση, την επεξεργασία και την ποιότητα των διαθέσιμων δεδομένων.",
         baseline_criteria: "με βάση διεθνή διατροφικά κριτήρια",
         baseline_score_label: "Βασική διατροφική αξιολόγηση",
-        baseline_score_explainer: "Αξιολόγηση μόνο με βάση τα διατροφικά κριτήρια.",
+        baseline_score_explainer: "Η βασική διατροφική αξιολόγηση βασίζεται σε διεθνή διατροφικά κριτήρια.",
         final_vita_explainer: "Η τελική βαθμολογία προσαρμόζεται με βάση τη σύνθεση, την επεξεργασία και την ποιότητα των διαθέσιμων δεδομένων.",
         full_analysis: "Πλήρης αξιολόγηση",
         partial_analysis: "Μερική αξιολόγηση",
@@ -1357,10 +1357,10 @@
         full_details_cta: "Alle Details anzeigen",
         full_details_note: "Detaillierte Produktdaten",
         baseline_assessment: "Grundlegende Ernährungsbewertung",
-        baseline_helper: "Die Endbewertung wird aus der grundlegenden Ernährungsbewertung anhand der Zutatenzusammensetzung und des Verarbeitungsgrads angepasst.",
+        baseline_helper: "Der Endwert wird anhand von Zusammensetzung, Verarbeitungsgrad und der Qualität der verfügbaren Daten angepasst.",
         baseline_criteria: "basierend auf internationalen Ernährungskriterien",
         baseline_score_label: "Grundlegende Ernährungsbewertung",
-        baseline_score_explainer: "Reiner Nährwert-Score auf Basis von Ernährungskriterien.",
+        baseline_score_explainer: "Die grundlegende Ernährungsbewertung basiert auf internationalen Ernährungskriterien.",
         final_vita_explainer: "Der Endwert wird anhand von Zusammensetzung, Verarbeitungsgrad und der Qualität der verfügbaren Daten angepasst.",
         full_analysis: "Vollständige Bewertung",
         partial_analysis: "Teilbewertung",
@@ -1656,10 +1656,10 @@
         full_details_cta: "Voir tous les détails",
         full_details_note: "Données détaillées du produit",
         baseline_assessment: "Évaluation nutritionnelle de base",
-        baseline_helper: "L’évaluation finale est ajustée à partir de l’évaluation nutritionnelle de base selon la composition des ingrédients et le niveau de transformation du produit.",
+        baseline_helper: "Le score final est ajusté selon la composition, le niveau de transformation et la qualité des données disponibles.",
         baseline_criteria: "basée sur des critères nutritionnels internationaux",
         baseline_score_label: "Évaluation nutritionnelle de base",
-        baseline_score_explainer: "Score nutritionnel uniquement, fondé sur des critères nutritionnels.",
+        baseline_score_explainer: "L’évaluation nutritionnelle de base repose sur des critères nutritionnels internationaux.",
         final_vita_explainer: "Le score final est ajusté selon la composition, le niveau de transformation et la qualité des données disponibles.",
         full_analysis: "Évaluation complète",
         partial_analysis: "Évaluation partielle",
@@ -6125,7 +6125,7 @@
               </div>
               ${quickReasons.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_reasons_title")}</b><br/>${quickReasons.map(item => `- ${_escapeHtml(item.message || "")}`).join("<br/>")}</div>` : ``}
               ${quickSignals.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_signals_title")}</b><br/>${quickSignals.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
-              <div class="whyFoot" style="margin-top:10px;"><b>${t("baseline_score_label")}</b><br/>${t("baseline_score_explainer")} <span class="mini">(${t("baseline_criteria")})</span><br/>${t("final_vita_explainer")}</div>
+              <div class="whyFoot" style="margin-top:10px;"><b>${t("baseline_score_label")}</b><br/>${t("baseline_score_explainer")}<br/>${t("final_vita_explainer")}</div>
               <div class="mini" style="margin-top:8px;">${t("quick_verdict_note")}</div>
               <div class="btns" style="margin-top:10px;">
                 <button class="ghost" id="correctNutritionBtn">${t("correct_nutrition_values")}</button>

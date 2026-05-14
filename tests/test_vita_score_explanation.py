@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from app.services.scanner_service import analyze_manual_product
 
@@ -212,6 +213,27 @@ class VitaScoreExplanationTests(unittest.IsolatedAsyncioTestCase):
 
             limited_result = await analyze_manual_product(limited_payload, lang=lang)
             self.assertIn(expected_guard_note[lang], limited_result["vitascore_explanation"]["confidence_notes"])
+
+    async def test_frontend_baseline_explainer_uses_polished_wording(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "Η βασική διατροφική αξιολόγηση βασίζεται σε διεθνή διατροφικά κριτήρια.",
+            content,
+        )
+        self.assertNotIn("(με βάση διεθνή διατροφικά κριτήρια)", content)
+        self.assertIn(
+            "The basic nutrition assessment is based on international nutrition criteria.",
+            content,
+        )
+        self.assertIn(
+            "Die grundlegende Ernährungsbewertung basiert auf internationalen Ernährungskriterien.",
+            content,
+        )
+        self.assertIn(
+            "L’évaluation nutritionnelle de base repose sur des critères nutritionnels internationaux.",
+            content,
+        )
 
 
 if __name__ == "__main__":
