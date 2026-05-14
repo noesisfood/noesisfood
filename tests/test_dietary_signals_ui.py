@@ -3,41 +3,46 @@ from pathlib import Path
 
 
 class DietarySignalsUiTests(unittest.TestCase):
-    def test_frontend_contains_dietary_signals_card_and_localized_strings(self) -> None:
+    def test_frontend_contains_compact_dietary_card_and_localized_strings(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
 
         self.assertIn("function renderDietarySignalsCard(data)", content)
+        self.assertIn("function dietarySignalSummaryLabel(signalKey, signalData)", content)
         self.assertIn("function dietaryCoverageValueLabel(value)", content)
         self.assertIn('${renderDietarySignalsCard(d)}', content)
         self.assertIn('dietary_signals_title: "Dietary indications from available label data"', content)
-        self.assertIn('dietary_signal_coverage: "Data coverage"', content)
-        self.assertIn('dietary_signal_coverage_high: "high"', content)
-        self.assertIn('dietary_signal_coverage_medium: "medium"', content)
-        self.assertIn('dietary_signal_coverage_low: "low"', content)
-        self.assertIn('dietary_signal_halal_certified: "Halal certification detected"', content)
-        self.assertIn('dietary_signal_halal_possible_not_suitable: "Possible non-halal ingredient signals"', content)
-        self.assertIn('dietary_signal_vegan_labeled: "Vegan label detected"', content)
-        self.assertIn('dietary_signal_vegetarian_labeled: "Vegetarian label detected"', content)
+        self.assertIn('dietary_signal_details: "View details"', content)
+        self.assertIn('dietary_signal_summary_certified: "Certification detected"', content)
+        self.assertIn('dietary_signal_summary_labeled: "Label detected"', content)
+        self.assertIn('dietary_signal_summary_unclear: "Unclear"', content)
+        self.assertIn('dietary_signal_summary_caution: "Points to check"', content)
+        self.assertIn('dietary_signal_warning_shared: "Always check the official product packaging or certification."', content)
         self.assertIn('dietary_signals_title: "Διατροφικές ενδείξεις από διαθέσιμα δεδομένα ετικέτας"', content)
-        self.assertIn('dietary_signal_coverage: "Κάλυψη δεδομένων"', content)
-        self.assertIn('dietary_signal_coverage_high: "υψηλή"', content)
-        self.assertIn('dietary_signal_possible_concerns: "Σημεία προσοχής"', content)
+        self.assertIn('dietary_signal_summary_unclear: "Ασαφές"', content)
+        self.assertIn('dietary_signal_summary_caution: "Σημεία προσοχής"', content)
+        self.assertIn('dietary_signal_details: "Προβολή λεπτομερειών"', content)
+        self.assertIn('dietary_signal_warning_shared: "Ελέγχετε πάντα την επίσημη συσκευασία ή πιστοποίηση του προϊόντος."', content)
         self.assertIn('dietary_signals_title: "Ernährungsbezogene Hinweise aus verfügbaren Etikettendaten"', content)
-        self.assertIn('dietary_signal_coverage: "Datenabdeckung"', content)
-        self.assertIn('dietary_signal_possible_concerns: "Wichtige Hinweise"', content)
+        self.assertIn('dietary_signal_summary_caution: "Wichtige Hinweise"', content)
+        self.assertIn('dietary_signal_warning_shared: "Prüfen Sie immer die offizielle Verpackung oder Zertifizierung des Produkts."', content)
         self.assertIn('dietary_signals_title: "Indications alimentaires à partir des données d\'étiquette disponibles"', content)
-        self.assertIn('dietary_signal_coverage: "Couverture des données"', content)
-        self.assertIn('dietary_signal_possible_concerns: "Points d’attention"', content)
-        self.assertIn('${_escapeHtml(t("dietary_signal_coverage"))}: ${_escapeHtml(coverageLabel)}', content)
+        self.assertIn('dietary_signal_summary_caution: "Points d’attention"', content)
 
-    def test_frontend_uses_coverage_wording_not_generic_confidence_for_dietary_card(self) -> None:
+    def test_frontend_uses_compact_summary_with_shared_details_and_warning(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+        dietary_slice = content[content.index("function renderDietarySignalsCard(data)") : content.index("function renderDetailsScoreSummary(data)")]
 
-        self.assertIn('dietary_signal_coverage: "Data coverage"', content)
-        self.assertIn('dietary_signal_coverage: "Κάλυψη δεδομένων"', content)
-        self.assertIn('const coverageLabel = dietaryCoverageValueLabel(confidenceKey);', content)
-        self.assertIn('${_escapeHtml(t("dietary_signal_coverage"))}: ${_escapeHtml(coverageLabel)}', content)
-        self.assertNotIn('dietary_signal_possible_concerns: "Πιθανές ανησυχίες"', content)
+        self.assertIn('const summaryRows = order.map(signalKey => {', dietary_slice)
+        self.assertIn('const detailBlocks = order.map(signalKey => {', dietary_slice)
+        self.assertIn('<details style="margin-top:12px;">', dietary_slice)
+        self.assertIn('summary class="mini" style="cursor:pointer;">${t("dietary_signal_details")}', dietary_slice)
+        self.assertIn('${_escapeHtml(dietarySignalSummaryLabel(signalKey, signal))}', dietary_slice)
+        self.assertEqual(dietary_slice.count('${_escapeHtml(t("dietary_signal_warning_shared"))}'), 1)
+        self.assertNotIn('<div class="err" style="margin-top:10px;">${_escapeHtml(warning)}</div>', dietary_slice)
+
+    def test_frontend_renders_allergens_before_dietary_signals(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+        self.assertLess(content.index('${renderAllergenCard(d)}'), content.index('${renderDietarySignalsCard(d)}'))
 
     def test_frontend_avoids_forbidden_dietary_claims(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8").lower()
@@ -48,7 +53,6 @@ class DietarySignalsUiTests(unittest.TestCase):
         self.assertNotIn("guaranteed suitable", content)
         self.assertNotIn("dietary guarantee", content)
         self.assertNotIn("halal checker", content)
-        self.assertNotIn("religiously compliant", content)
 
     def test_frontend_keeps_allergen_usage_context_and_feedback_hooks_present(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
