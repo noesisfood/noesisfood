@@ -1862,10 +1862,14 @@
     i18n.fr.usage_context_title = "Contexte d'utilisation";
 
     Object.assign(i18n.en, {
-      dietary_signals_title: "Dietary signals from available label data",
+      dietary_signals_title: "Dietary indications from available label data",
       dietary_signal_status_unclear: "Status unclear from available data",
       dietary_signal_sources_checked: "Sources checked",
       dietary_signal_warning: "Always check the official product packaging or certification.",
+      dietary_signal_coverage: "Data coverage",
+      dietary_signal_coverage_high: "high",
+      dietary_signal_coverage_medium: "medium",
+      dietary_signal_coverage_low: "low",
       dietary_signal_halal_name: "Halal",
       dietary_signal_vegan_name: "Vegan",
       dietary_signal_vegetarian_name: "Vegetarian",
@@ -1876,13 +1880,17 @@
       dietary_signal_vegetarian_labeled: "Vegetarian label detected",
       dietary_signal_vegetarian_possible_not_suitable: "Possible non-vegetarian ingredient signals",
       dietary_signal_detected_labels: "Detected labels",
-      dietary_signal_possible_concerns: "Possible concerns"
+      dietary_signal_possible_concerns: "Points to check"
     });
     Object.assign(i18n.el, {
-      dietary_signals_title: "Διατροφικά σήματα από διαθέσιμα δεδομένα ετικέτας",
+      dietary_signals_title: "Διατροφικές ενδείξεις από διαθέσιμα δεδομένα ετικέτας",
       dietary_signal_status_unclear: "Η κατάσταση είναι ασαφής από τα διαθέσιμα δεδομένα",
       dietary_signal_sources_checked: "Πηγές που ελέγχθηκαν",
       dietary_signal_warning: "Ελέγχετε πάντα την επίσημη συσκευασία ή πιστοποίηση του προϊόντος.",
+      dietary_signal_coverage: "Κάλυψη δεδομένων",
+      dietary_signal_coverage_high: "υψηλή",
+      dietary_signal_coverage_medium: "μέτρια",
+      dietary_signal_coverage_low: "χαμηλή",
       dietary_signal_halal_name: "Χαλάλ",
       dietary_signal_vegan_name: "Vegan",
       dietary_signal_vegetarian_name: "Χορτοφαγικό",
@@ -1893,13 +1901,17 @@
       dietary_signal_vegetarian_labeled: "Εντοπίστηκε ένδειξη χορτοφαγικού",
       dietary_signal_vegetarian_possible_not_suitable: "Πιθανές μη χορτοφαγικές ενδείξεις συστατικών",
       dietary_signal_detected_labels: "Εντοπισμένες ενδείξεις",
-      dietary_signal_possible_concerns: "Πιθανές ανησυχίες"
+      dietary_signal_possible_concerns: "Σημεία προσοχής"
     });
     Object.assign(i18n.de, {
-      dietary_signals_title: "Ernährungssignale aus verfügbaren Etikettendaten",
+      dietary_signals_title: "Ernährungsbezogene Hinweise aus verfügbaren Etikettendaten",
       dietary_signal_status_unclear: "Status anhand der verfügbaren Daten unklar",
       dietary_signal_sources_checked: "Geprüfte Quellen",
       dietary_signal_warning: "Prüfen Sie immer die offizielle Produktverpackung oder Zertifizierung.",
+      dietary_signal_coverage: "Datenabdeckung",
+      dietary_signal_coverage_high: "hoch",
+      dietary_signal_coverage_medium: "mittel",
+      dietary_signal_coverage_low: "niedrig",
       dietary_signal_halal_name: "Halal",
       dietary_signal_vegan_name: "Vegan",
       dietary_signal_vegetarian_name: "Vegetarisch",
@@ -1910,13 +1922,17 @@
       dietary_signal_vegetarian_labeled: "Vegetarisch-Label erkannt",
       dietary_signal_vegetarian_possible_not_suitable: "Mögliche nicht-vegetarische Zutatenhinweise",
       dietary_signal_detected_labels: "Erkannte Labels",
-      dietary_signal_possible_concerns: "Mögliche Hinweise"
+      dietary_signal_possible_concerns: "Wichtige Hinweise"
     });
     Object.assign(i18n.fr, {
-      dietary_signals_title: "Signaux alimentaires à partir des données d'étiquette disponibles",
+      dietary_signals_title: "Indications alimentaires à partir des données d'étiquette disponibles",
       dietary_signal_status_unclear: "Statut non clair à partir des données disponibles",
       dietary_signal_sources_checked: "Sources vérifiées",
       dietary_signal_warning: "Vérifiez toujours l'emballage officiel du produit ou la certification.",
+      dietary_signal_coverage: "Couverture des données",
+      dietary_signal_coverage_high: "élevée",
+      dietary_signal_coverage_medium: "moyenne",
+      dietary_signal_coverage_low: "faible",
       dietary_signal_halal_name: "Halal",
       dietary_signal_vegan_name: "Vegan",
       dietary_signal_vegetarian_name: "Végétarien",
@@ -1927,7 +1943,7 @@
       dietary_signal_vegetarian_labeled: "Label végétarien détecté",
       dietary_signal_vegetarian_possible_not_suitable: "Signaux possibles d'ingrédients non végétariens",
       dietary_signal_detected_labels: "Labels détectés",
-      dietary_signal_possible_concerns: "Préoccupations possibles"
+      dietary_signal_possible_concerns: "Points d’attention"
     });
 
     Object.assign(i18n.en, {
@@ -3029,6 +3045,14 @@
       return "warn";
     }
 
+    function dietaryCoverageValueLabel(value){
+      const key = String(value || "").toLowerCase();
+      if (key === "high") return t("dietary_signal_coverage_high");
+      if (key === "medium") return t("dietary_signal_coverage_medium");
+      if (key === "low") return t("dietary_signal_coverage_low");
+      return key || "-";
+    }
+
     function renderDietarySignalsCard(data){
       const dietary = data?.dietary_signals || data?.meta?.dietary_signals || null;
       if (!dietary || typeof dietary !== "object") return "";
@@ -3049,7 +3073,7 @@
         const concerns = Array.isArray(signal?.possible_concerns) ? signal.possible_concerns : [];
         const sourcesChecked = Array.isArray(signal?.sources_checked) ? signal.sources_checked : [];
         const confidenceKey = String(signal?.confidence || "").toLowerCase();
-        const confidenceLabel = localizedConfidenceBadgeLabel(confidenceKey) || localizedConfidenceTier(confidenceKey);
+        const coverageLabel = dietaryCoverageValueLabel(confidenceKey);
         const warning = String(signal?.warning || t("dietary_signal_warning")).trim() || t("dietary_signal_warning");
         return `
           <div class="box" style="margin-top:12px;">
@@ -3058,7 +3082,7 @@
                 <div class="sectionTitle" style="margin:0;">${_escapeHtml(dietarySignalName(signalKey))}</div>
                 <div class="mini" style="margin-top:6px;">${_escapeHtml(dietarySignalStatusLabel(signalKey, signal))}</div>
               </div>
-              <span class="pill ${dietarySignalBadgeClass(signal)}">${_escapeHtml(confidenceLabel)}</span>
+              <span class="pill ${dietarySignalBadgeClass(signal)}">${_escapeHtml(t("dietary_signal_coverage"))}: ${_escapeHtml(coverageLabel)}</span>
             </div>
             ${detected.length ? `
               <div class="sectionTitle" style="margin:12px 0 8px 0;">${t("dietary_signal_detected_labels")}</div>
