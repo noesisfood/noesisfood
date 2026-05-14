@@ -1862,6 +1862,75 @@
     i18n.fr.usage_context_title = "Contexte d'utilisation";
 
     Object.assign(i18n.en, {
+      dietary_signals_title: "Dietary signals from available label data",
+      dietary_signal_status_unclear: "Status unclear from available data",
+      dietary_signal_sources_checked: "Sources checked",
+      dietary_signal_warning: "Always check the official product packaging or certification.",
+      dietary_signal_halal_name: "Halal",
+      dietary_signal_vegan_name: "Vegan",
+      dietary_signal_vegetarian_name: "Vegetarian",
+      dietary_signal_halal_certified: "Halal certification detected",
+      dietary_signal_halal_possible_not_suitable: "Possible non-halal ingredient signals",
+      dietary_signal_vegan_labeled: "Vegan label detected",
+      dietary_signal_vegan_possible_not_suitable: "Possible non-vegan ingredient signals",
+      dietary_signal_vegetarian_labeled: "Vegetarian label detected",
+      dietary_signal_vegetarian_possible_not_suitable: "Possible non-vegetarian ingredient signals",
+      dietary_signal_detected_labels: "Detected labels",
+      dietary_signal_possible_concerns: "Possible concerns"
+    });
+    Object.assign(i18n.el, {
+      dietary_signals_title: "Διατροφικά σήματα από διαθέσιμα δεδομένα ετικέτας",
+      dietary_signal_status_unclear: "Η κατάσταση είναι ασαφής από τα διαθέσιμα δεδομένα",
+      dietary_signal_sources_checked: "Πηγές που ελέγχθηκαν",
+      dietary_signal_warning: "Ελέγχετε πάντα την επίσημη συσκευασία ή πιστοποίηση του προϊόντος.",
+      dietary_signal_halal_name: "Χαλάλ",
+      dietary_signal_vegan_name: "Vegan",
+      dietary_signal_vegetarian_name: "Χορτοφαγικό",
+      dietary_signal_halal_certified: "Εντοπίστηκε πιστοποίηση χαλάλ",
+      dietary_signal_halal_possible_not_suitable: "Πιθανές μη χαλάλ ενδείξεις συστατικών",
+      dietary_signal_vegan_labeled: "Εντοπίστηκε ένδειξη vegan",
+      dietary_signal_vegan_possible_not_suitable: "Πιθανές μη vegan ενδείξεις συστατικών",
+      dietary_signal_vegetarian_labeled: "Εντοπίστηκε ένδειξη χορτοφαγικού",
+      dietary_signal_vegetarian_possible_not_suitable: "Πιθανές μη χορτοφαγικές ενδείξεις συστατικών",
+      dietary_signal_detected_labels: "Εντοπισμένες ενδείξεις",
+      dietary_signal_possible_concerns: "Πιθανές ανησυχίες"
+    });
+    Object.assign(i18n.de, {
+      dietary_signals_title: "Ernährungssignale aus verfügbaren Etikettendaten",
+      dietary_signal_status_unclear: "Status anhand der verfügbaren Daten unklar",
+      dietary_signal_sources_checked: "Geprüfte Quellen",
+      dietary_signal_warning: "Prüfen Sie immer die offizielle Produktverpackung oder Zertifizierung.",
+      dietary_signal_halal_name: "Halal",
+      dietary_signal_vegan_name: "Vegan",
+      dietary_signal_vegetarian_name: "Vegetarisch",
+      dietary_signal_halal_certified: "Halal-Zertifizierung erkannt",
+      dietary_signal_halal_possible_not_suitable: "Mögliche nicht-halal Zutatenhinweise",
+      dietary_signal_vegan_labeled: "Vegan-Label erkannt",
+      dietary_signal_vegan_possible_not_suitable: "Mögliche nicht-vegane Zutatenhinweise",
+      dietary_signal_vegetarian_labeled: "Vegetarisch-Label erkannt",
+      dietary_signal_vegetarian_possible_not_suitable: "Mögliche nicht-vegetarische Zutatenhinweise",
+      dietary_signal_detected_labels: "Erkannte Labels",
+      dietary_signal_possible_concerns: "Mögliche Hinweise"
+    });
+    Object.assign(i18n.fr, {
+      dietary_signals_title: "Signaux alimentaires à partir des données d'étiquette disponibles",
+      dietary_signal_status_unclear: "Statut non clair à partir des données disponibles",
+      dietary_signal_sources_checked: "Sources vérifiées",
+      dietary_signal_warning: "Vérifiez toujours l'emballage officiel du produit ou la certification.",
+      dietary_signal_halal_name: "Halal",
+      dietary_signal_vegan_name: "Vegan",
+      dietary_signal_vegetarian_name: "Végétarien",
+      dietary_signal_halal_certified: "Certification halal détectée",
+      dietary_signal_halal_possible_not_suitable: "Signaux possibles d'ingrédients non halal",
+      dietary_signal_vegan_labeled: "Label vegan détecté",
+      dietary_signal_vegan_possible_not_suitable: "Signaux possibles d'ingrédients non vegan",
+      dietary_signal_vegetarian_labeled: "Label végétarien détecté",
+      dietary_signal_vegetarian_possible_not_suitable: "Signaux possibles d'ingrédients non végétariens",
+      dietary_signal_detected_labels: "Labels détectés",
+      dietary_signal_possible_concerns: "Préoccupations possibles"
+    });
+
+    Object.assign(i18n.en, {
       photo_crop_title: "Crop to the label section",
       photo_crop_hint: "Drag the box to keep only the nutrition table or ingredients list. Use the corner handle to resize it.",
       photo_crop_confirm: "Use cropped photo",
@@ -2931,6 +3000,83 @@
           ` : ``}
           <div class="whyFoot" style="margin-top:12px;"><b>${t("allergen_sources_checked")}</b><br/>${sourcesChecked.length ? sourcesChecked.map(localizedAllergenSourceLabel).map(_escapeHtml).join(", ") : "-"}</div>
           <div class="err" style="margin-top:10px;">${_escapeHtml(warning)}</div>
+        </div>
+      `;
+    }
+
+    function dietarySignalStatusLabel(signalKey, signalData){
+      const status = String(signalData?.status || "").toLowerCase();
+      if (signalKey === "halal" && status === "certified") return t("dietary_signal_halal_certified");
+      if (signalKey === "halal" && status === "possible_not_suitable") return t("dietary_signal_halal_possible_not_suitable");
+      if (signalKey === "vegan" && status === "labeled") return t("dietary_signal_vegan_labeled");
+      if (signalKey === "vegan" && status === "possible_not_suitable") return t("dietary_signal_vegan_possible_not_suitable");
+      if (signalKey === "vegetarian" && status === "labeled") return t("dietary_signal_vegetarian_labeled");
+      if (signalKey === "vegetarian" && status === "possible_not_suitable") return t("dietary_signal_vegetarian_possible_not_suitable");
+      return t("dietary_signal_status_unclear");
+    }
+
+    function dietarySignalName(signalKey){
+      if (signalKey === "halal") return t("dietary_signal_halal_name");
+      if (signalKey === "vegan") return t("dietary_signal_vegan_name");
+      if (signalKey === "vegetarian") return t("dietary_signal_vegetarian_name");
+      return signalKey || "-";
+    }
+
+    function dietarySignalBadgeClass(signalData){
+      const status = String(signalData?.status || "").toLowerCase();
+      if (status === "possible_not_suitable") return "bad";
+      if (status === "certified" || status === "labeled") return "good";
+      return "warn";
+    }
+
+    function renderDietarySignalsCard(data){
+      const dietary = data?.dietary_signals || data?.meta?.dietary_signals || null;
+      if (!dietary || typeof dietary !== "object") return "";
+      const order = ["halal", "vegan", "vegetarian"];
+      const renderItems = (items) => items.map(item => `
+        <div class="eRow">
+          <div class="eLeft">
+            <b>${_escapeHtml(String(item?.label || "-"))}</b>
+            <small>${_escapeHtml(localizedAllergenSourceLabel(item?.source || ""))}</small>
+          </div>
+          <div class="eRole">${_escapeHtml(localizedConfidenceTier(item?.confidence || ""))}</div>
+        </div>
+      `).join("");
+      const blocks = order.map(signalKey => {
+        const signal = dietary?.[signalKey];
+        if (!signal || typeof signal !== "object") return "";
+        const detected = Array.isArray(signal?.detected_labels) ? signal.detected_labels : [];
+        const concerns = Array.isArray(signal?.possible_concerns) ? signal.possible_concerns : [];
+        const sourcesChecked = Array.isArray(signal?.sources_checked) ? signal.sources_checked : [];
+        const confidenceKey = String(signal?.confidence || "").toLowerCase();
+        const confidenceLabel = localizedConfidenceBadgeLabel(confidenceKey) || localizedConfidenceTier(confidenceKey);
+        const warning = String(signal?.warning || t("dietary_signal_warning")).trim() || t("dietary_signal_warning");
+        return `
+          <div class="box" style="margin-top:12px;">
+            <div class="scoreWrap" style="align-items:flex-start;">
+              <div>
+                <div class="sectionTitle" style="margin:0;">${_escapeHtml(dietarySignalName(signalKey))}</div>
+                <div class="mini" style="margin-top:6px;">${_escapeHtml(dietarySignalStatusLabel(signalKey, signal))}</div>
+              </div>
+              <span class="pill ${dietarySignalBadgeClass(signal)}">${_escapeHtml(confidenceLabel)}</span>
+            </div>
+            ${detected.length ? `
+              <div class="sectionTitle" style="margin:12px 0 8px 0;">${t("dietary_signal_detected_labels")}</div>
+              ${renderItems(detected)}
+            ` : ``}
+            ${concerns.length ? `
+              <div class="sectionTitle" style="margin:12px 0 8px 0;">${t("dietary_signal_possible_concerns")}</div>
+              ${renderItems(concerns)}
+            ` : ``}
+            <div class="whyFoot" style="margin-top:12px;"><b>${t("dietary_signal_sources_checked")}</b><br/>${sourcesChecked.length ? sourcesChecked.map(localizedAllergenSourceLabel).map(_escapeHtml).join(", ") : "-"}</div>
+            <div class="err" style="margin-top:10px;">${_escapeHtml(warning)}</div>
+          </div>
+        `;
+      }).join("");
+      return `
+        <div class="section" style="margin-top:12px;">
+          <div class="sectionTitle">${t("dietary_signals_title")}</div>
+          ${blocks}
         </div>
       `;
     }
@@ -5916,6 +6062,7 @@
             ${renderBetaNotice("result")}
             ${renderRefreshNotice()}
             ${renderPhotoExtractionNotice(d)}
+            ${renderDietarySignalsCard(d)}
             ${renderAllergenCard(d)}
             ${renderEnrichmentBlock(d)}
             ${state.recoveryOpen ? renderManualEntryForm() : ``}

@@ -1,0 +1,259 @@
+{
+  "halal": {
+    "positive_status": "certified",
+    "labels": {
+      "en": ["halal", "halal certified", "halal certification"],
+      "de": ["halal", "halal zertifiziert", "halal-zertifiziert"],
+      "fr": ["halal", "certifie halal", "certification halal"],
+      "el": ["χαλάλ", "πιστοποιημένο χαλάλ", "πιστοποίηση χαλάλ"]
+    },
+    "concerns": [
+      {
+        "id": "pork",
+        "severity": "explicit",
+        "labels": {
+          "en": "Pork signal",
+          "de": "Schweinefleisch-Signal",
+          "fr": "Signal de porc",
+          "el": "Ένδειξη χοιρινού"
+        },
+        "terms": {
+          "en": ["pork", "bacon", "ham", "lard"],
+          "de": ["schwein", "schweinefleisch", "speck", "schinken", "schmalz"],
+          "fr": ["porc", "bacon", "jambon", "saindoux"],
+          "el": ["χοιρινό", "μπέικον", "ζαμπόν", "λίπος χοίρου"]
+        }
+      },
+      {
+        "id": "alcohol",
+        "severity": "explicit",
+        "labels": {
+          "en": "Alcohol signal",
+          "de": "Alkohol-Signal",
+          "fr": "Signal d'alcool",
+          "el": "Ένδειξη αλκοόλ"
+        },
+        "terms": {
+          "en": ["alcohol", "wine", "beer", "rum", "liqueur", "liquor"],
+          "de": ["alkohol", "wein", "bier", "rum", "likor", "likör"],
+          "fr": ["alcool", "vin", "biere", "bière", "rhum", "liqueur"],
+          "el": ["αλκοόλ", "κρασί", "μπίρα", "ρούμι", "λικέρ"]
+        }
+      },
+      {
+        "id": "gelatin_unclear",
+        "severity": "uncertain",
+        "labels": {
+          "en": "Gelatin source unclear",
+          "de": "Gelatinequelle unklar",
+          "fr": "Source de gélatine non claire",
+          "el": "Ασαφής προέλευση ζελατίνης"
+        },
+        "terms": {
+          "en": ["gelatin", "gelatine"],
+          "de": ["gelatine"],
+          "fr": ["gelatine", "gélatine"],
+          "el": ["ζελατίνη"]
+        }
+      },
+      {
+        "id": "rennet_unclear",
+        "severity": "uncertain",
+        "labels": {
+          "en": "Rennet or enzyme source unclear",
+          "de": "Lab- oder Enzymquelle unklar",
+          "fr": "Source de présure ou d'enzyme non claire",
+          "el": "Ασαφής προέλευση πυτιάς ή ενζύμων"
+        },
+        "terms": {
+          "en": ["rennet", "enzyme", "enzymes"],
+          "de": ["lab", "enzym", "enzyme", "enzyme"],
+          "fr": ["presure", "présure", "enzyme", "enzymes"],
+          "el": ["πυτιά", "ένζυμο", "ένζυμα"]
+        }
+      }
+    ]
+  },
+  "vegan": {
+    "positive_status": "labeled",
+    "labels": {
+      "en": ["vegan", "certified vegan"],
+      "de": ["vegan", "veganes produkt", "vegan zertifiziert"],
+      "fr": ["vegan", "végane", "végétalien", "certifie vegan", "certifié vegan"],
+      "el": ["vegan", "βίγκαν", "φυτικό", "πιστοποιημένο vegan"]
+    },
+    "concerns": [
+      {
+        "id": "milk",
+        "severity": "explicit",
+        "labels": {
+          "en": "Milk signal",
+          "de": "Milch-Signal",
+          "fr": "Signal de lait",
+          "el": "Ένδειξη γάλακτος"
+        },
+        "terms": {
+          "en": ["milk", "cream", "butter", "whey", "casein", "lactose"],
+          "de": ["milch", "sahne", "butter", "molke", "kasein", "laktose"],
+          "fr": ["lait", "creme", "crème", "beurre", "lactoserum", "lactosérum", "caseine", "caséine", "lactose"],
+          "el": ["γάλα", "κρέμα", "βούτυρο", "ορός γάλακτος", "καζεΐνη", "λακτόζη"]
+        }
+      },
+      {
+        "id": "egg",
+        "severity": "explicit",
+        "labels": {
+          "en": "Egg signal",
+          "de": "Ei-Signal",
+          "fr": "Signal d'œuf",
+          "el": "Ένδειξη αυγού"
+        },
+        "terms": {
+          "en": ["egg", "eggs", "albumen"],
+          "de": ["ei", "eier", "eiweiss", "eiweiß"],
+          "fr": ["oeuf", "œuf", "oeufs", "œufs", "albumine"],
+          "el": ["αυγό", "αυγά", "αλβουμίνη"]
+        }
+      },
+      {
+        "id": "honey",
+        "severity": "explicit",
+        "labels": {
+          "en": "Honey signal",
+          "de": "Honig-Signal",
+          "fr": "Signal de miel",
+          "el": "Ένδειξη μελιού"
+        },
+        "terms": {
+          "en": ["honey"],
+          "de": ["honig"],
+          "fr": ["miel"],
+          "el": ["μέλι"]
+        }
+      },
+      {
+        "id": "gelatin",
+        "severity": "explicit",
+        "labels": {
+          "en": "Gelatin signal",
+          "de": "Gelatine-Signal",
+          "fr": "Signal de gélatine",
+          "el": "Ένδειξη ζελατίνης"
+        },
+        "terms": {
+          "en": ["gelatin", "gelatine"],
+          "de": ["gelatine"],
+          "fr": ["gelatine", "gélatine"],
+          "el": ["ζελατίνη"]
+        }
+      },
+      {
+        "id": "animal_or_fish",
+        "severity": "explicit",
+        "labels": {
+          "en": "Animal-derived signal",
+          "de": "Tierisches Signal",
+          "fr": "Signal d'origine animale",
+          "el": "Ένδειξη ζωικής προέλευσης"
+        },
+        "terms": {
+          "en": ["meat", "chicken", "beef", "pork", "fish", "anchovy", "shrimp"],
+          "de": ["fleisch", "huhn", "rind", "schwein", "fisch", "sardelle", "garnele"],
+          "fr": ["viande", "poulet", "boeuf", "bœuf", "porc", "poisson", "anchois", "crevette"],
+          "el": ["κρέας", "κοτόπουλο", "βόειο", "χοιρινό", "ψάρι", "αντζούγια", "γαρίδα"]
+        }
+      },
+      {
+        "id": "animal_additive_unclear",
+        "severity": "uncertain",
+        "labels": {
+          "en": "Animal-derived additive source unclear",
+          "de": "Quelle tierischer Zusatzstoffe unklar",
+          "fr": "Source d'additif d'origine animale non claire",
+          "el": "Ασαφής προέλευση ζωικού πρόσθετου"
+        },
+        "terms": {
+          "en": ["mono- and diglycerides", "mono and diglycerides", "mono-diglycerides", "e471", "enzyme", "enzymes"],
+          "de": ["mono- und diglyceride", "mono und diglyceride", "e471", "enzym", "enzyme"],
+          "fr": ["mono- et diglycerides", "mono et diglycérides", "mono et diglycerides", "e471", "enzyme", "enzymes"],
+          "el": ["μονο- και διγλυκερίδια", "μονο και διγλυκερίδια", "e471", "ένζυμο", "ένζυμα"]
+        }
+      }
+    ]
+  },
+  "vegetarian": {
+    "positive_status": "labeled",
+    "labels": {
+      "en": ["vegetarian", "certified vegetarian"],
+      "de": ["vegetarisch", "vegetarisches produkt", "vegetarisch zertifiziert"],
+      "fr": ["vegetarien", "végétarien", "vegetarienne", "végétarienne", "certifie vegetarien", "certifié végétarien"],
+      "el": ["χορτοφαγικό", "χορτοφαγικό προϊόν", "πιστοποιημένο χορτοφαγικό"]
+    },
+    "concerns": [
+      {
+        "id": "meat_or_fish",
+        "severity": "explicit",
+        "labels": {
+          "en": "Meat or fish signal",
+          "de": "Fleisch- oder Fisch-Signal",
+          "fr": "Signal de viande ou de poisson",
+          "el": "Ένδειξη κρέατος ή ψαριού"
+        },
+        "terms": {
+          "en": ["meat", "chicken", "beef", "pork", "ham", "bacon", "fish", "anchovy", "tuna"],
+          "de": ["fleisch", "huhn", "rind", "schwein", "schinken", "speck", "fisch", "sardelle", "thunfisch"],
+          "fr": ["viande", "poulet", "boeuf", "bœuf", "porc", "jambon", "bacon", "poisson", "anchois", "thon"],
+          "el": ["κρέας", "κοτόπουλο", "βόειο", "χοιρινό", "ζαμπόν", "μπέικον", "ψάρι", "αντζούγια", "τόνος"]
+        }
+      },
+      {
+        "id": "gelatin",
+        "severity": "explicit",
+        "labels": {
+          "en": "Gelatin signal",
+          "de": "Gelatine-Signal",
+          "fr": "Signal de gélatine",
+          "el": "Ένδειξη ζελατίνης"
+        },
+        "terms": {
+          "en": ["gelatin", "gelatine"],
+          "de": ["gelatine"],
+          "fr": ["gelatine", "gélatine"],
+          "el": ["ζελατίνη"]
+        }
+      },
+      {
+        "id": "animal_rennet",
+        "severity": "explicit",
+        "labels": {
+          "en": "Animal rennet signal",
+          "de": "Signal für tierisches Lab",
+          "fr": "Signal de présure animale",
+          "el": "Ένδειξη ζωικής πυτιάς"
+        },
+        "terms": {
+          "en": ["animal rennet"],
+          "de": ["tierisches lab"],
+          "fr": ["presure animale", "présure animale"],
+          "el": ["ζωική πυτιά"]
+        }
+      },
+      {
+        "id": "rennet_or_enzyme_unclear",
+        "severity": "uncertain",
+        "labels": {
+          "en": "Rennet or enzyme source unclear",
+          "de": "Lab- oder Enzymquelle unklar",
+          "fr": "Source de présure ou d'enzyme non claire",
+          "el": "Ασαφής προέλευση πυτιάς ή ενζύμων"
+        },
+        "terms": {
+          "en": ["rennet", "enzyme", "enzymes"],
+          "de": ["lab", "enzym", "enzyme"],
+          "fr": ["presure", "présure", "enzyme", "enzymes"],
+          "el": ["πυτιά", "ένζυμο", "ένζυμα"]
+        }
+      }
+    ]
+  }
+}

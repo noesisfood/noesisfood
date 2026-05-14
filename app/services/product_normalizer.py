@@ -421,6 +421,14 @@ def _collect_allergen_fields(off_product: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _collect_dietary_label_fields(off_product: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "labels": str(off_product.get("labels") or "").strip(),
+        "labels_tags": [str(item).strip() for item in (off_product.get("labels_tags") or []) if str(item).strip()],
+        "labels_hierarchy": [str(item).strip() for item in (off_product.get("labels_hierarchy") or []) if str(item).strip()],
+    }
+
+
 def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] = None) -> Dict[str, Any]:
     """
     Input: OFF payload (usually {"status":1, "product": {...}})
@@ -496,6 +504,7 @@ def normalize_openfoodfacts(off_payload: Dict[str, Any], barcode: Optional[str] 
         "ingredients": _parse_ingredients_as_objects(off_product),
         "ingredients_text": _best_ingredients_text(off_product),
         "allergen_info": _collect_allergen_fields(off_product),
+        "dietary_label_info": _collect_dietary_label_fields(off_product),
         "nutrition_per_100": {
             "unit": unit,
             "energy_kcal": _optional_nonneg(energy_kcal),

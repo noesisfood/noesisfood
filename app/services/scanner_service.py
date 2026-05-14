@@ -60,6 +60,7 @@ RASFF_FILE = DATA_DIR / "rasff.json"
 SAFETY_ALERTS_FILE = DATA_DIR / "rasff_alerts.json"
 PRODUCT_ENRICHMENTS_FILE = DATA_DIR / "product_enrichments.json"
 ALLERGEN_CATALOG_FILE = DATA_DIR / "allergen_catalog.json"
+DIETARY_SIGNALS_CATALOG_FILE = DATA_DIR / "dietary_signals_catalog.json"
 
 _JSON_CACHE: Dict[str, Dict[str, Any]] = {}
 _SCAN_RESULT_CACHE: Dict[str, Dict[str, Any]] = {}
@@ -466,6 +467,32 @@ def tu(lang: str, key: str) -> Any:
     return copy.deepcopy(USAGE_CONTEXT_I18N.get(lang_key, {}).get(key) or USAGE_CONTEXT_I18N["en"].get(key))
 
 
+DIETARY_SIGNALS_I18N: Dict[str, Dict[str, str]] = {
+    "en": {
+        "warning": "Always check the official product packaging or certification.",
+        "status_unclear": "Status unclear from available data",
+    },
+    "el": {
+        "warning": "Ελέγχετε πάντα την επίσημη συσκευασία ή πιστοποίηση του προϊόντος.",
+        "status_unclear": "Η κατάσταση είναι ασαφής από τα διαθέσιμα δεδομένα",
+    },
+    "de": {
+        "warning": "Prüfen Sie immer die offizielle Produktverpackung oder Zertifizierung.",
+        "status_unclear": "Status anhand der verfügbaren Daten unklar",
+    },
+    "fr": {
+        "warning": "Vérifiez toujours l'emballage officiel du produit ou la certification.",
+        "status_unclear": "Statut non clair à partir des données disponibles",
+    },
+}
+
+
+def td(lang: str, key: str, **kwargs: Any) -> str:
+    lang_key = lang if lang in SUPPORTED_LANGS else "en"
+    template = DIETARY_SIGNALS_I18N.get(lang_key, {}).get(key) or DIETARY_SIGNALS_I18N["en"].get(key) or key
+    return template.format(**kwargs)
+
+
 # -----------------------------
 # Helpers
 # -----------------------------
@@ -494,6 +521,11 @@ def _load_json(path: Path, default: Any) -> Any:
 def _load_allergen_catalog() -> List[Dict[str, Any]]:
     data = _load_json(ALLERGEN_CATALOG_FILE, [])
     return data if isinstance(data, list) else []
+
+
+def _load_dietary_signals_catalog() -> Dict[str, Any]:
+    data = _load_json(DIETARY_SIGNALS_CATALOG_FILE, {})
+    return data if isinstance(data, dict) else {}
 
 
 _ALLERGEN_PRECAUTIONARY_PHRASES = [
@@ -540,6 +572,10 @@ def _allergen_text_contains(text: str, term: str) -> bool:
     return f" {normalized_term} " in f" {normalized_text} "
 
 
+def _dietary_text_contains(text: str, term: str) -> bool:
+    return _allergen_text_contains(text, term)
+
+
 def _allergen_source_kind(result: Dict[str, Any], raw: Optional[Dict[str, Any]]) -> str:
     source = str(result.get("source") or "").strip().lower()
     matched_by = str(result.get("matched_by") or "").strip().lower()
@@ -551,6 +587,197 @@ def _allergen_source_kind(result: Dict[str, Any], raw: Optional[Dict[str, Any]])
     if matched_by == "manual_entry" or source == "manual":
         return "manual_input"
     return "ingredient_text"
+
+
+def _dietary_source_kind(result: Dict[str, Any], raw: Optional[Dict[str, Any]]) -> str:
+    return _allergen_source_kind(result, raw)
+
+
+def _normalized_signal_terms(values: Any) -> List[str]:
+    out: List[str] = []
+    for value in _as_list(values):
+        item = str(value or "").strip()
+        if item:
+            out.append(item)
+    return out
+
+
+def _dietary_concat_text(parts: List[Any]) -> str:
+    return " ".join(str(part or "").strip() for part in parts if str(part or "").strip()).strip()
+
+
+def _dietary_label_text(normalized: Dict[str, Any], raw: Optional[Dict[str, Any]]) -> str:
+    label_info = normalized.get("dietary_label_info") if isinstance(normalized.get("dietary_label_info"), dict) else {}
+    raw_product = raw.get("product") if isinstance(raw, dict) and isinstance(raw.get("product"), dict) else (raw if isinstance(raw, dict) else {})
+    return _dietary_concat_text(
+        [
+            label_info.get("labels"),
+            *_normalized_signal_terms(label_info.get("labels_tags")),
+            *_normalized_signal_terms(label_info.get("labels_hierarchy")),
+            raw_product.get("labels"),
+            *_normalized_signal_terms(raw_product.get("labels_tags")),
+            *_normalized_signal_terms(raw_product.get("labels_hierarchy")),
+            raw.get("labels") if isinstance(raw, dict) else "",
+            *(_normalized_signal_terms(raw.get("labels_tags")) if isinstance(raw, dict) else []),
+            *(_normalized_signal_terms(raw.get("labels_hierarchy")) if isinstance(raw, dict) else []),
+        ]
+    )
+
+
+def _dietary_positive_matches(signal_id: str, signal_cfg: Dict[str, Any], label_text: str, lang: str) -> List[str]:
+    if not label_text:
+        return []
+    labels_cfg = signal_cfg.get("labels") if isinstance(signal_cfg.get("labels"), dict) else {}
+    candidates: List[str] = []
+    for locale in ("en", "de", "fr", "el", lang):
+        values = labels_cfg.get(locale)
+        for value in _as_list(values):
+            text = str(value or "").strip()
+            if text and text not in candidates:
+                candidates.append(text)
+    matches: List[str] = []
+    for item in candidates:
+        if _dietary_text_contains(label_text, item) and item not in matches:
+            matches.append(item)
+    return matches
+
+
+def _localized_concern_label(concern: Dict[str, Any], lang: str) -> str:
+    labels = concern.get("labels") if isinstance(concern.get("labels"), dict) else {}
+    return str(labels.get(lang) or labels.get("en") or concern.get("id") or "").strip()
+
+
+def _iter_signal_terms(config: Dict[str, Any], lang: str) -> List[str]:
+    out: List[str] = []
+    for locale in ("en", "de", "fr", "el", lang):
+        values = config.get(locale)
+        for value in _as_list(values):
+            text = str(value or "").strip()
+            if text and text not in out:
+                out.append(text)
+    return out
+
+
+def _dietary_concern_matches(signal_cfg: Dict[str, Any], ingredient_text: str, lang: str, source: str, confidence: str) -> List[Dict[str, str]]:
+    if not ingredient_text:
+        return []
+    out: List[Dict[str, str]] = []
+    for concern in _as_list(signal_cfg.get("concerns")):
+        if not isinstance(concern, dict):
+            continue
+        terms_cfg = concern.get("terms") if isinstance(concern.get("terms"), dict) else {}
+        terms = _iter_signal_terms(terms_cfg, lang)
+        if not any(_dietary_text_contains(ingredient_text, term) for term in terms):
+            continue
+        out.append(
+            {
+                "id": str(concern.get("id") or "").strip(),
+                "label": _localized_concern_label(concern, lang),
+                "source": source,
+                "confidence": confidence,
+                "severity": str(concern.get("severity") or "uncertain").strip().lower() or "uncertain",
+            }
+        )
+    return out
+
+
+def _dedupe_signal_entries(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in items:
+        item_id = str(item.get("id") or item.get("label") or "").strip()
+        if not item_id or item_id in seen:
+            continue
+        seen.add(item_id)
+        out.append(item)
+    return out
+
+
+def _build_single_dietary_signal(
+    signal_id: str,
+    signal_cfg: Dict[str, Any],
+    result: Dict[str, Any],
+    normalized: Dict[str, Any],
+    raw: Optional[Dict[str, Any]],
+    lang: str,
+) -> Dict[str, Any]:
+    label_text = _dietary_label_text(normalized, raw)
+    ingredient_text = str(
+        _first_present(
+            _get_path(raw or {}, "ingredients_text"),
+            normalized.get("ingredients_text"),
+            _get_path(normalized, "allergen_info", "ingredients_text"),
+        )
+        or ""
+    ).strip()
+    ingredient_source = _dietary_source_kind(result, raw)
+    ingredient_confidence = "medium" if ingredient_source == "ingredient_text" else "low"
+    positive_status = str(signal_cfg.get("positive_status") or "labeled").strip()
+
+    sources_checked: List[str] = []
+    detected_labels: List[Dict[str, str]] = []
+    possible_concerns: List[Dict[str, str]] = []
+
+    if label_text:
+        sources_checked.append("barcode_product_data")
+        for match in _dietary_positive_matches(signal_id, signal_cfg, label_text, lang):
+            detected_labels.append(
+                {
+                    "id": signal_id,
+                    "label": match,
+                    "source": "barcode_product_data",
+                    "confidence": "high",
+                }
+            )
+
+    if ingredient_text:
+        if ingredient_source not in sources_checked:
+            sources_checked.append(ingredient_source)
+        possible_concerns.extend(_dietary_concern_matches(signal_cfg, ingredient_text, lang, ingredient_source, ingredient_confidence))
+
+    detected_labels = _dedupe_signal_entries(detected_labels)
+    possible_concerns = _dedupe_signal_entries(possible_concerns)
+
+    explicit_concern = any(str(item.get("severity") or "").strip().lower() == "explicit" for item in possible_concerns)
+    if detected_labels:
+        status = positive_status
+        confidence = "high"
+    elif explicit_concern:
+        status = "possible_not_suitable"
+        confidence = ingredient_confidence if ingredient_text else "high"
+    else:
+        status = "unclear"
+        confidence = "high" if label_text else (ingredient_confidence if ingredient_text else "low")
+
+    return {
+        "status": status,
+        "detected_labels": detected_labels,
+        "possible_concerns": possible_concerns,
+        "sources_checked": sources_checked,
+        "confidence": confidence,
+        "warning": td(lang, "warning"),
+    }
+
+
+def _build_dietary_signals(result: Dict[str, Any], normalized: Dict[str, Any], raw: Optional[Dict[str, Any]], lang: str) -> Dict[str, Any]:
+    catalog = _load_dietary_signals_catalog()
+    signals: Dict[str, Any] = {}
+    for signal_id in ("halal", "vegan", "vegetarian"):
+        signal_cfg = catalog.get(signal_id) if isinstance(catalog.get(signal_id), dict) else {}
+        signals[signal_id] = _build_single_dietary_signal(signal_id, signal_cfg, result, normalized, raw, lang)
+    return signals
+
+
+def _attach_dietary_signals(result: Dict[str, Any], normalized: Dict[str, Any], raw: Optional[Dict[str, Any]], lang: str) -> Dict[str, Any]:
+    if not isinstance(result, dict) or result.get("error"):
+        return result
+    result["dietary_signals"] = _build_dietary_signals(result, normalized if isinstance(normalized, dict) else {}, raw, lang)
+    meta = result.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        result["meta"] = meta
+    meta["dietary_signals"] = copy.deepcopy(result["dietary_signals"])
+    return result
 
 
 def _allergen_match_ids_from_text(text: str, catalog: List[Dict[str, Any]]) -> List[str]:
@@ -6399,6 +6626,7 @@ def _analyze_normalized_product(
         },
     }, lang)
     result = _attach_allergen_detection(result, norm, raw, lang)
+    result = _attach_dietary_signals(result, norm, raw, lang)
     return _attach_usage_context(result, norm, lang)
 
 
@@ -6962,5 +7190,6 @@ async def analyze_photo_product(payload: Dict[str, Any], lang: str = "en") -> Di
                 result["meta"]["lookup_missing_fields"] = result["lookup_missing_fields"]
         result = _apply_analysis_confidence_layer(result, lang)
         result = _attach_allergen_detection(result, merged_payload, payload, lang)
+        result = _attach_dietary_signals(result, merged_payload, payload, lang)
         result = _attach_usage_context(result, merged_payload, lang)
     return result
