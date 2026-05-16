@@ -691,6 +691,7 @@
         compare_reason_colorants: "Fewer colourants.",
         compare_reason_flavourings: "Fewer flavourings.",
         compare_reason_simplicity: "Simpler ingredient profile.",
+        compare_context_warning: "These products belong to different categories, so the comparison is indicative.",
         history_title: "Recent history",
         history_analyses: "Recent analyses",
         history_comparisons: "Recent comparisons",
@@ -757,6 +758,7 @@
         baseline_criteria: "based on international nutrition criteria",
         baseline_score_label: "Basic Nutrition Score",
         baseline_score_explainer: "The basic nutrition assessment is based on international nutrition criteria.",
+        baseline_score_unavailable: "Unavailable",
         final_vita_explainer: "The final score is adjusted based on composition, processing, and the quality of the available data.",
         full_analysis: "Full analysis",
         partial_analysis: "Partial analysis",
@@ -998,6 +1000,7 @@
         compare_reason_colorants: "Λιγότερες χρωστικές.",
         compare_reason_flavourings: "Λιγότερα αρώματα.",
         compare_reason_simplicity: "Απλούστερο προφίλ συστατικών.",
+        compare_context_warning: "Τα προϊόντα ανήκουν σε διαφορετικές κατηγορίες, οπότε η σύγκριση είναι ενδεικτική.",
         history_title: "Πρόσφατο ιστορικό",
         history_analyses: "Πρόσφατες αναλύσεις",
         history_comparisons: "Πρόσφατες συγκρίσεις",
@@ -1062,6 +1065,7 @@
         baseline_criteria: "με βάση διεθνή διατροφικά κριτήρια",
         baseline_score_label: "Βασική διατροφική αξιολόγηση",
         baseline_score_explainer: "Η βασική διατροφική αξιολόγηση βασίζεται σε διεθνή διατροφικά κριτήρια.",
+        baseline_score_unavailable: "Μη διαθέσιμη",
         final_vita_explainer: "Η τελική βαθμολογία προσαρμόζεται με βάση τη σύνθεση, την επεξεργασία και την ποιότητα των διαθέσιμων δεδομένων.",
         full_analysis: "Πλήρης αξιολόγηση",
         partial_analysis: "Μερική αξιολόγηση",
@@ -1297,6 +1301,7 @@
         compare_reason_colorants: "Weniger Farbstoffe.",
         compare_reason_flavourings: "Weniger Aromen.",
         compare_reason_simplicity: "Einfacheres Zutatenprofil.",
+        compare_context_warning: "Diese Produkte gehören zu unterschiedlichen Kategorien, daher ist der Vergleich nur als Orientierung gedacht.",
         history_title: "Letzte Historie",
         history_analyses: "Letzte Analysen",
         history_comparisons: "Letzte Vergleiche",
@@ -1361,6 +1366,7 @@
         baseline_criteria: "basierend auf internationalen Ernährungskriterien",
         baseline_score_label: "Grundlegende Ernährungsbewertung",
         baseline_score_explainer: "Die grundlegende Ernährungsbewertung basiert auf internationalen Ernährungskriterien.",
+        baseline_score_unavailable: "Nicht verfügbar",
         final_vita_explainer: "Der Endwert wird anhand von Zusammensetzung, Verarbeitungsgrad und der Qualität der verfügbaren Daten angepasst.",
         full_analysis: "Vollständige Bewertung",
         partial_analysis: "Teilbewertung",
@@ -1596,6 +1602,7 @@
         compare_reason_colorants: "Moins de colorants.",
         compare_reason_flavourings: "Moins d’arômes.",
         compare_reason_simplicity: "Profil d’ingrédients plus simple.",
+        compare_context_warning: "Ces produits appartiennent à des catégories différentes, la comparaison est donc indicative.",
         history_title: "Historique récent",
         history_analyses: "Analyses récentes",
         history_comparisons: "Comparaisons récentes",
@@ -1660,6 +1667,7 @@
         baseline_criteria: "basée sur des critères nutritionnels internationaux",
         baseline_score_label: "Évaluation nutritionnelle de base",
         baseline_score_explainer: "L’évaluation nutritionnelle de base repose sur des critères nutritionnels internationaux.",
+        baseline_score_unavailable: "Non disponible",
         final_vita_explainer: "Le score final est ajusté selon la composition, le niveau de transformation et la qualité des données disponibles.",
         full_analysis: "Évaluation complète",
         partial_analysis: "Évaluation partielle",
@@ -5637,9 +5645,48 @@
       return { winner, reasons, left, right };
     }
 
+    function baselineScoreDisplayText(value){
+      if (value === null || value === undefined || value === "") return t("baseline_score_unavailable");
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return t("baseline_score_unavailable");
+      return `${numeric}/100`;
+    }
+
+    function comparisonTextSignals(data){
+      const product = data?.product || {};
+      const categories = Array.isArray(product?.categories) ? product.categories : [];
+      return [
+        String(product?.name || ""),
+        String(product?.brand || ""),
+        ...categories,
+      ].join(" ").toLowerCase();
+    }
+
+    function comparisonCategoryFamily(data){
+      const usage = usageContextData(data);
+      if (usage?.applies || String(usage?.type || "").toLowerCase() === "seasoning") return "seasoning";
+      const text = comparisonTextSignals(data);
+      const isBeverage = !!(data?.meta?.is_beverage);
+      if (/\b(salt|salz|sel|seasoning|gewürz|gewurz|épice|epice|spice|condiment|bouillon|broth|cinnamon|zimt|cannelle|herb|kräuter|krauter)\b/.test(text) || /αλάτι|καρύκευμα|μπαχαρικ|κανέλα|βόταν/.test(text)) return "seasoning";
+      if (isBeverage || /\b(drink|beverage|cola|soda|energy drink|energy|red bull|juice|water|tea|coffee|getränk|boisson)\b/.test(text) || /χυμό|χυμος|ποτό|ποτο|νερό|νερο|καφές|καφες|τσάι|τσαϊ/.test(text)) return "beverage";
+      return "general";
+    }
+
+    function comparisonNeedsContextWarning(currentData, compareData){
+      if (!currentData || !compareData) return false;
+      if (usageContextApplies(currentData) || usageContextApplies(compareData)) return true;
+      const leftFamily = comparisonCategoryFamily(currentData);
+      const rightFamily = comparisonCategoryFamily(compareData);
+      if (leftFamily === rightFamily) return false;
+      if ((leftFamily === "beverage" && rightFamily === "seasoning") || (leftFamily === "seasoning" && rightFamily === "beverage")) return true;
+      if (leftFamily === "seasoning" || rightFamily === "seasoning") return true;
+      return false;
+    }
+
     function renderComparisonPanel(currentData, compareData){
       if (!compareData) return "";
       const verdict = determineComparisonVerdict(currentData, compareData);
+      const showContextWarning = comparisonNeedsContextWarning(currentData, compareData);
       const leftBadge = verdict.winner === "left" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
       const rightBadge = verdict.winner === "right" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
       const verdictText = verdict.winner === "tie"
@@ -5650,6 +5697,7 @@
         <div class="section" style="margin-top:12px;">
           <div class="sectionTitle">${t("compare_title")}</div>
           <div class="ok" style="margin-bottom:12px;"><b>${verdictText}</b></div>
+          ${showContextWarning ? `<div class="mini" style="margin-bottom:12px;">${_escapeHtml(t("compare_context_warning"))}</div>` : ``}
           <div class="split">
             <div class="box">
               <div class="prodMeta">
@@ -6078,8 +6126,8 @@
         const compareTarget = compareCandidates.find(item => String(item?.key || "") === String(state.compareTargetKey || "")) || compareCandidates[0] || null;
         const compareTargetKey = String(compareTarget?.key || "");
         const score = d?.vitascore;
-        const baselineScore = d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
-        const baselineScoreText = Number.isFinite(Number(baselineScore)) ? `${baselineScore}/100` : "-";
+        const baselineScore = d?.vitascore_explanation?.basic_nutrition_score ?? d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
+        const baselineScoreText = baselineScoreDisplayText(baselineScore);
         const analysisState = String(d?.analysis_state || d?.meta?.analysis_state || "full_analysis").toLowerCase();
         const assessmentLabel = t("final_assessment");
         const assessmentSubline = t("final_vita_explainer");

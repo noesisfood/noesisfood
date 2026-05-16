@@ -234,6 +234,10 @@ class VitaScoreExplanationTests(unittest.IsolatedAsyncioTestCase):
             "L’évaluation nutritionnelle de base repose sur des critères nutritionnels internationaux.",
             content,
         )
+        self.assertIn('baseline_score_unavailable: "Μη διαθέσιμη"', content)
+        self.assertIn('baseline_score_unavailable: "Unavailable"', content)
+        self.assertIn("function baselineScoreDisplayText(value)", content)
+        self.assertNotIn('`${baselineScore}/100`', content)
 
 
 if __name__ == "__main__":

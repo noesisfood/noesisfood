@@ -8,6 +8,11 @@ class UsageContextUiTests(unittest.TestCase):
 
         self.assertIn("function usageContextApplies(data)", content)
         self.assertIn("function renderUsageContextBlock(data)", content)
+        self.assertIn("function comparisonNeedsContextWarning(currentData, compareData)", content)
+        self.assertIn('compare_context_warning: "These products belong to different categories, so the comparison is indicative."', content)
+        self.assertIn('compare_context_warning: "Τα προϊόντα ανήκουν σε διαφορετικές κατηγορίες, οπότε η σύγκριση είναι ενδεικτική."', content)
+        self.assertIn('compare_context_warning: "Diese Produkte gehören zu unterschiedlichen Kategorien, daher ist der Vergleich nur als Orientierung gedacht."', content)
+        self.assertIn('compare_context_warning: "Ces produits appartiennent à des catégories différentes, la comparaison est donc indicative."', content)
         self.assertIn('usage_context_label_seasoning = "Seasoning use"', content)
         self.assertIn('usage_context_label_seasoning = "\\u03a7\\u03c1\\u03ae\\u03c3\\u03b7 \\u03c9\\u03c2 \\u03ba\\u03b1\\u03c1\\u03cd\\u03ba\\u03b5\\u03c5\\u03bc\\u03b1"', content)
         self.assertIn('usage_context_label_seasoning = "Verwendung als Gew\\u00fcrz"', content)
@@ -26,6 +31,12 @@ class UsageContextUiTests(unittest.TestCase):
     def test_frontend_does_not_show_generic_quick_verdict_as_primary_when_usage_context_applies(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
         self.assertIn('usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score)', content)
+
+    def test_frontend_shows_comparison_context_warning_for_mismatch_without_blocking_comparison(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+        self.assertIn('const showContextWarning = comparisonNeedsContextWarning(currentData, compareData);', content)
+        self.assertIn('${showContextWarning ? `<div class="mini" style="margin-bottom:12px;">${_escapeHtml(t("compare_context_warning"))}</div>` : ``}', content)
+        self.assertIn('const order = ["vegan", "vegetarian", "halal"];', content)
 
 
 if __name__ == "__main__":
