@@ -22,7 +22,7 @@ class PwaTests(unittest.TestCase):
         self.assertEqual(body["start_url"], "/")
         self.assertEqual(body["scope"], "/")
         self.assertEqual(body["display"], "standalone")
-        self.assertEqual(body["theme_color"], "#0f766e")
+        self.assertEqual(body["theme_color"], "#0f2742")
         self.assertEqual(len(body["icons"]), 3)
 
     def test_service_worker_route_returns_expected_script(self) -> None:
@@ -40,7 +40,7 @@ class PwaTests(unittest.TestCase):
     def test_frontend_links_manifest_and_registers_service_worker(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
         self.assertIn('<link rel="manifest" href="/manifest.webmanifest" />', content)
-        self.assertIn('<meta name="theme-color" content="#0f766e" />', content)
+        self.assertIn('<meta name="theme-color" content="#0f2742" />', content)
         self.assertIn('if ("serviceWorker" in navigator)', content)
         self.assertIn('navigator.serviceWorker.register("/service-worker.js").catch(() => {});', content)
 
