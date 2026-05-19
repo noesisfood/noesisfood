@@ -24,10 +24,14 @@ app.add_middleware(
 APP_DIR = Path(__file__).resolve().parent          # app/
 FRONTEND_DIR = APP_DIR / "frontend"                # app/frontend/
 INDEX_FILE = FRONTEND_DIR / "index.html"
+MANIFEST_FILE = FRONTEND_DIR / "manifest.webmanifest"
+SERVICE_WORKER_FILE = FRONTEND_DIR / "service-worker.js"
+ICONS_DIR = FRONTEND_DIR / "icons"
 
 # Serve static files (if you have css/js/images later)
 # Accessed like /static/...
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+app.mount("/icons", StaticFiles(directory=str(ICONS_DIR)), name="icons")
 
 # Include API routes
 app.include_router(scan_router)
@@ -37,6 +41,16 @@ app.include_router(scan_router)
 async def serve_ui():
     # Serve the UI instead of JSON
     return FileResponse(str(INDEX_FILE))
+
+
+@app.get("/manifest.webmanifest")
+async def serve_manifest():
+    return FileResponse(str(MANIFEST_FILE), media_type="application/manifest+json")
+
+
+@app.get("/service-worker.js")
+async def serve_service_worker():
+    return FileResponse(str(SERVICE_WORKER_FILE), media_type="application/javascript")
 
 
 @app.get("/health")
