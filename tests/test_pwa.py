@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 
+from PIL import Image
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -46,6 +47,24 @@ class PwaTests(unittest.TestCase):
     def test_icon_files_exist(self) -> None:
         for name in ("icon-192.png", "icon-512.png", "icon-512-maskable.png"):
             self.assertTrue((Path("app/frontend/icons") / name).exists(), name)
+
+    def test_icon_files_are_valid_pngs_with_expected_sizes(self) -> None:
+        expected = {
+            "icon-192.png": (192, 192),
+            "icon-512.png": (512, 512),
+            "icon-512-maskable.png": (512, 512),
+        }
+        for name, size in expected.items():
+            path = Path("app/frontend/icons") / name
+            with Image.open(path) as image:
+                self.assertEqual(image.format, "PNG")
+                self.assertEqual(image.size, size)
+
+    def test_icon_routes_return_png(self) -> None:
+        for route in ("/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-512-maskable.png"):
+            response = self.client.get(route)
+            self.assertEqual(response.status_code, 200, route)
+            self.assertIn("image/png", response.headers.get("content-type", ""), route)
 
 
 if __name__ == "__main__":
