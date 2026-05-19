@@ -991,7 +991,7 @@
         compare_col_caffeine: "Καφεΐνη",
         compare_col_sweeteners: "Γλυκαντικά",
         beta_badge: "Soft Beta",
-        beta_title: "Δημόσιο Beta",
+        beta_title: "Beta",
         beta_body: "Τα αποτελέσματα είναι ενημερωτικά και μπορεί να βελτιώνονται με τον χρόνο. Δεν αποτελούν ιατρική συμβουλή.",
         beta_confidence_note: "Η βεβαιότητα δείχνει την αξιοπιστία των διαθέσιμων δεδομένων, όχι το πόσο υγιεινό είναι το προϊόν.",
         beta_correction_note: "Μπορείτε να βοηθήσετε στη βελτίωση της ακρίβειας με διορθώσεις και προαιρετική ανατροφοδότηση.",
@@ -1017,7 +1017,7 @@
         history_at: "Αποθηκεύτηκε",
         history_verdict: "Ετυμηγορία",
         tips: "Συμβουλές",
-        why_foot: "Βασίζεται σε διεθνή διατροφικά κριτήρια και EU reference intakes. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή.",
+        why_foot: "Βασίζεται σε διεθνή και ευρωπαϊκά διατροφικά κριτήρια. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή.",
         who_title: "Βασική διατροφική αξιολόγηση",
         who_sugar: "Ζάχαρη ανά μερίδα",
         who_ideal: "% του ιδανικού (25g/ημέρα)",
@@ -5045,11 +5045,38 @@
     }
 
     function localizeAllergenItems(value){
+      const allergenDisplayByLang = {
+        el: {
+          MUSTARD: "Μουστάρδα",
+          MILK: "Γάλα / λακτόζη",
+          CELERY: "Σέλινο",
+          GLUTEN: "Δημητριακά με γλουτένη",
+          PEANUTS: "Αραχίδες",
+          TREE_NUTS: "Ξηροί καρποί",
+          NUTS: "Ξηροί καρποί",
+          SESAME: "Σουσάμι",
+          SOY: "Σόγια",
+          SOYBEANS: "Σόγια",
+          EGGS: "Αυγά",
+          FISH: "Ψάρι",
+          CRUSTACEANS: "Καρκινοειδή",
+          MOLLUSCS: "Μαλάκια",
+          LUPIN: "Λούπινο",
+          SULPHITES: "Θειώδη",
+        },
+      };
+      const activeMappings = allergenDisplayByLang[state.lang] || {};
+      const normalizeToken = (item) => String(item || "").trim().replace(/\s+/g, "_").replace(/[/-]+/g, "_").toUpperCase();
+
       return String(value || "")
         .split(",")
         .map(part => String(part || "").trim())
         .filter(Boolean)
-        .map(part => localizeGlossaryValue(part, part, false))
+        .map(part => {
+          const mapped = activeMappings[normalizeToken(part)];
+          if (mapped) return mapped;
+          return localizeGlossaryValue(part, part, false);
+        })
         .join(", ");
     }
 

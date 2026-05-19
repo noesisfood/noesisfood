@@ -23,6 +23,24 @@ class AllergenUiTests(unittest.TestCase):
         self.assertIn('allergen_warning_fallback: "Wenn Sie Allergien haben, prüfen Sie immer das offizielle Produktetikett."', content)
         self.assertIn('allergen_warning_fallback: "Si vous avez des allergies, vérifiez toujours l\'étiquette officielle du produit."', content)
 
+    def test_frontend_localizes_greek_allergen_tags_for_display(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+        self.assertIn('MUSTARD: "Μουστάρδα"', content)
+        self.assertIn('MILK: "Γάλα / λακτόζη"', content)
+        self.assertIn('CELERY: "Σέλινο"', content)
+        self.assertIn('GLUTEN: "Δημητριακά με γλουτένη"', content)
+        self.assertIn('PEANUTS: "Αραχίδες"', content)
+        self.assertIn('TREE_NUTS: "Ξηροί καρποί"', content)
+        self.assertIn('SESAME: "Σουσάμι"', content)
+        self.assertIn('SOY: "Σόγια"', content)
+        self.assertIn('EGGS: "Αυγά"', content)
+        self.assertIn('FISH: "Ψάρι"', content)
+        self.assertIn('CRUSTACEANS: "Καρκινοειδή"', content)
+        self.assertIn('MOLLUSCS: "Μαλάκια"', content)
+        self.assertIn('LUPIN: "Λούπινο"', content)
+        self.assertIn('SULPHITES: "Θειώδη"', content)
+
     def test_frontend_avoids_overclaiming_words_for_allergen_feature(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8").lower()
 

@@ -110,9 +110,17 @@ class CorrectionFeedbackTests(unittest.TestCase):
         self.assertIn('submit_correction_feedback: "Envoyer le retour de correction"', content)
         self.assertIn('feedback_thanks: "Thank you for helping improve nutrition accuracy"', content)
         self.assertIn('beta_title: "Public Beta"', content)
-        self.assertIn('beta_title: "Δημόσιο Beta"', content)
+        self.assertIn('beta_title: "Beta"', content)
         self.assertIn('beta_title: "Öffentliche Beta"', content)
         self.assertIn('beta_title: "Bêta publique"', content)
+        self.assertIn(
+            'why_foot: "Βασίζεται σε διεθνή και ευρωπαϊκά διατροφικά κριτήρια. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή."',
+            content,
+        )
+        self.assertNotIn(
+            'why_foot: "Βασίζεται σε διεθνή διατροφικά κριτήρια και EU reference intakes. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή."',
+            content,
+        )
         self.assertIn('err_photo_extract: "We could not read enough nutrition data. Try a sharper photo or crop closer to the nutrition table."', content)
         self.assertIn("function renderDetailsScoreSummary(data)", content)
         self.assertIn('${renderDetailsScoreSummary(state.data || {})}', content)
