@@ -32,9 +32,14 @@
     .brand{
       display:flex;
       align-items:center;
-      gap:10px;
       min-width:0;
       flex:1 1 auto;
+    }
+    .brandCompact{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
     }
     .brandIconImg{
       width:34px;
@@ -53,6 +58,14 @@
       overflow:hidden;
       text-overflow:ellipsis;
       max-width:150px;
+    }
+    .brandFullLogo{
+      display:none;
+      height:36px;
+      width:auto;
+      max-width:220px;
+      object-fit:contain;
+      flex:0 1 auto;
     }
     .step{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:10px;}
     .topRight{display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex:0 0 auto;}
@@ -530,15 +543,8 @@
       }
     }
     @media (min-width: 560px){
-      .brandIconImg{
-        width:40px;
-        height:40px;
-        border-radius:12px;
-      }
-      .brandWordmark{
-        font-size:22px;
-        max-width:220px;
-      }
+      .brandCompact{display:none;}
+      .brandFullLogo{display:block;}
       .topRight{
         flex-direction:row;
         align-items:center;
@@ -566,8 +572,11 @@
   <div class="wrap">
     <div class="top">
       <div class="brand">
-        <img class="brandIconImg" src="/static/brand/noesisfood-logo-source.png" alt="NoesisFood brand icon"/>
-        <div class="brandWordmark">NoesisFood</div>
+        <div class="brandCompact">
+          <img class="brandIconImg" src="/static/brand/noesisfood-logo-source.png" alt="NoesisFood brand icon"/>
+          <div class="brandWordmark">NoesisFood</div>
+        </div>
+        <img class="brandFullLogo" src="/static/brand/noesisfood-full-logo-source.png" alt="NoesisFood"/>
       </div>
       <div class="topRight">
         <select id="langSel" class="langSel" aria-label="Language">

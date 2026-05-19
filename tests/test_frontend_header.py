@@ -14,10 +14,14 @@ class FrontendHeaderTests(unittest.TestCase):
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
 
         self.assertIn('class="brandIconImg"', content)
+        self.assertIn('class="brandCompact"', content)
         self.assertIn('src="/static/brand/noesisfood-logo-source.png"', content)
         self.assertIn('class="brandWordmark">NoesisFood</div>', content)
+        self.assertIn('class="brandFullLogo" src="/static/brand/noesisfood-full-logo-source.png"', content)
         self.assertIn(".topRight{display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex:0 0 auto;}", content)
         self.assertIn("@media (min-width: 560px){", content)
+        self.assertIn(".brandCompact{display:none;}", content)
+        self.assertIn(".brandFullLogo{display:block;}", content)
         self.assertIn(".topRight{\n        flex-direction:row;", content)
         self.assertIn('id="langSel"', content)
         self.assertIn('id="stepTxt"', content)
@@ -25,6 +29,11 @@ class FrontendHeaderTests(unittest.TestCase):
 
     def test_brand_asset_route_returns_png(self) -> None:
         response = self.client.get("/static/brand/noesisfood-logo-source.png")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("image/png", response.headers.get("content-type", ""))
+
+    def test_full_logo_asset_route_returns_png(self) -> None:
+        response = self.client.get("/static/brand/noesisfood-full-logo-source.png")
         self.assertEqual(response.status_code, 200)
         self.assertIn("image/png", response.headers.get("content-type", ""))
 
