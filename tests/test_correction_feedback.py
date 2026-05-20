@@ -109,10 +109,15 @@ class CorrectionFeedbackTests(unittest.TestCase):
         self.assertIn('submit_correction_feedback: "Korrekturfeedback senden"', content)
         self.assertIn('submit_correction_feedback: "Envoyer le retour de correction"', content)
         self.assertIn('feedback_thanks: "Thank you for helping improve nutrition accuracy"', content)
-        self.assertIn('beta_title: "Public Beta"', content)
-        self.assertIn('beta_title: "Beta"', content)
-        self.assertIn('beta_title: "Öffentliche Beta"', content)
-        self.assertIn('beta_title: "Bêta publique"', content)
+        self.assertIn('beta_title: "Important information"', content)
+        self.assertIn('beta_title: "Σημαντική ενημέρωση"', content)
+        self.assertIn('beta_title: "Wichtiger Hinweis"', content)
+        self.assertIn('beta_title: "Information importante"', content)
+        self.assertNotIn('beta_title: "Public Beta"', content)
+        self.assertNotIn('beta_title: "Beta"', content)
+        self.assertNotIn('beta_title: "Öffentliche Beta"', content)
+        self.assertNotIn('beta_title: "Bêta publique"', content)
+        self.assertNotIn('beta_badge: "Soft Beta"', content)
         self.assertIn(
             'why_foot: "Βασίζεται σε διεθνή και ευρωπαϊκά διατροφικά κριτήρια. Ενημερωτικό εργαλείο - όχι ιατρική συμβουλή."',
             content,

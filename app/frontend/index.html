@@ -542,6 +542,13 @@
         radial-gradient(circle at top right, rgba(127,207,69,.11), transparent 30%),
         linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,248,244,.96)) !important;
       box-shadow: 0 16px 30px rgba(15,39,66,.06);
+      padding:14px 16px;
+    }
+    .betaNotice .sectionTitle{
+      margin-bottom:8px;
+    }
+    .betaNotice .mini{
+      line-height:1.42;
     }
     .manualEntrySection{
       border-radius:20px;
@@ -877,10 +884,10 @@
         compare_col_additives: "Additives / E-numbers",
         compare_col_caffeine: "Caffeine",
         compare_col_sweeteners: "Sweeteners",
-        beta_badge: "Soft Beta",
-        beta_title: "Public Beta",
-        beta_body: "Results are educational and may improve over time. They are not medical advice.",
-        beta_confidence_note: "Confidence reflects the reliability of the available data, not healthiness itself.",
+        beta_badge: "",
+        beta_title: "Important information",
+        beta_body: "Results are informational and do not replace medical advice.",
+        beta_confidence_note: "Reliability depends on the available product data and overall data quality.",
         beta_correction_note: "You can help improve accuracy with corrections and optional feedback.",
         compare_col_colorants: "Colorants",
         compare_col_flavourings: "Flavourings",
@@ -1186,10 +1193,10 @@
         compare_col_additives: "Πρόσθετα / αριθμοί E",
         compare_col_caffeine: "Καφεΐνη",
         compare_col_sweeteners: "Γλυκαντικά",
-        beta_badge: "Soft Beta",
-        beta_title: "Beta",
-        beta_body: "Τα αποτελέσματα είναι ενημερωτικά και μπορεί να βελτιώνονται με τον χρόνο. Δεν αποτελούν ιατρική συμβουλή.",
-        beta_confidence_note: "Η βεβαιότητα δείχνει την αξιοπιστία των διαθέσιμων δεδομένων, όχι το πόσο υγιεινό είναι το προϊόν.",
+        beta_badge: "",
+        beta_title: "Σημαντική ενημέρωση",
+        beta_body: "Τα αποτελέσματα είναι ενημερωτικά και δεν υποκαθιστούν ιατρική συμβουλή.",
+        beta_confidence_note: "Η αξιοπιστία εξαρτάται από τα διαθέσιμα δεδομένα προϊόντος και τη συνολική ποιότητα των δεδομένων.",
         beta_correction_note: "Μπορείτε να βοηθήσετε στη βελτίωση της ακρίβειας με διορθώσεις και προαιρετική ανατροφοδότηση.",
         compare_col_colorants: "Χρωστικές",
         compare_col_flavourings: "Αρώματα",
@@ -1487,10 +1494,10 @@
         compare_col_additives: "Zusatzstoffe / E-Nummern",
         compare_col_caffeine: "Koffein",
         compare_col_sweeteners: "Süßstoffe",
-        beta_badge: "Soft Beta",
-        beta_title: "Öffentliche Beta",
-        beta_body: "Die Ergebnisse sind informativ und können sich im Lauf der Zeit verbessern. Sie sind keine medizinische Beratung.",
-        beta_confidence_note: "Die Konfidenz zeigt die Zuverlässigkeit der verfügbaren Daten, nicht die gesundheitliche Qualität des Produkts.",
+        beta_badge: "",
+        beta_title: "Wichtiger Hinweis",
+        beta_body: "Die Ergebnisse sind informativ und ersetzen keine medizinische Beratung.",
+        beta_confidence_note: "Die Zuverlässigkeit hängt von den verfügbaren Produktdaten und der allgemeinen Datenqualität ab.",
         beta_correction_note: "Mit Korrekturen und optionalem Feedback können Sie helfen, die Genauigkeit zu verbessern.",
         compare_col_colorants: "Farbstoffe",
         compare_col_flavourings: "Aromen",
@@ -1788,10 +1795,10 @@
         compare_col_additives: "Additifs / numéros E",
         compare_col_caffeine: "Caféine",
         compare_col_sweeteners: "Édulcorants",
-        beta_badge: "Soft Beta",
-        beta_title: "Bêta publique",
-        beta_body: "Les résultats sont informatifs et peuvent s’améliorer avec le temps. Ils ne constituent pas un avis médical.",
-        beta_confidence_note: "La confiance reflète la fiabilité des données disponibles, pas le caractère sain du produit.",
+        beta_badge: "",
+        beta_title: "Information importante",
+        beta_body: "Les résultats sont informatifs et ne remplacent pas un avis médical.",
+        beta_confidence_note: "La fiabilité dépend des données produit disponibles et de la qualité globale des données.",
         beta_correction_note: "Vous pouvez aider à améliorer la précision grâce aux corrections et au retour facultatif.",
         compare_col_colorants: "Colorants",
         compare_col_flavourings: "Arômes",
@@ -3476,7 +3483,7 @@
       const compact = mode !== "home";
       return `
         <div class="section betaNotice" style="margin-top:${compact ? "12px" : "0"};">
-          <div class="sectionTitle">${t("beta_title")} <span class="pill warn" style="margin-left:8px;">${t("beta_badge")}</span></div>
+          <div class="sectionTitle">${t("beta_title")}</div>
           <div class="mini">${t("beta_body")}</div>
           <div class="mini" style="margin-top:6px;">${t("beta_confidence_note")}</div>
           <div class="mini" style="margin-top:6px;">${t("beta_correction_note")}</div>
