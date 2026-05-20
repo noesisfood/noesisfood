@@ -394,74 +394,95 @@
       opacity:.92;
     }
     .step.hidden{display:none}
-    .homeLayout{display:flex; flex-direction:column; gap:14px}
+    .homeLayout{display:flex; flex-direction:column; gap:18px}
     .scanHero{
-      padding:18px;
+      padding:22px;
       background:
-        linear-gradient(180deg, rgba(15,39,66,.08), rgba(255,255,255,.78)),
-        rgba(246,252,248,.97);
-      border:1px solid rgba(18,44,69,.10);
-      border-radius: 18px;
-      box-shadow: var(--shadowSoft);
+        radial-gradient(circle at top left, rgba(127,207,69,.16), transparent 32%),
+        linear-gradient(145deg, rgba(15,39,66,.12), rgba(255,255,255,.86) 46%, rgba(241,249,244,.98) 100%);
+      border:1px solid rgba(18,44,69,.11);
+      border-radius: 22px;
+      box-shadow: 0 20px 38px rgba(15,39,66,.08);
     }
     .homeTitle{
-      font-size: 28px;
-      line-height: 1.05;
+      font-size: 31px;
+      line-height: 1.02;
       font-weight: 900;
-      letter-spacing: -.02em;
+      letter-spacing: -.028em;
       margin: 0;
       color:var(--navy);
+      max-width: 11ch;
     }
     .homeSubtitle{
-      margin-top: 8px;
-      max-width: 34rem;
+      margin-top: 10px;
+      max-width: 36rem;
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.4;
+      line-height: 1.52;
     }
     .homeActions{
       display:flex;
-      gap:10px;
+      gap:12px;
       flex-wrap:wrap;
-      margin-top:16px;
+      margin-top:18px;
     }
     .actionButton{
-      min-height: 48px;
-      padding: 12px 16px;
-      border-radius: 14px;
+      min-height: 50px;
+      padding: 13px 18px;
+      border-radius: 16px;
+      font-size:14px;
     }
     .actionButton.primary{
-      min-width: 210px;
+      min-width: 224px;
+      box-shadow: 0 16px 30px rgba(15,39,66,.20);
+    }
+    .actionButton.ghost{
+      border-color: rgba(18,44,69,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,250,246,.96));
     }
     .homeInputBlock{
-      margin-top:16px;
+      margin-top:18px;
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:11px;
+      padding:16px;
+      border-radius:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,250,246,.95));
+      border:1px solid rgba(18,44,69,.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.82);
     }
     .inputLabel{
       font-size:12px;
       font-weight:800;
-      color:var(--text);
+      color:var(--navy);
+      letter-spacing:.18px;
     }
     .homeInputRow{
       display:grid;
       grid-template-columns: minmax(0, 1fr);
-      gap:10px;
+      gap:12px;
     }
     .homeInputRow input{
-      min-height:50px;
+      min-height:52px;
       font-size:16px;
     }
     .helperText{
       font-size:12px;
-      line-height:1.45;
+      line-height:1.5;
       color:var(--muted);
     }
     .secondaryZone{
       display:grid;
       grid-template-columns: minmax(0, 1fr);
-      gap:12px;
+      gap:14px;
+    }
+    .homeAuxSection{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.99), rgba(243,249,246,.97));
+      border:1px solid rgba(18,44,69,.08);
+      border-radius: 20px;
+      padding:16px;
+      box-shadow: 0 16px 28px rgba(15,39,66,.055);
     }
     .secondarySection{
       background: linear-gradient(180deg, rgba(253,255,254,.99), rgba(244,249,246,.97));
@@ -479,18 +500,20 @@
     .historyStack{
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:11px;
     }
     .historyEntry{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:10px;
-      padding:13px;
-      border-radius:16px;
-      background: linear-gradient(180deg, rgba(252,254,253,.99), rgba(246,251,248,.97));
-      border:1px solid rgba(18,44,69,.08);
-      box-shadow: 0 12px 24px rgba(15,39,66,.05);
+      gap:12px;
+      padding:14px;
+      border-radius:18px;
+      background:
+        radial-gradient(circle at top right, rgba(127,207,69,.08), transparent 32%),
+        linear-gradient(180deg, rgba(254,255,254,.995), rgba(246,251,248,.975));
+      border:1px solid rgba(18,44,69,.075);
+      box-shadow: 0 14px 24px rgba(15,39,66,.05);
     }
     .historyEntryMeta{
       min-width:0;
@@ -502,6 +525,7 @@
     .historyEntryMeta b{
       font-size:13px;
       line-height:1.35;
+      color:var(--navy);
     }
     .historyEntryMeta small{
       margin-top:3px;
@@ -512,6 +536,34 @@
       white-space:nowrap;
       align-self:center;
     }
+    .betaNotice{
+      border-color: rgba(15,39,66,.12) !important;
+      background:
+        radial-gradient(circle at top right, rgba(127,207,69,.11), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,248,244,.96)) !important;
+      box-shadow: 0 16px 30px rgba(15,39,66,.06);
+    }
+    .manualEntrySection{
+      border-radius:20px;
+      padding:16px;
+    }
+    .manualTextarea{
+      width:100%;
+      min-height:92px;
+      border-radius:16px;
+      border:1px solid rgba(18,44,69,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,249,246,.96));
+      padding:12px;
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.78);
+      resize:vertical;
+    }
+    .manualTextarea:focus{
+      border-color: rgba(15,39,66,.24);
+      box-shadow: 0 0 0 4px rgba(25,169,116,.10);
+    }
     details.homeHow{
       padding:0;
     }
@@ -519,6 +571,7 @@
       list-style:none;
       cursor:pointer;
       font-weight:800;
+      color:var(--navy);
     }
     details.homeHow summary::-webkit-details-marker{display:none}
     details.homeHow[open] summary{
@@ -633,6 +686,9 @@
       .secondaryZone{
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .scanHero{
+        padding:24px;
+      }
     }
     @media (min-width: 560px){
       .brandCompact{display:none;}
@@ -646,8 +702,14 @@
     @media (max-width: 720px){
       .wrap{padding:16px 12px 40px;}
       .top{margin-bottom:12px;}
-      .scanHero{padding:16px}
-      .homeTitle{font-size:24px}
+      .scanHero{padding:18px}
+      .homeTitle{font-size:26px; max-width:none}
+      .homeSubtitle{font-size:13px}
+      .homeActions{gap:10px}
+      .actionButton{width:100%}
+      .actionButton.primary{min-width:0}
+      .homeInputBlock{padding:14px}
+      .homeAuxSection{padding:14px}
       .section{padding:14px; margin-top:12px;}
       .prodHead{gap:12px;}
       .prodImg{width:70px; height:70px;}
@@ -3413,7 +3475,7 @@
     function renderBetaNotice(mode = "home"){
       const compact = mode !== "home";
       return `
-        <div class="section" style="margin-top:${compact ? "12px" : "0"}; border-color:rgba(123,212,255,.22); background:rgba(123,212,255,.06);">
+        <div class="section betaNotice" style="margin-top:${compact ? "12px" : "0"};">
           <div class="sectionTitle">${t("beta_title")} <span class="pill warn" style="margin-left:8px;">${t("beta_badge")}</span></div>
           <div class="mini">${t("beta_body")}</div>
           <div class="mini" style="margin-top:6px;">${t("beta_confidence_note")}</div>
@@ -3447,7 +3509,7 @@
     function renderManualEntryForm(){
       const form = state.manualForm || {};
       return `
-        <div class="section" style="margin-top:12px;">
+        <div class="section manualEntrySection" style="margin-top:12px;">
           <div class="sectionTitle">${t("manual_title")}</div>
           <div class="grid2">
             <div>
@@ -3460,7 +3522,7 @@
             </div>
             <div style="grid-column:1 / -1;">
               <div class="mini">${t("manual_ingredients")}</div>
-              <textarea id="manualIngredients" style="width:100%;min-height:92px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);padding:12px;color:var(--text);outline:none;font-size:14px;">${_escapeHtml(form.ingredients_text || "")}</textarea>
+              <textarea id="manualIngredients" class="manualTextarea">${_escapeHtml(form.ingredients_text || "")}</textarea>
             </div>
             <div>
               <div class="mini">${t("manual_calories")}</div>
@@ -4706,7 +4768,7 @@
         `;
       }).join("") : `<div class="mini">${empty}</div>`;
       return `
-        <div class="secondarySection">
+        <div class="secondarySection homeAuxSection">
           <div class="sectionTitle">${title}</div>
           <div class="historyStack">${body}</div>
         </div>
@@ -4715,7 +4777,7 @@
 
     function renderHomeHowSection(){
       return `
-        <div class="secondarySection full">
+        <div class="secondarySection full homeAuxSection">
           <details class="homeHow">
             <summary>${t("how_title")}</summary>
             <ul class="howBullets">
