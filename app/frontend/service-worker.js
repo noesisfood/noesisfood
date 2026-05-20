@@ -1,4 +1,4 @@
-const CACHE_NAME = "noesisfood-shell-v1";
+const CACHE_NAME = "noesisfood-shell-v2";
 const APP_SHELL_ASSETS = [
   "/",
   "/manifest.webmanifest",
