@@ -27,6 +27,8 @@ INDEX_FILE = FRONTEND_DIR / "index.html"
 MANIFEST_FILE = FRONTEND_DIR / "manifest.webmanifest"
 SERVICE_WORKER_FILE = FRONTEND_DIR / "service-worker.js"
 ICONS_DIR = FRONTEND_DIR / "icons"
+WELL_KNOWN_DIR = FRONTEND_DIR / ".well-known"
+ASSETLINKS_FILE = WELL_KNOWN_DIR / "assetlinks.json"
 
 # Serve static files (if you have css/js/images later)
 # Accessed like /static/...
@@ -51,6 +53,11 @@ async def serve_manifest():
 @app.get("/service-worker.js")
 async def serve_service_worker():
     return FileResponse(str(SERVICE_WORKER_FILE), media_type="application/javascript")
+
+
+@app.get("/.well-known/assetlinks.json")
+async def serve_assetlinks():
+    return FileResponse(str(ASSETLINKS_FILE), media_type="application/json")
 
 
 @app.get("/health")

@@ -47,6 +47,20 @@ class PwaTests(unittest.TestCase):
         self.assertIn('navigator.serviceWorker.register("/service-worker.js").catch(() => {});', content)
         self.assertIn('window.__NF_BUILD__ = "2026-05-20-pwa-shell-v2";', content)
 
+    def test_assetlinks_route_returns_expected_json(self) -> None:
+        response = self.client.get("/.well-known/assetlinks.json")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("application/json", response.headers.get("content-type", ""))
+        body = response.json()
+        self.assertEqual(len(body), 1)
+        self.assertIn("delegate_permission/common.handle_all_urls", body[0]["relation"])
+        self.assertEqual(body[0]["target"]["namespace"], "android_app")
+        self.assertEqual(body[0]["target"]["package_name"], "com.noesisfood.app")
+        self.assertIn(
+            "AF:A2:CC:DA:B9:DD:41:24:17:6D:70:58:00:8F:41:52:52:91:71:11:7A:25:D1:61:2E:C6:A4:EA:34:A2:A7:B9",
+            body[0]["target"]["sha256_cert_fingerprints"],
+        )
+
     def test_icon_files_exist(self) -> None:
         for name in ("icon-192.png", "icon-512.png", "icon-512-maskable.png"):
             self.assertTrue((Path("app/frontend/icons") / name).exists(), name)
