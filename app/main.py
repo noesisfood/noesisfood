@@ -24,6 +24,7 @@ app.add_middleware(
 APP_DIR = Path(__file__).resolve().parent          # app/
 FRONTEND_DIR = APP_DIR / "frontend"                # app/frontend/
 INDEX_FILE = FRONTEND_DIR / "index.html"
+PRIVACY_FILE = FRONTEND_DIR / "privacy.html"
 MANIFEST_FILE = FRONTEND_DIR / "manifest.webmanifest"
 SERVICE_WORKER_FILE = FRONTEND_DIR / "service-worker.js"
 ICONS_DIR = FRONTEND_DIR / "icons"
@@ -43,6 +44,11 @@ app.include_router(scan_router)
 async def serve_ui():
     # Serve the UI instead of JSON
     return FileResponse(str(INDEX_FILE))
+
+
+@app.get("/privacy")
+async def serve_privacy():
+    return FileResponse(str(PRIVACY_FILE), media_type="text/html")
 
 
 @app.get("/manifest.webmanifest")
