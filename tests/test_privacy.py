@@ -22,6 +22,7 @@ class PrivacyPageTests(unittest.TestCase):
         self.assertIn("Feedback and corrections", content)
         self.assertIn("Children", content)
         self.assertIn("Changes to this policy", content)
+        self.assertIn("/data-deletion", content)
 
 
 if __name__ == "__main__":
