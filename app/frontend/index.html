@@ -893,6 +893,70 @@
     const RECENT_PRODUCTS_KEY = "nf_recent_products_v1";
     const ANALYSIS_HISTORY_KEY = "nf_analysis_history_v1";
     const COMPARISON_HISTORY_KEY = "nf_comparison_history_v1";
+    const APP_STEP_HISTORY_KEY = "nf_top_level_step_v1";
+
+    function normalizeTopLevelStep(value){
+      const numeric = Number(value);
+      const candidate = Number.isFinite(numeric) ? Math.max(1, Math.min(4, Math.trunc(numeric))) : 1;
+      if (candidate === 1) return 1;
+      return state?.data ? candidate : 1;
+    }
+
+    function isManagedTopLevelHistoryState(value){
+      return Boolean(value && value[APP_STEP_HISTORY_KEY] === true);
+    }
+
+    function currentLocationForHistory(){
+      return `${window.location.pathname}${window.location.search}`;
+    }
+
+    function currentTopLevelHistoryState(){
+      return {
+        [APP_STEP_HISTORY_KEY]: true,
+        step: normalizeTopLevelStep(step),
+      };
+    }
+
+    function replaceTopLevelHistoryState(){
+      if (!window.history?.replaceState) return;
+      window.history.replaceState(currentTopLevelHistoryState(), "", currentLocationForHistory());
+    }
+
+    function pushTopLevelHistoryState(nextStep){
+      if (!window.history?.pushState) return;
+      const normalized = normalizeTopLevelStep(nextStep);
+      const current = window.history.state;
+      if (isManagedTopLevelHistoryState(current) && normalizeTopLevelStep(current?.step) === normalized) return;
+      window.history.pushState(
+        {
+          [APP_STEP_HISTORY_KEY]: true,
+          step: normalized,
+        },
+        "",
+        currentLocationForHistory()
+      );
+    }
+
+    function setTopLevelStep(nextStep, opts = {}){
+      const normalized = normalizeTopLevelStep(nextStep);
+      const historyMode = opts.historyMode || "replace";
+      step = normalized;
+      if (historyMode === "push") {
+        pushTopLevelHistoryState(normalized);
+      } else if (historyMode === "replace") {
+        replaceTopLevelHistoryState();
+      }
+      if (opts.render !== false) render();
+    }
+
+    function navigateBackStep(fallbackStep){
+      const current = window.history?.state;
+      if (window.history?.back && isManagedTopLevelHistoryState(current) && normalizeTopLevelStep(current?.step) === normalizeTopLevelStep(step)) {
+        window.history.back();
+        return;
+      }
+      setTopLevelStep(fallbackStep, { historyMode: "replace" });
+    }
 
     const i18n = {
       en: {
@@ -3811,8 +3875,7 @@
         state.recoveryOpen = false;
         _storeRecentProduct(data, data?.key || "manual:entry");
         _storeAnalysisHistory(data, data?.key || "manual:entry");
-        step = 2;
-        render();
+        setTopLevelStep(2, { historyMode: "push" });
       }catch(_e){
         if (!isCurrentAnalysisRequest(requestId)) return;
         state.error = t("err_network");
@@ -4134,8 +4197,7 @@
         state.photoCapture = emptyPhotoCapture();
         _storeRecentProduct(data, data?.key || "photo:entry");
         _storeAnalysisHistory(data, data?.key || "photo:entry");
-        step = 2;
-        render();
+        setTopLevelStep(2, { historyMode: "push" });
       }catch(_e){
         if (!isCurrentAnalysisRequest(requestId)) return;
         state.error = t("err_network");
@@ -6518,8 +6580,8 @@
             submitCorrectionFeedback();
           };
         }
-        document.getElementById("backBtn").onclick = () => { step = 1; render(); };
-        document.getElementById("nextBtn").onclick = () => { step = 3; render(); };
+        document.getElementById("backBtn").onclick = () => { navigateBackStep(1); };
+        document.getElementById("nextBtn").onclick = () => { setTopLevelStep(3, { historyMode: "push" }); };
         return;
       }
 
@@ -6572,8 +6634,8 @@
             }
           });
         }
-        document.getElementById("backBtn").onclick = () => { step = 2; render(); };
-        document.getElementById("nextBtn").onclick = () => { step = 4; render(); };
+        document.getElementById("backBtn").onclick = () => { navigateBackStep(2); };
+        document.getElementById("nextBtn").onclick = () => { setTopLevelStep(4, { historyMode: "push" }); };
         return;
       }
 
@@ -6613,9 +6675,8 @@
             </div>
           </div>
         `;
-        document.getElementById("backBtn").onclick = () => { step = 3; render(); };
+        document.getElementById("backBtn").onclick = () => { navigateBackStep(3); };
         document.getElementById("againBtn").onclick = () => {
-          step = 1;
           state.error = "";
           state.errorCode = "";
           state.data = null;
@@ -6639,7 +6700,7 @@
             nutrition_original_image_length:0,
           };
           state.photoCapture = emptyPhotoCapture();
-          render();
+          setTopLevelStep(1, { historyMode: "replace" });
         };
       }
     }
@@ -6683,8 +6744,7 @@
           const nextCompare = _getComparisonCandidates(nextKey)[0] || null;
           state.compareTargetKey = String(nextCompare?.key || "");
         }
-        step = 2;
-        render();
+        setTopLevelStep(2, { historyMode: "push" });
         requestAnimationFrame(() => logScanPerformance(cachedResult, startedAt));
         void (async () => {
           try{
@@ -6770,8 +6830,7 @@
           state.loading = false;
           state.scanStatusMessage = "";
           state.recoveryOpen = true;
-          step = 1;
-          render();
+          setTopLevelStep(1, { historyMode: "replace" });
           requestAnimationFrame(() => logScanPerformance(data, startedAt));
           return;
         }
@@ -6787,8 +6846,7 @@
           state.compareTargetKey = String(nextCompare?.key || "");
         }
         state.loading = false;
-        step = 2;
-        render();
+        setTopLevelStep(2, { historyMode: "push" });
         requestAnimationFrame(() => logScanPerformance(data, startedAt));
       }catch(e){
         if (!isCurrentAnalysisRequest(requestId) || state.key !== nextKey) return;
@@ -6822,7 +6880,7 @@
         console.warn(`[lang-switch] Failed to refresh data for ${lang}: ${e && e.message ? e.message : e}`);
       }finally{
         if (!isCurrentAnalysisRequest(requestId) || state.key !== currentKey) return;
-        step = preservedStep;
+        step = normalizeTopLevelStep(preservedStep);
         render();
       }
     }
@@ -6845,9 +6903,28 @@
       };
     }
 
+    window.addEventListener("popstate", (event) => {
+      const historyState = event.state;
+      if (isManagedTopLevelHistoryState(historyState)) {
+        const targetStep = normalizeTopLevelStep(historyState?.step);
+        if (targetStep !== step) {
+          step = targetStep;
+          render();
+        }
+        return;
+      }
+      const fallbackStep = normalizeTopLevelStep(1);
+      if (step !== fallbackStep) {
+        step = fallbackStep;
+        replaceTopLevelHistoryState();
+        render();
+      }
+    });
+
     window.__NF_BUILD__ = "2026-05-20-pwa-shell-v2";
 
     render();
+    replaceTopLevelHistoryState();
 
     if ("serviceWorker" in navigator){
       window.addEventListener("load", () => {

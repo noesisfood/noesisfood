@@ -102,6 +102,7 @@ The result page presents:
 - correction and feedback entry points.
 
 Section ordering and existing result architecture are considered stable unless explicitly changed.
+When internal top-level navigation history exists, browser or Android system back is expected to return through the previous top-level in-app screen before exiting the app.
 
 ### 6. Correction and feedback
 Users can:
