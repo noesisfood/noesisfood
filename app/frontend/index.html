@@ -6898,8 +6898,11 @@
         }
         lang = resolved;
         localStorage.setItem("nf_lang", lang);
+        if (state.key && state.data){
+          refreshCurrentDataForLanguage();
+          return;
+        }
         render();
-        refreshCurrentDataForLanguage();
       };
     }
 
