@@ -238,6 +238,8 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_confidence_low": "Confidence is low.",
         "note_missing_core_fields": "Some core nutrition fields are missing.",
         "note_nutrition_guard": "Incomplete nutrition data kept the basic nutrition assessment more cautious.",
+        "note_alcohol_informational": "Alcohol status makes this an informational product result, not a food-choice recommendation.",
+        "note_alcohol_unverified": "Alcohol status is not verified for this beer/radler-like product.",
     },
     "el": {
         "factor_high_sugar": "\u03a5\u03c8\u03b7\u03bb\u03ae \u03c0\u03b5\u03c1\u03b9\u03b5\u03ba\u03c4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c3\u03b5 \u03b6\u03ac\u03c7\u03b1\u03c1\u03b7",
@@ -263,6 +265,8 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_confidence_low": "\u0397 \u03b2\u03b5\u03b2\u03b1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b1 \u03b5\u03af\u03bd\u03b1\u03b9 \u03c7\u03b1\u03bc\u03b7\u03bb\u03ae.",
         "note_missing_core_fields": "\u039b\u03b5\u03af\u03c0\u03bf\u03c5\u03bd \u03bf\u03c1\u03b9\u03c3\u03bc\u03ad\u03bd\u03b1 \u03b2\u03b1\u03c3\u03b9\u03ba\u03ac \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ac \u03c3\u03c4\u03bf\u03b9\u03c7\u03b5\u03af\u03b1.",
         "note_nutrition_guard": "\u0397 \u03b5\u03bb\u03bb\u03b9\u03c0\u03ae\u03c2 \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ae \u03c0\u03bb\u03b7\u03c1\u03bf\u03c6\u03bf\u03c1\u03af\u03b1 \u03ba\u03c1\u03ac\u03c4\u03b7\u03c3\u03b5 \u03c0\u03b9\u03bf \u03c0\u03c1\u03bf\u03c3\u03b5\u03ba\u03c4\u03b9\u03ba\u03ae \u03c4\u03b7 \u03b2\u03b1\u03c3\u03b9\u03ba\u03ae \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ae \u03b1\u03be\u03b9\u03bf\u03bb\u03cc\u03b3\u03b7\u03c3\u03b7.",
+        "note_alcohol_informational": "\u0397 \u03ad\u03bd\u03b4\u03b5\u03b9\u03be\u03b7 \u03b1\u03bb\u03ba\u03bf\u03cc\u03bb \u03ba\u03ac\u03bd\u03b5\u03b9 \u03c4\u03bf \u03b1\u03c0\u03bf\u03c4\u03ad\u03bb\u03b5\u03c3\u03bc\u03b1 \u03b5\u03bd\u03b7\u03bc\u03b5\u03c1\u03c9\u03c4\u03b9\u03ba\u03cc, \u03cc\u03c7\u03b9 \u03c3\u03cd\u03c3\u03c4\u03b1\u03c3\u03b7 \u03b5\u03c0\u03b9\u03bb\u03bf\u03b3\u03ae\u03c2 \u03c4\u03c1\u03bf\u03c6\u03af\u03bc\u03bf\u03c5.",
+        "note_alcohol_unverified": "\u0397 \u03ba\u03b1\u03c4\u03ac\u03c3\u03c4\u03b1\u03c3\u03b7 \u03b1\u03bb\u03ba\u03bf\u03cc\u03bb \u03b4\u03b5\u03bd \u03ad\u03c7\u03b5\u03b9 \u03b5\u03c0\u03b1\u03bb\u03b7\u03b8\u03b5\u03c5\u03c4\u03b5\u03af \u03b3\u03b9\u03b1 \u03b1\u03c5\u03c4\u03cc \u03c4\u03bf \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd \u03c4\u03cd\u03c0\u03bf\u03c5 \u03bc\u03c0\u03af\u03c1\u03b1\u03c2/radler.",
     },
     "de": {
         "factor_high_sugar": "Hoher Zuckergehalt",
@@ -288,6 +292,8 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_confidence_low": "Die Konfidenz ist niedrig.",
         "note_missing_core_fields": "Einige zentrale N\u00e4hrwertfelder fehlen.",
         "note_nutrition_guard": "Unvollst\u00e4ndige N\u00e4hrwertangaben machten die grundlegende Ern\u00e4hrungsbewertung vorsichtiger.",
+        "note_alcohol_informational": "Der Alkoholstatus macht dies zu einer informativen Produktansicht, nicht zu einer Lebensmittelempfehlung.",
+        "note_alcohol_unverified": "Der Alkoholstatus ist f\u00fcr dieses bier-/radlerartige Produkt nicht verifiziert.",
     },
     "fr": {
         "factor_high_sugar": "Teneur \u00e9lev\u00e9e en sucre",
@@ -313,6 +319,8 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_confidence_low": "La confiance est faible.",
         "note_missing_core_fields": "Certains champs nutritionnels de base sont manquants.",
         "note_nutrition_guard": "Des donn\u00e9es nutritionnelles incompl\u00e8tes ont rendu l'\u00e9valuation nutritionnelle de base plus prudente.",
+        "note_alcohol_informational": "Le statut alcool rend ce r\u00e9sultat informatif, pas une recommandation de choix alimentaire.",
+        "note_alcohol_unverified": "Le statut alcool n'est pas v\u00e9rifi\u00e9 pour ce produit de type bi\u00e8re/radler.",
     },
 }
 
@@ -3146,6 +3154,153 @@ def _contains_any(text: str, needles: List[str]) -> bool:
     tl = str(text or "").lower()
     return any(str(needle or "").lower() in tl for needle in needles)
 
+
+_ALCOHOL_CATEGORY_MARKERS = [
+    "alcoholic-beverages",
+    "alcoholic beverages",
+    "alcoholic-drinks",
+    "alcoholic drinks",
+    "wine",
+    "wines",
+    "cider",
+    "spirits",
+    "liqueur",
+    "liquor",
+    "cocktail",
+]
+
+_BEER_RADLER_MARKERS = [
+    "beer",
+    "beers",
+    "bier",
+    "biere",
+    "bierre",
+    "birra",
+    "cerveza",
+    "radler",
+    "shandy",
+    "μπίρα",
+    "μπυρα",
+]
+
+_ALCOHOL_FREE_MARKERS = [
+    "0.0",
+    "0,0",
+    "0% alcohol",
+    "0 % alcohol",
+    "0.0% alcohol",
+    "0,0% alcohol",
+    "alcohol-free",
+    "alcohol free",
+    "non-alcoholic",
+    "non alcoholic",
+    "sans alcool",
+    "ohne alkohol",
+    "alkoholfrei",
+    "χωρίς αλκοόλ",
+    "χωρις αλκοολ",
+]
+
+def _alcohol_evidence_text(normalized: Dict[str, Any], raw: Optional[Dict[str, Any]]) -> str:
+    parts: List[str] = []
+
+    def add(value: Any) -> None:
+        if isinstance(value, str) and value.strip():
+            parts.append(value.strip())
+        elif isinstance(value, list):
+            for item in value:
+                add(item)
+
+    for key in ("name", "brand", "categories", "categories_tags", "ingredients_text", "labels", "labels_tags"):
+        add(normalized.get(key))
+    for item in _as_list(normalized.get("ingredients")):
+        if isinstance(item, dict):
+            add(item.get("name"))
+        else:
+            add(item)
+    dietary = normalized.get("dietary_label_info") if isinstance(normalized.get("dietary_label_info"), dict) else {}
+    add(dietary.get("labels"))
+    add(dietary.get("labels_tags"))
+    add(dietary.get("labels_hierarchy"))
+
+    raw_product = raw.get("product") if isinstance(raw, dict) and isinstance(raw.get("product"), dict) else (raw if isinstance(raw, dict) else {})
+    for key in (
+        "product_name",
+        "product_name_en",
+        "generic_name",
+        "categories",
+        "categories_tags",
+        "ingredients_text",
+        "ingredients_text_en",
+        "labels",
+        "labels_tags",
+        "labels_hierarchy",
+    ):
+        add(raw_product.get(key))
+
+    return " | ".join(parts).lower()
+
+
+def _detect_alcohol_status(normalized: Dict[str, Any], raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    evidence = _alcohol_evidence_text(normalized if isinstance(normalized, dict) else {}, raw)
+    alcohol_free = _contains_any(evidence, _ALCOHOL_FREE_MARKERS)
+    beer_like = _contains_any(evidence, _BEER_RADLER_MARKERS)
+    alcohol_category = _contains_any(evidence, _ALCOHOL_CATEGORY_MARKERS)
+    explicit_alcohol = bool(re.search(r"\b(?:alc\.?|alcohol|alcool|alkohol)\b\s*\d+(?:[.,]\d+)?\s*%?", evidence))
+    explicit_alcohol = explicit_alcohol or bool(re.search(r"\d+(?:[.,]\d+)?\s*%\s*(?:vol|alc|alcohol|alcool|alkohol)\b", evidence))
+    explicit_alcohol = explicit_alcohol or ("% vol" in evidence or "%vol" in evidence)
+
+    if alcohol_free:
+        status = "alcohol_free"
+    elif explicit_alcohol or alcohol_category:
+        status = "alcoholic"
+    elif beer_like:
+        status = "unverified_beer_radler"
+    else:
+        status = "not_detected"
+
+    return {
+        "status": status,
+        "is_alcoholic": status == "alcoholic",
+        "is_alcohol_free": status == "alcohol_free",
+        "is_unverified_beer_radler": status == "unverified_beer_radler",
+        "beer_radler_like": bool(beer_like),
+        "evidence": {
+            "alcohol_category": bool(alcohol_category),
+            "explicit_alcohol_text": bool(explicit_alcohol),
+            "alcohol_free_text": bool(alcohol_free),
+        },
+    }
+
+
+def _apply_alcohol_status_guard(score: int, analysis_confidence: str, alcohol_status: Dict[str, Any]) -> Tuple[int, str, Dict[str, Any]]:
+    status = str((alcohol_status or {}).get("status") or "not_detected").strip().lower()
+    if status == "alcoholic":
+        cap = 59
+        guarded_score = min(int(score), cap)
+        return guarded_score, "medium", {
+            "applied": guarded_score != int(score) or _confidence_rank(analysis_confidence) > _confidence_rank("medium"),
+            "status": status,
+            "score_cap": cap,
+            "reason": "confirmed_alcoholic_informational_only",
+        }
+    if status == "unverified_beer_radler":
+        cap = 59
+        guarded_score = min(int(score), cap)
+        return guarded_score, "medium", {
+            "applied": guarded_score != int(score) or _confidence_rank(analysis_confidence) > _confidence_rank("medium"),
+            "status": status,
+            "score_cap": cap,
+            "reason": "beer_radler_alcohol_status_unverified",
+        }
+    return int(score), analysis_confidence, {
+        "applied": False,
+        "status": status,
+        "score_cap": None,
+        "reason": "no_alcohol_guard",
+    }
+
+
 def _pattern_score_adjustments(
     normalized: Dict[str, Any],
     per100: Dict[str, Optional[float]],
@@ -4644,10 +4799,10 @@ def _core_nutrition_guard(per100: Dict[str, Optional[float]]) -> Dict[str, Any]:
         cap = 72
         reason = "core_nutrition_mostly_missing"
     elif present == 2:
-        cap = 82
+        cap = 78
         reason = "core_nutrition_partially_missing"
     else:
-        cap = 92
+        cap = 82
         reason = "single_core_nutrition_missing"
     return {
         "required_keys": required_keys,
@@ -4693,7 +4848,7 @@ def _align_analysis_confidence(
         return "low"
     if missing_core_count >= 3:
         return "low"
-    if missing_core_count >= 2 and current == "high":
+    if missing_core_count >= 1 and current == "high":
         current = "medium"
     return dq_tier if _confidence_rank(dq_tier) < _confidence_rank(current) else current
 
@@ -5093,7 +5248,14 @@ def _get_product_enrichment(barcode: str) -> Optional[Dict[str, Any]]:
     if not matches:
         return None
     matches.sort(key=lambda item: str(item.get("updated_at") or item.get("created_at") or ""))
-    return copy.deepcopy(matches[-1])
+    reviewed = [
+        item for item in matches
+        if str(item.get("review_status") or "").strip().lower() in {"reviewed", "approved", "validated"}
+    ]
+    if not reviewed:
+        return None
+    reviewed.sort(key=lambda item: str(item.get("updated_at") or item.get("created_at") or ""))
+    return copy.deepcopy(reviewed[-1])
 
 
 def _persist_product_enrichment(
@@ -6421,6 +6583,7 @@ def _analyze_normalized_product(
         per100 = _nutrients_per_100(norm)
         ingredients_intelligence = _recalibrate_processing_intelligence(norm, per100, ingredients, ingredients_intelligence)
         product_categories = norm.get("categories") or norm.get("categories_tags") or []
+        alcohol_status = _detect_alcohol_status(norm, raw)
         analysis_state, analysis_confidence = _analysis_mode(
             lookup_state=lookup_state,
             per100=per100,
@@ -6525,8 +6688,15 @@ def _analyze_normalized_product(
         cap_score = cap_adjustments.get("cap_score")
         if isinstance(cap_score, int):
             score = min(score, cap_score)
+        if isinstance(base_score_cap, int) and score > base_score_cap:
+            score = min(score, base_score_cap)
+            nutrition_guard["final_score_cap_applied"] = True
+        elif isinstance(nutrition_guard, dict):
+            nutrition_guard["final_score_cap_applied"] = False
+        score, analysis_confidence, alcohol_status_guard = _apply_alcohol_status_guard(score, analysis_confidence, alcohol_status)
         breakdown["floor_adjustments"] = floor_adjustments
         breakdown["cap_adjustments"] = cap_adjustments
+        breakdown["alcohol_status_guard"] = alcohol_status_guard
         breakdown["analysis_mode"] = {
             "state": analysis_state,
             "confidence": analysis_confidence,
@@ -6546,6 +6716,12 @@ def _analyze_normalized_product(
             data_quality=dq,
             lang=lang,
         )
+        if alcohol_status.get("is_alcoholic"):
+            vitascore_explanation["positive_factors"] = []
+            _append_unique_text(vitascore_explanation["confidence_notes"], tx(lang, "note_alcohol_informational"))
+        elif alcohol_status.get("is_unverified_beer_radler"):
+            vitascore_explanation["positive_factors"] = []
+            _append_unique_text(vitascore_explanation["confidence_notes"], tx(lang, "note_alcohol_unverified"))
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
         return _fallback_assessment_response(
@@ -6611,9 +6787,11 @@ def _analyze_normalized_product(
         "tips": tips,
         "who_impact": who,
         "data_quality": dq,
+        "alcohol_status": alcohol_status,
         "corrected_in_session": corrected_in_session,
         "meta": {
             "is_beverage": is_bev,
+            "alcohol_status": alcohol_status,
             "serving": {"amount": serving_amount, "unit": serving_unit, "source": serving_note},
             "lookup_state": lookup_state,
             "lookup_missing_fields": lookup_missing,

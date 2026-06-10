@@ -18,7 +18,7 @@ class UsageContextUiTests(unittest.TestCase):
         self.assertIn('usage_context_label_seasoning = "Verwendung als Gew\\u00fcrz"', content)
         self.assertIn('usage_context_label_seasoning = "Utilisation comme assaisonnement"', content)
         self.assertIn('${renderUsageContextBlock(d)}', content)
-        self.assertIn('const quickVerdict = usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score);', content)
+        self.assertIn('const quickVerdict = usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score, d);', content)
 
     def test_frontend_keeps_allergen_and_feedback_hooks_present(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
@@ -30,7 +30,7 @@ class UsageContextUiTests(unittest.TestCase):
 
     def test_frontend_does_not_show_generic_quick_verdict_as_primary_when_usage_context_applies(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
-        self.assertIn('usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score)', content)
+        self.assertIn('usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score, d)', content)
 
     def test_frontend_shows_comparison_context_warning_for_mismatch_without_blocking_comparison(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")

@@ -86,6 +86,8 @@ Expected behavior:
 - photos may support nutrition extraction and fallback rescue paths;
 - failures should degrade to recovery-oriented errors, not silent crashes;
 - OCR-backed results remain more cautious than verified structured lookups.
+- user photo/OCR enrichment is not submitted to Open Food Facts;
+- photo/OCR enrichment records with `review_status: "unreviewed"` are not silently reused to create future-user high-confidence or promotional scoring results.
 
 ### 5. Result page
 The result page presents:
@@ -166,6 +168,27 @@ The app distinguishes between:
 - score adjustments, caps, floors, and confidence/guard notes
 
 User-facing wording should remain professional, non-medical, and understandable in all supported UI languages.
+
+Missing core nutrition values must not silently behave as favorable zero values. Missing salt/sodium, sugar, saturated fat, energy, or similar core fields must keep scoring and confidence cautious through score caps, confidence reduction, or neutral limited-estimate handling.
+
+### Alcohol-status constraints
+Confirmed alcoholic products are detected from available product evidence, including category tags, product names, ingredient text, label fields, and explicit alcohol text where available.
+
+Confirmed alcoholic products:
+- may show neutral product and nutrition information;
+- must not receive promotional positive verdicts or food-choice recommendations;
+- must not be presented as a winner or better choice in comparison.
+
+Verified `0.0`, alcohol-free, or non-alcoholic products are distinguished from confirmed alcoholic products and from beer/radler-like products where alcohol status is not verified.
+
+Beer/radler-like products with unverified alcohol status must remain cautious and must not receive inflated or promotional verdicts.
+
+### Comparison constraints
+Comparison is informational and source-aware.
+
+When confirmed alcoholic products appear in comparison, the comparison must remain informational only and must not assign a winner or better-choice badge.
+
+When products differ materially by category family, comparison must show cautious limitation wording and must not imply an absolute recommendation.
 
 ## External Data and Safety Sources
 ### Product data

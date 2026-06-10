@@ -1008,6 +1008,7 @@
         compare_reason_flavourings: "Fewer flavourings.",
         compare_reason_simplicity: "Simpler ingredient profile.",
         compare_context_warning: "These products belong to different categories, so the comparison is indicative.",
+        compare_alcohol_informational: "Alcohol is involved, so this comparison is informational only.",
         history_title: "Recent history",
         history_analyses: "Recent analyses",
         history_comparisons: "Recent comparisons",
@@ -1061,6 +1062,8 @@
         quick_verdict_better: "Better choice",
         quick_verdict_moderate: "Moderate choice",
         quick_verdict_burdened: "More burdened choice",
+        quick_verdict_informational: "Informational only",
+        quick_verdict_partial: "Partial result",
         quick_verdict_note: "Detailed product data is available below.",
         usage_context_label_seasoning: "Seasoning use",
         usage_context_title: "Usage context",
@@ -1317,6 +1320,7 @@
         compare_reason_flavourings: "Λιγότερα αρώματα.",
         compare_reason_simplicity: "Απλούστερο προφίλ συστατικών.",
         compare_context_warning: "Τα προϊόντα ανήκουν σε διαφορετικές κατηγορίες, οπότε η σύγκριση είναι ενδεικτική.",
+        compare_alcohol_informational: "Υπάρχει ένδειξη αλκοόλ, οπότε η σύγκριση είναι μόνο ενημερωτική.",
         history_title: "Πρόσφατο ιστορικό",
         history_analyses: "Πρόσφατες αναλύσεις",
         history_comparisons: "Πρόσφατες συγκρίσεις",
@@ -1370,6 +1374,8 @@
         quick_verdict_better: "Καλή επιλογή",
         quick_verdict_moderate: "Μέτρια επιλογή",
         quick_verdict_burdened: "Πιο επιβαρυμένη επιλογή",
+        quick_verdict_informational: "Μόνο ενημερωτικά",
+        quick_verdict_partial: "Μερικό αποτέλεσμα",
         quick_verdict_note: "Τα αναλυτικά στοιχεία είναι διαθέσιμα παρακάτω.",
         quick_reasons_title: "Κύριοι λόγοι",
         quick_signals_title: "Βασικά σήματα",
@@ -1618,6 +1624,7 @@
         compare_reason_flavourings: "Weniger Aromen.",
         compare_reason_simplicity: "Einfacheres Zutatenprofil.",
         compare_context_warning: "Diese Produkte gehören zu unterschiedlichen Kategorien, daher ist der Vergleich nur als Orientierung gedacht.",
+        compare_alcohol_informational: "Alkohol ist beteiligt, daher ist dieser Vergleich nur informativ.",
         history_title: "Letzte Historie",
         history_analyses: "Letzte Analysen",
         history_comparisons: "Letzte Vergleiche",
@@ -1671,6 +1678,8 @@
         quick_verdict_better: "Bessere Wahl",
         quick_verdict_moderate: "Mittlere Wahl",
         quick_verdict_burdened: "Stärker belastete Wahl",
+        quick_verdict_informational: "Nur informativ",
+        quick_verdict_partial: "Teilergebnis",
         quick_verdict_note: "Detaillierte Produktdaten sind unten verfügbar.",
         quick_reasons_title: "Wichtigste Gründe",
         quick_signals_title: "Wichtige Signale",
@@ -1919,6 +1928,7 @@
         compare_reason_flavourings: "Moins d’arômes.",
         compare_reason_simplicity: "Profil d’ingrédients plus simple.",
         compare_context_warning: "Ces produits appartiennent à des catégories différentes, la comparaison est donc indicative.",
+        compare_alcohol_informational: "De l’alcool est impliqué, donc cette comparaison est uniquement informative.",
         history_title: "Historique récent",
         history_analyses: "Analyses récentes",
         history_comparisons: "Comparaisons récentes",
@@ -1972,6 +1982,8 @@
         quick_verdict_better: "Meilleur choix",
         quick_verdict_moderate: "Choix moyen",
         quick_verdict_burdened: "Choix plus chargé",
+        quick_verdict_informational: "Informatif uniquement",
+        quick_verdict_partial: "Résultat partiel",
         quick_verdict_note: "Les données détaillées du produit sont disponibles ci-dessous.",
         quick_reasons_title: "Raisons principales",
         quick_signals_title: "Signaux clés",
@@ -5902,6 +5914,7 @@
       const product = data?.product || {};
       const intel = data?.ingredients_intelligence || {};
       const markers = intel?.markers || {};
+      const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
       const scoreReasons = evaluateScoreExplanations(data);
       const warnings = Number(!!markers?.sweeteners) + Number(!!markers?.caffeine) + Number(!!markers?.colorants) + Number(!!markers?.flavourings) + Number(!!markers?.preservatives);
       const ingredientCount = Array.isArray(data?.ingredients) ? data.ingredients.length : 0;
@@ -5918,6 +5931,9 @@
         colorants: Number(markers?.colorants || 0),
         flavourings: _flavouringCount(intel),
         preservatives: Number(markers?.preservatives || 0),
+        alcoholStatus: String(alcohol?.status || "").toLowerCase(),
+        isAlcoholic: !!alcohol?.is_alcoholic || String(alcohol?.status || "").toLowerCase() === "alcoholic",
+        isAlcoholUnverifiedBeerRadler: !!alcohol?.is_unverified_beer_radler || String(alcohol?.status || "").toLowerCase() === "unverified_beer_radler",
         ingredientCount,
         warnings,
         reasons: [...scoreReasons.negative, ...scoreReasons.positive, ...scoreReasons.neutral].slice(0, 3)
@@ -5929,6 +5945,7 @@
       const right = _comparisonSummary(compareData, state.compareTargetKey);
       const scoredReasons = [];
       const scoreGap = Math.abs(Number(left.score || 0) - Number(right.score || 0));
+      const alcoholInformationalOnly = !!(left.isAlcoholic || right.isAlcoholic);
 
       if (left.score !== right.score){
         const winner = left.score > right.score ? "left" : "right";
@@ -5983,7 +6000,12 @@
         .slice(0, 4)
         .map(reason => reason.message);
 
-      return { winner, reasons, left, right };
+      if (alcoholInformationalOnly) {
+        winner = "tie";
+        reasons.length = 0;
+      }
+
+      return { winner, reasons, left, right, alcoholInformationalOnly };
     }
 
     function baselineScoreDisplayText(value){
@@ -6019,18 +6041,18 @@
       const leftFamily = comparisonCategoryFamily(currentData);
       const rightFamily = comparisonCategoryFamily(compareData);
       if (leftFamily === rightFamily) return false;
-      if ((leftFamily === "beverage" && rightFamily === "seasoning") || (leftFamily === "seasoning" && rightFamily === "beverage")) return true;
-      if (leftFamily === "seasoning" || rightFamily === "seasoning") return true;
-      return false;
+      return true;
     }
 
     function renderComparisonPanel(currentData, compareData){
       if (!compareData) return "";
       const verdict = determineComparisonVerdict(currentData, compareData);
       const showContextWarning = comparisonNeedsContextWarning(currentData, compareData);
-      const leftBadge = verdict.winner === "left" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
-      const rightBadge = verdict.winner === "right" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
-      const verdictText = verdict.winner === "tie"
+      const leftBadge = !verdict.alcoholInformationalOnly && verdict.winner === "left" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
+      const rightBadge = !verdict.alcoholInformationalOnly && verdict.winner === "right" ? `<span class="pill good">${t("compare_verdict")}</span>` : ``;
+      const verdictText = verdict.alcoholInformationalOnly
+        ? t("compare_alcohol_informational")
+        : verdict.winner === "tie"
         ? t("compare_verdict_tie")
         : `${verdict.winner === "left" ? _escapeHtml(verdict.left.name) : _escapeHtml(verdict.right.name)} - ${t("compare_verdict")}`;
 
@@ -6080,7 +6102,13 @@
       `;
     }
 
-    function quickVerdictLabel(score){
+    function quickVerdictLabel(score, data = null){
+      const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
+      const alcoholStatus = String(alcohol?.status || "").toLowerCase();
+      if (alcohol?.is_alcoholic || alcoholStatus === "alcoholic" || alcohol?.is_unverified_beer_radler || alcoholStatus === "unverified_beer_radler") return t("quick_verdict_informational");
+      const confidence = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
+      const stateKey = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
+      if (confidence === "low" || stateKey === "limited_estimate") return t("quick_verdict_partial");
       const n = Number(score);
       if (Number.isNaN(n)) return t("quick_verdict_moderate");
       if (n >= 95) return t("quick_verdict_excellent");
@@ -6474,7 +6502,7 @@
         const assessmentSubline = t("final_vita_explainer");
         const quickReasons = quickReasonItems(d);
         const quickSignals = quickSignalItems(d);
-        const quickVerdict = usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score);
+        const quickVerdict = usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score, d);
         const tier = tierFromScore(score);
         const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
         const unit = d?.meta?.serving?.unit || (p?.quantity?.toLowerCase?.().includes("ml") ? "ml" : "g");
