@@ -1225,6 +1225,7 @@
         enrich_next_step_nutrition: "Photograph the nutrition label",
         enrich_next_step_ingredients: "Photograph the ingredients list",
         enrich_next_step_review: "Review the updated result",
+        enrich_after_next_step: "After that, the app re-runs the analysis and shows the updated result.",
         enrich_step_nutrition: "Step 1: Scan the nutrition table",
         enrich_step_ingredients: "Step 2: Scan the ingredients list",
         enrich_step_refresh: "Step 3: We re-run the analysis immediately",
@@ -1538,6 +1539,7 @@
         enrich_next_step_nutrition: "Φωτογράφισε τη διατροφική ετικέτα",
         enrich_next_step_ingredients: "Φωτογράφισε τη λίστα συστατικών",
         enrich_next_step_review: "Δες το ενημερωμένο αποτέλεσμα",
+        enrich_after_next_step: "Μετά, η εφαρμογή επαναλαμβάνει την ανάλυση και δείχνει το ενημερωμένο αποτέλεσμα.",
         enrich_step_nutrition: "Βήμα 1: Σάρωση διατροφικού πίνακα",
         enrich_step_ingredients: "Βήμα 2: Σάρωση λίστας συστατικών",
         enrich_step_refresh: "Βήμα 3: Επαναλαμβάνουμε αμέσως την ανάλυση",
@@ -1846,6 +1848,7 @@
         enrich_next_step_nutrition: "Nährwerttabelle fotografieren",
         enrich_next_step_ingredients: "Zutatenliste fotografieren",
         enrich_next_step_review: "Aktualisiertes Ergebnis prüfen",
+        enrich_after_next_step: "Danach wiederholt die App die Analyse und zeigt das aktualisierte Ergebnis.",
         enrich_step_nutrition: "Schritt 1: Nährwerttabelle scannen",
         enrich_step_ingredients: "Schritt 2: Zutatenliste scannen",
         enrich_step_refresh: "Schritt 3: Wir führen die Analyse sofort erneut aus",
@@ -2154,6 +2157,7 @@
         enrich_next_step_nutrition: "Photographier l’étiquette nutritionnelle",
         enrich_next_step_ingredients: "Photographier la liste des ingrédients",
         enrich_next_step_review: "Vérifier le résultat mis à jour",
+        enrich_after_next_step: "Ensuite, l’application relance l’analyse et affiche le résultat mis à jour.",
         enrich_step_nutrition: "Étape 1 : Scanner le tableau nutritionnel",
         enrich_step_ingredients: "Étape 2 : Scanner la liste des ingrédients",
         enrich_step_refresh: "Étape 3 : Nous relançons immédiatement l’analyse",
@@ -3183,7 +3187,7 @@
           ${missingLabels.length ? `<div class="trustNotice" style="margin-top:10px;"><b>${t("missing_now")}:</b> ${_escapeHtml(missingLabels.join(", "))}</div>` : ``}
           ${!missingLabels.length && reasonItems.length ? `<div class="trustNotice" style="margin-top:10px;"><b>${t("missing_now")}:</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
           <div class="nextStepText"><b>${t("enrich_next_step")}:</b> ${nextStepLabel}</div>
-          <div class="stepHint">${t("enrich_step_refresh")} · ${t("enrich_step_result")}</div>
+          <div class="stepHint">${t("enrich_after_next_step")}</div>
           ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
           <div class="btns" style="margin-top:8px;">
             <button class="${nutritionBtnClass}" id="nutritionPhotoBtn">${t("enrich_scan_nutrition")}</button>
