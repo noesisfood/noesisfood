@@ -125,7 +125,7 @@
       font-size:15px;
       line-height:1.2;
     }
-    .mini{font-size:12px;color:var(--muted);line-height:1.3}
+    .mini{font-size:13px;color:var(--muted);line-height:1.48}
     .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
     button{
       cursor:pointer;
@@ -200,6 +200,32 @@
       margin-top: 10px;
       box-shadow: var(--shadowSoft);
     }
+    .trustNotice{
+      background: linear-gradient(180deg, rgba(255,251,239,.98), rgba(255,246,220,.96));
+      border:1px solid rgba(199,152,57,.26);
+      color:#75531b;
+      padding:12px 13px;
+      border-radius: 14px;
+      font-size:13px;
+      line-height:1.5;
+      margin-top:10px;
+      box-shadow: var(--shadowSoft);
+    }
+    .trustNotice.good{
+      background: linear-gradient(180deg, rgba(239,250,244,.98), rgba(230,246,236,.96));
+      border-color: rgba(25,169,116,.20);
+      color:#1b5f45;
+    }
+    .trustNotice.info{
+      background: linear-gradient(180deg, rgba(248,252,250,.98), rgba(239,246,243,.96));
+      border-color: rgba(44,95,77,.16);
+      color:var(--text);
+    }
+    .trustNotice .pill{margin-right:6px;}
+    .trustNotice b{color:inherit;}
+    .improveGuidance{font-size:14px; line-height:1.5;}
+    .nextStepText{font-size:14px; line-height:1.46; margin-top:10px; color:var(--navy);}
+    .stepHint{font-size:12px; line-height:1.45; color:var(--muted); margin-top:6px;}
 
     .prodHead{
       display:flex;
@@ -358,7 +384,7 @@
     }
     .whyRow span{color: var(--navy); font-weight:800}
 
-    .whyFoot{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.35;}
+    .whyFoot{margin-top:10px; font-size:13px; color:var(--muted); line-height:1.5;}
 
     .resultDataCard,
     .resultCompareSection,
@@ -1190,11 +1216,15 @@
         enrich_note: "This assessment is based on limited data.",
         enrich_help: "You can improve the result with an ingredient photo or nutrition table photo.",
         enrich_intro: "Scan the missing packaging information for a more accurate result now.",
+        enrich_guidance: "For a more complete result, photograph the nutrition label or fill in/correct the values.",
         enrich_saved_future: "If extraction succeeds, the enriched data is also stored for future scans.",
         enrich_reason_nutrition: "Nutrition table data is incomplete.",
         enrich_reason_ingredients: "Ingredients or additive details are incomplete.",
         enrich_reason_serving: "Serving size or unit details are incomplete.",
         enrich_next_step: "Recommended next step",
+        enrich_next_step_nutrition: "Photograph the nutrition label",
+        enrich_next_step_ingredients: "Photograph the ingredients list",
+        enrich_next_step_review: "Review the updated result",
         enrich_step_nutrition: "Step 1: Scan the nutrition table",
         enrich_step_ingredients: "Step 2: Scan the ingredients list",
         enrich_step_refresh: "Step 3: We re-run the analysis immediately",
@@ -1499,11 +1529,15 @@
         enrich_note: "Η αξιολόγηση βασίζεται σε περιορισμένα στοιχεία.",
         enrich_help: "Μπορείς να βελτιώσεις το αποτέλεσμα με φωτογραφία συστατικών ή διατροφικού πίνακα.",
         enrich_intro: "Σκάναρε τις πληροφορίες της συσκευασίας που λείπουν για πιο ακριβές αποτέλεσμα τώρα.",
+        enrich_guidance: "Για πιο πλήρες αποτέλεσμα, φωτογράφισε τη διατροφική ετικέτα ή συμπλήρωσε/διόρθωσε τις τιμές.",
         enrich_saved_future: "Αν η εξαγωγή πετύχει, τα εμπλουτισμένα δεδομένα αποθηκεύονται και για μελλοντικές σαρώσεις.",
         enrich_reason_nutrition: "Τα στοιχεία του διατροφικού πίνακα είναι ελλιπή.",
         enrich_reason_ingredients: "Η λίστα συστατικών ή οι λεπτομέρειες προσθέτων είναι ελλιπείς.",
         enrich_reason_serving: "Τα στοιχεία μερίδας ή μονάδας είναι ελλιπή.",
         enrich_next_step: "Προτεινόμενο επόμενο βήμα",
+        enrich_next_step_nutrition: "Φωτογράφισε τη διατροφική ετικέτα",
+        enrich_next_step_ingredients: "Φωτογράφισε τη λίστα συστατικών",
+        enrich_next_step_review: "Δες το ενημερωμένο αποτέλεσμα",
         enrich_step_nutrition: "Βήμα 1: Σάρωση διατροφικού πίνακα",
         enrich_step_ingredients: "Βήμα 2: Σάρωση λίστας συστατικών",
         enrich_step_refresh: "Βήμα 3: Επαναλαμβάνουμε αμέσως την ανάλυση",
@@ -1803,11 +1837,15 @@
         enrich_note: "Diese Bewertung basiert auf begrenzten Daten.",
         enrich_help: "Du kannst das Ergebnis mit einem Zutatenfoto oder Nährwertfoto verbessern.",
         enrich_intro: "Scanne die fehlenden Verpackungsinformationen jetzt für ein genaueres Ergebnis.",
+        enrich_guidance: "Für ein vollständigeres Ergebnis fotografiere die Nährwerttabelle oder ergänze/korrigiere die Werte.",
         enrich_saved_future: "Wenn die Extraktion gelingt, werden die angereicherten Daten auch für künftige Scans gespeichert.",
         enrich_reason_nutrition: "Die Daten der Nährwerttabelle sind unvollständig.",
         enrich_reason_ingredients: "Zutatenliste oder Zusatzstoffdetails sind unvollständig.",
         enrich_reason_serving: "Portions- oder Einheitendetails sind unvollständig.",
         enrich_next_step: "Empfohlener nächster Schritt",
+        enrich_next_step_nutrition: "Nährwerttabelle fotografieren",
+        enrich_next_step_ingredients: "Zutatenliste fotografieren",
+        enrich_next_step_review: "Aktualisiertes Ergebnis prüfen",
         enrich_step_nutrition: "Schritt 1: Nährwerttabelle scannen",
         enrich_step_ingredients: "Schritt 2: Zutatenliste scannen",
         enrich_step_refresh: "Schritt 3: Wir führen die Analyse sofort erneut aus",
@@ -2107,11 +2145,15 @@
         enrich_note: "Cette évaluation repose sur des données limitées.",
         enrich_help: "Vous pouvez améliorer le résultat avec une photo des ingrédients ou du tableau nutritionnel.",
         enrich_intro: "Scannez les informations manquantes de l’emballage pour un résultat plus précis dès maintenant.",
+        enrich_guidance: "Pour un résultat plus complet, photographiez l’étiquette nutritionnelle ou complétez/corrigez les valeurs.",
         enrich_saved_future: "Si l’extraction réussit, les données enrichies sont aussi enregistrées pour les prochains scans.",
         enrich_reason_nutrition: "Les données du tableau nutritionnel sont incomplètes.",
         enrich_reason_ingredients: "La liste des ingrédients ou les détails sur les additifs sont incomplets.",
         enrich_reason_serving: "Les informations de portion ou d’unité sont incomplètes.",
         enrich_next_step: "Étape suivante recommandée",
+        enrich_next_step_nutrition: "Photographier l’étiquette nutritionnelle",
+        enrich_next_step_ingredients: "Photographier la liste des ingrédients",
+        enrich_next_step_review: "Vérifier le résultat mis à jour",
         enrich_step_nutrition: "Étape 1 : Scanner le tableau nutritionnel",
         enrich_step_ingredients: "Étape 2 : Scanner la liste des ingrédients",
         enrich_step_refresh: "Étape 3 : Nous relançons immédiatement l’analyse",
@@ -3129,18 +3171,19 @@
         : (needsIngredients && !usedIngredientPhoto ? "ingredients" : "refresh");
       const nutritionBtnClass = nextStep === "nutrition" ? "primary" : "ghost";
       const ingredientBtnClass = nextStep === "ingredients" ? "primary" : "ghost";
+      const nextStepLabel = nextStep === "nutrition"
+        ? t("enrich_next_step_nutrition")
+        : (nextStep === "ingredients" ? t("enrich_next_step_ingredients") : t("enrich_next_step_review"));
       return `
         <div class="section resultDietaryCard" style="margin-top:12px;">
           <div class="sectionTitle">${t("enrich_title")}</div>
-          <div class="mini" style="margin-top:6px;">${t("enrich_intro")}</div>
+          <div class="trustNotice improveGuidance">${t("enrich_guidance")}</div>
+          <div class="mini" style="margin-top:8px;">${t("enrich_intro")}</div>
           <div class="mini" style="margin-top:6px;">${t("enrich_saved_future")}</div>
-          ${missingLabels.length ? `<div class="ok" style="margin-top:10px;"><b>${t("missing_now")}:</b> ${_escapeHtml(missingLabels.join(", "))}</div>` : ``}
-          ${!missingLabels.length && reasonItems.length ? `<div class="ok" style="margin-top:10px;"><b>${t("missing_now")}:</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
-          <div class="mini" style="margin-top:10px;"><b>${t("enrich_next_step")}:</b> ${nextStep === "nutrition" ? t("enrich_step_nutrition") : (nextStep === "ingredients" ? t("enrich_step_ingredients") : t("enrich_step_refresh"))}</div>
-          <div class="mini" style="margin-top:8px;">1. ${t("enrich_step_nutrition")}</div>
-          <div class="mini">2. ${t("enrich_step_ingredients")}</div>
-          <div class="mini">3. ${t("enrich_step_refresh")}</div>
-          <div class="mini">4. ${t("enrich_step_result")}</div>
+          ${missingLabels.length ? `<div class="trustNotice" style="margin-top:10px;"><b>${t("missing_now")}:</b> ${_escapeHtml(missingLabels.join(", "))}</div>` : ``}
+          ${!missingLabels.length && reasonItems.length ? `<div class="trustNotice" style="margin-top:10px;"><b>${t("missing_now")}:</b><br/>${reasonItems.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
+          <div class="nextStepText"><b>${t("enrich_next_step")}:</b> ${nextStepLabel}</div>
+          <div class="stepHint">${t("enrich_step_refresh")} · ${t("enrich_step_result")}</div>
           ${state.recoveryPhotoMessage ? `<div class="ok">${_escapeHtml(state.recoveryPhotoMessage)}</div>` : ``}
           <div class="btns" style="margin-top:8px;">
             <button class="${nutritionBtnClass}" id="nutritionPhotoBtn">${t("enrich_scan_nutrition")}</button>
@@ -3307,10 +3350,11 @@
       const confidenceKey = resolvedAnalysisConfidenceKey(data);
       const badgeLabel = localizedConfidenceBadgeLabel(confidenceKey);
       const badgeClass = confidenceKey === "high" ? "good" : "warn";
+      const noticeClass = confidenceKey === "high" ? "good" : "";
       const backendReasons = Array.isArray(data?.confidence_reasons) ? data.confidence_reasons : [];
       const reasons = backendReasons.length ? backendReasons : fallbackConfidenceReasonItems(data);
       return `
-        <div style="margin-top:10px;">
+        <div class="trustNotice ${noticeClass}" style="margin-top:10px;">
           <span class="pill ${badgeClass}">${_escapeHtml(badgeLabel)}</span>
           ${reasons.length ? `<div class="whyFoot" style="margin-top:10px;"><b>${t("confidence_reasons_title")}</b><br/>${reasons.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
         </div>
@@ -6117,6 +6161,16 @@
       return t("quick_verdict_burdened");
     }
 
+    function quickVerdictNoticeClass(data = null){
+      const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
+      const alcoholStatus = String(alcohol?.status || "").toLowerCase();
+      if (alcohol?.is_alcoholic || alcoholStatus === "alcoholic" || alcohol?.is_unverified_beer_radler || alcoholStatus === "unverified_beer_radler") return "trustNotice info";
+      const confidence = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
+      const stateKey = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
+      if (confidence === "low" || confidence === "medium" || stateKey === "partial_analysis" || stateKey === "limited_estimate") return "trustNotice";
+      return "ok";
+    }
+
     function usageContextData(data){
       const usage = data?.usage_context || data?.meta?.usage_context || null;
       return usage && typeof usage === "object" ? usage : null;
@@ -6531,7 +6585,7 @@
                 </div>
                 <div class="tier" style="background:${tier.color}; border-color:${tier.border};">${tier.label}</div>
               </div>
-              <div class="ok" style="margin-top:12px;"><b>${quickVerdict}</b></div>
+              <div class="${quickVerdictNoticeClass(d)}" style="margin-top:12px;"><b>${quickVerdict}</b></div>
               ${renderUsageContextBlock(d)}
               <div class="grid2">
                 <div class="kv"><small>${t("baseline_score_label")}</small><b>${baselineScoreText}</b></div>
