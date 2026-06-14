@@ -32,6 +32,41 @@ AMSTEL_RADLER_OFF_PAYLOAD = {
 }
 
 
+MITSIKELI_BAD_WATER_OFF_PAYLOAD = {
+    "status": 1,
+    "code": "20126353",
+    "product": {
+        "code": "20126353",
+        "product_name": "natural Mineral Water",
+        "brands": "Cremisée, WESA",
+        "quantity": "100 g",
+        "categories": "Cream cheeses",
+        "categories_tags": ["en:dairies", "en:fermented-milk-products", "en:cheeses", "en:cream-cheeses"],
+        "generic_name": "Frischkäsezubereitung, Doppelrahmstufe im Milchanteil, wärmebehandelt",
+        "ingredients_text": "_Frischkäse_, 6% Paprika, Speisesalz, Gewürze (mit _Senf_), Zucker, Gelatine (Schwein), Stabilisator: Johannisbrotkernmehl, Konservierungsstoff: Kaliumsorbat",
+        "ingredients": [
+            {"id": "en:soft-white-cheese", "text": "_Frischkäse_"},
+            {"id": "en:salt", "text": "Speisesalz"},
+            {"id": "en:e428", "text": "Gelatine"},
+            {"id": "en:preservative", "text": "Konservierungsstoff"},
+        ],
+        "additives_tags": ["en:e202", "en:e428"],
+        "additives_original_tags": ["en:e428", "en:e202"],
+        "allergens": "milk, mustard",
+        "allergens_tags": ["en:milk", "en:mustard"],
+        "serving_size": "30 g",
+        "nutrition_data_per": "100g",
+        "nutriments": {
+            "energy-kcal_100g": 329.6,
+            "sugars_100g": 3.2,
+            "salt_100g": 1.25,
+            "saturated-fat_100g": 19.8,
+            "proteins_100g": 9.1,
+        },
+    },
+}
+
+
 class P0SafetyDataQualityTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         ss._SCAN_RESULT_CACHE.clear()
@@ -183,6 +218,83 @@ class P0SafetyDataQualityTests(unittest.IsolatedAsyncioTestCase):
         ):
             self.assertIsNone(ss._get_product_enrichment("123"))
 
+    async def test_water_name_with_cream_cheese_source_data_is_informational_only(self) -> None:
+        with patch.object(
+            ss,
+            "fetch_off_product",
+            AsyncMock(return_value=OFFResult(ok=True, status=200, payload=MITSIKELI_BAD_WATER_OFF_PAYLOAD)),
+        ):
+            result = await ss.scan_product("20126353", lang="en")
+
+        contradiction = result["data_quality"]["category_contradiction"]
+        self.assertTrue(contradiction["applied"])
+        self.assertEqual(contradiction["code"], "water_category_contradiction")
+        self.assertEqual(contradiction["reason"], "category_nutrition_conflict")
+        self.assertEqual(result["analysis_confidence"], "low")
+        self.assertLess(result["vitascore"], 60)
+        self.assertIn(
+            "The available data appear inconsistent with the product category.",
+            result["confidence_reasons"],
+        )
+        self.assertIn(
+            "The available data appear inconsistent with the product category. This result is shown for information only.",
+            result["vitascore_explanation"]["confidence_notes"],
+        )
+        self.assertEqual(result["vitascore_explanation"]["positive_factors"], [])
+        self.assertIsNone(result["nutrition_per_100"]["sugar_g"])
+        self.assertIsNone(result["nutrition_per_100"]["salt_g"])
+        self.assertIsNone(result["nutrition_per_100"]["sat_fat_g"])
+        self.assertIsNone(result["nutrition_per_100"]["protein_g"])
+        self.assertIn("E202", result["ingredients_intelligence"]["detected_e_numbers"])
+        self.assertIn("milk_lactose", {item["id"] for item in result["allergen_detection"]["detected"]})
+
+    async def test_plain_mineral_water_control_is_not_marked_as_category_contradiction(self) -> None:
+        result = await ss.analyze_manual_product(
+            {
+                "name": "Natural Mineral Water Sparkling",
+                "brand": "Test",
+                "unit": "ml",
+                "categories": ["Mineral water", "Sparkling water"],
+                "ingredients_text": "water, carbon dioxide",
+                "energy_kcal": 0,
+                "sugar_g": 0,
+                "salt_g": 0,
+                "sat_fat_g": 0,
+                "protein_g": 0,
+                "serving_size": 500,
+            },
+            lang="en",
+        )
+
+        self.assertFalse(result["data_quality"].get("category_contradiction", {}).get("applied", False))
+        self.assertNotIn("water_category_contradiction", result["data_quality"].get("quality_flags", []))
+
+    async def test_legitimate_cream_cheese_control_is_not_marked_as_water_contradiction(self) -> None:
+        result = await ss.analyze_manual_product(
+            {
+                "name": "Cream Cheese",
+                "brand": "Test",
+                "unit": "g",
+                "categories": ["Cream cheeses"],
+                "ingredients_text": "milk, cream, salt, cultures",
+                "energy_kcal": 330,
+                "sugar_g": 3.2,
+                "salt_g": 1.25,
+                "sat_fat_g": 19.8,
+                "protein_g": 9.1,
+                "serving_size": 30,
+            },
+            lang="en",
+        )
+
+        self.assertFalse(result["data_quality"].get("category_contradiction", {}).get("applied", False))
+        self.assertNotIn("water_category_contradiction", result["data_quality"].get("quality_flags", []))
+
+    def test_water_category_contradiction_strings_cover_supported_languages(self) -> None:
+        for lang in ("el", "en", "de", "fr"):
+            self.assertNotEqual(ss.tx(lang, "note_category_contradiction"), "note_category_contradiction")
+            self.assertNotEqual(ss.tc(lang, "reason_category_contradiction"), "reason_category_contradiction")
+
 
 class P0SafetyDataQualityUiTests(unittest.TestCase):
     def test_frontend_alcohol_and_partial_verdict_strings_cover_supported_languages(self) -> None:
@@ -207,6 +319,14 @@ class P0SafetyDataQualityUiTests(unittest.TestCase):
         self.assertIn('!verdict.alcoholInformationalOnly && verdict.winner === "left"', content)
         self.assertIn('!verdict.alcoholInformationalOnly && verdict.winner === "right"', content)
         self.assertNotIn('quickVerdictLabel(score);', content)
+
+    def test_frontend_blocks_promotional_category_contradiction_verdict(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+        self.assertIn("function categoryContradictionApplies(data = null)", content)
+        self.assertIn("data?.data_quality?.category_contradiction?.applied", content)
+        self.assertIn("if (categoryContradictionApplies(data)) return t(\"quick_verdict_informational\");", content)
+        self.assertIn("if (categoryContradictionApplies(data)) return \"trustNotice info\";", content)
 
     def test_frontend_cross_category_warning_applies_to_family_mismatch(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")

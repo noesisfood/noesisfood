@@ -171,6 +171,17 @@ User-facing wording should remain professional, non-medical, and understandable 
 
 Missing core nutrition values must not silently behave as favorable zero values. Missing salt/sodium, sugar, saturated fat, energy, or similar core fields must keep scoring and confidence cautious through score caps, confidence reduction, or neutral limited-estimate handling.
 
+### Category-contradiction constraints
+When source data strongly conflict with product identity, confidence and verdicts must remain cautious.
+
+For bottled water, mineral water, natural mineral water, or sparkling water identity signals:
+- if source category, ingredients, allergens, additives, or ordinary nutrition values strongly indicate a different food category such as dairy or cheese;
+- or if ordinary macronutrients are impossible or clearly inconsistent for plain water;
+- the result must be treated as data-inconsistent and informational only.
+
+In that state, NoesisFood must not show high confidence, must not show strong positive food-choice verdicts, and must not present impossible ordinary macronutrients as trusted water nutrition.
+The user-facing wording must remain neutral and localized across `EL`, `EN`, `DE`, and `FR`.
+
 ### Alcohol-status constraints
 Confirmed alcoholic products are detected from available product evidence, including category tags, product names, ingredient text, label fields, and explicit alcohol text where available.
 

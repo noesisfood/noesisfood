@@ -240,6 +240,7 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_nutrition_guard": "Incomplete nutrition data kept the basic nutrition assessment more cautious.",
         "note_alcohol_informational": "Alcohol status makes this an informational product result, not a food-choice recommendation.",
         "note_alcohol_unverified": "Alcohol status is not verified for this beer/radler-like product.",
+        "note_category_contradiction": "The available data appear inconsistent with the product category. This result is shown for information only.",
     },
     "el": {
         "factor_high_sugar": "\u03a5\u03c8\u03b7\u03bb\u03ae \u03c0\u03b5\u03c1\u03b9\u03b5\u03ba\u03c4\u03b9\u03ba\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c3\u03b5 \u03b6\u03ac\u03c7\u03b1\u03c1\u03b7",
@@ -267,6 +268,7 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_nutrition_guard": "\u0397 \u03b5\u03bb\u03bb\u03b9\u03c0\u03ae\u03c2 \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ae \u03c0\u03bb\u03b7\u03c1\u03bf\u03c6\u03bf\u03c1\u03af\u03b1 \u03ba\u03c1\u03ac\u03c4\u03b7\u03c3\u03b5 \u03c0\u03b9\u03bf \u03c0\u03c1\u03bf\u03c3\u03b5\u03ba\u03c4\u03b9\u03ba\u03ae \u03c4\u03b7 \u03b2\u03b1\u03c3\u03b9\u03ba\u03ae \u03b4\u03b9\u03b1\u03c4\u03c1\u03bf\u03c6\u03b9\u03ba\u03ae \u03b1\u03be\u03b9\u03bf\u03bb\u03cc\u03b3\u03b7\u03c3\u03b7.",
         "note_alcohol_informational": "\u0397 \u03ad\u03bd\u03b4\u03b5\u03b9\u03be\u03b7 \u03b1\u03bb\u03ba\u03bf\u03cc\u03bb \u03ba\u03ac\u03bd\u03b5\u03b9 \u03c4\u03bf \u03b1\u03c0\u03bf\u03c4\u03ad\u03bb\u03b5\u03c3\u03bc\u03b1 \u03b5\u03bd\u03b7\u03bc\u03b5\u03c1\u03c9\u03c4\u03b9\u03ba\u03cc, \u03cc\u03c7\u03b9 \u03c3\u03cd\u03c3\u03c4\u03b1\u03c3\u03b7 \u03b5\u03c0\u03b9\u03bb\u03bf\u03b3\u03ae\u03c2 \u03c4\u03c1\u03bf\u03c6\u03af\u03bc\u03bf\u03c5.",
         "note_alcohol_unverified": "\u0397 \u03ba\u03b1\u03c4\u03ac\u03c3\u03c4\u03b1\u03c3\u03b7 \u03b1\u03bb\u03ba\u03bf\u03cc\u03bb \u03b4\u03b5\u03bd \u03ad\u03c7\u03b5\u03b9 \u03b5\u03c0\u03b1\u03bb\u03b7\u03b8\u03b5\u03c5\u03c4\u03b5\u03af \u03b3\u03b9\u03b1 \u03b1\u03c5\u03c4\u03cc \u03c4\u03bf \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd \u03c4\u03cd\u03c0\u03bf\u03c5 \u03bc\u03c0\u03af\u03c1\u03b1\u03c2/radler.",
+        "note_category_contradiction": "\u03a4\u03b1 \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c6\u03b1\u03af\u03bd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03b1\u03c3\u03cd\u03bc\u03b2\u03b1\u03c4\u03b1 \u03bc\u03b5 \u03c4\u03b7\u03bd \u03ba\u03b1\u03c4\u03b7\u03b3\u03bf\u03c1\u03af\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2. \u03a4\u03bf \u03b1\u03c0\u03bf\u03c4\u03ad\u03bb\u03b5\u03c3\u03bc\u03b1 \u03b5\u03bc\u03c6\u03b1\u03bd\u03af\u03b6\u03b5\u03c4\u03b1\u03b9 \u03bc\u03cc\u03bd\u03bf \u03b5\u03bd\u03b7\u03bc\u03b5\u03c1\u03c9\u03c4\u03b9\u03ba\u03ac.",
     },
     "de": {
         "factor_high_sugar": "Hoher Zuckergehalt",
@@ -294,6 +296,7 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_nutrition_guard": "Unvollst\u00e4ndige N\u00e4hrwertangaben machten die grundlegende Ern\u00e4hrungsbewertung vorsichtiger.",
         "note_alcohol_informational": "Der Alkoholstatus macht dies zu einer informativen Produktansicht, nicht zu einer Lebensmittelempfehlung.",
         "note_alcohol_unverified": "Der Alkoholstatus ist f\u00fcr dieses bier-/radlerartige Produkt nicht verifiziert.",
+        "note_category_contradiction": "Die verf\u00fcgbaren Daten wirken mit der Produktkategorie unvereinbar. Dieses Ergebnis wird nur informativ angezeigt.",
     },
     "fr": {
         "factor_high_sugar": "Teneur \u00e9lev\u00e9e en sucre",
@@ -321,6 +324,7 @@ VITASCORE_EXPLANATION_I18N: Dict[str, Dict[str, str]] = {
         "note_nutrition_guard": "Des donn\u00e9es nutritionnelles incompl\u00e8tes ont rendu l'\u00e9valuation nutritionnelle de base plus prudente.",
         "note_alcohol_informational": "Le statut alcool rend ce r\u00e9sultat informatif, pas une recommandation de choix alimentaire.",
         "note_alcohol_unverified": "Le statut alcool n'est pas v\u00e9rifi\u00e9 pour ce produit de type bi\u00e8re/radler.",
+        "note_category_contradiction": "Les donn\u00e9es disponibles semblent incoh\u00e9rentes avec la cat\u00e9gorie du produit. Ce r\u00e9sultat est affich\u00e9 \u00e0 titre informatif uniquement.",
     },
 }
 
@@ -345,6 +349,7 @@ ANALYSIS_CONFIDENCE_I18N: Dict[str, Dict[str, str]] = {
         "reason_lookup_incomplete": "Product data was incomplete for full verification.",
         "reason_serving_missing": "Serving information was not fully available.",
         "reason_safety_conditional": "Safety alert confidence is conditional.",
+        "reason_category_contradiction": "The available data appear inconsistent with the product category.",
     },
     "el": {
         "reason_barcode_confirmed": "\u0397 \u03c4\u03b1\u03c5\u03c4\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2 \u03b5\u03c0\u03b9\u03b2\u03b5\u03b2\u03b1\u03b9\u03ce\u03b8\u03b7\u03ba\u03b5 \u03bc\u03b5 barcode.",
@@ -360,6 +365,7 @@ ANALYSIS_CONFIDENCE_I18N: Dict[str, Dict[str, str]] = {
         "reason_lookup_incomplete": "\u03a4\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2 \u03b4\u03b5\u03bd \u03ae\u03c4\u03b1\u03bd \u03c0\u03bb\u03ae\u03c1\u03b7 \u03b3\u03b9\u03b1 \u03c0\u03bb\u03ae\u03c1\u03b7 \u03b5\u03c0\u03b1\u03bb\u03ae\u03b8\u03b5\u03c5\u03c3\u03b7.",
         "reason_serving_missing": "\u0394\u03b5\u03bd \u03ae\u03c4\u03b1\u03bd \u03c0\u03bb\u03ae\u03c1\u03c9\u03c2 \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b5\u03c2 \u03bf\u03b9 \u03c0\u03bb\u03b7\u03c1\u03bf\u03c6\u03bf\u03c1\u03af\u03b5\u03c2 \u03bc\u03b5\u03c1\u03af\u03b4\u03b1\u03c2.",
         "reason_safety_conditional": "\u0397 \u03b2\u03b5\u03b2\u03b1\u03b9\u03cc\u03c4\u03b7\u03c4\u03b1 \u03c4\u03b7\u03c2 \u03b5\u03b9\u03b4\u03bf\u03c0\u03bf\u03af\u03b7\u03c3\u03b7\u03c2 \u03b1\u03c3\u03c6\u03ac\u03bb\u03b5\u03b9\u03b1\u03c2 \u03b5\u03af\u03bd\u03b1\u03b9 \u03c5\u03c0\u03cc \u03cc\u03c1\u03bf\u03c5\u03c2.",
+        "reason_category_contradiction": "\u03a4\u03b1 \u03b4\u03b9\u03b1\u03b8\u03ad\u03c3\u03b9\u03bc\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c6\u03b1\u03af\u03bd\u03bf\u03bd\u03c4\u03b1\u03b9 \u03b1\u03c3\u03cd\u03bc\u03b2\u03b1\u03c4\u03b1 \u03bc\u03b5 \u03c4\u03b7\u03bd \u03ba\u03b1\u03c4\u03b7\u03b3\u03bf\u03c1\u03af\u03b1 \u03c4\u03bf\u03c5 \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03bf\u03c2.",
     },
     "de": {
         "reason_barcode_confirmed": "Die Produktidentit\u00e4t wurde per Barcode best\u00e4tigt.",
@@ -375,6 +381,7 @@ ANALYSIS_CONFIDENCE_I18N: Dict[str, Dict[str, str]] = {
         "reason_lookup_incomplete": "Die Produktdaten waren f\u00fcr eine vollst\u00e4ndige Verifikation unvollst\u00e4ndig.",
         "reason_serving_missing": "Portionsangaben waren nicht vollst\u00e4ndig verf\u00fcgbar.",
         "reason_safety_conditional": "Die Konfidenz des Sicherheitshinweises ist bedingt.",
+        "reason_category_contradiction": "Die verf\u00fcgbaren Daten wirken mit der Produktkategorie unvereinbar.",
     },
     "fr": {
         "reason_barcode_confirmed": "L'identit\u00e9 du produit a \u00e9t\u00e9 confirm\u00e9e par le code-barres.",
@@ -390,6 +397,7 @@ ANALYSIS_CONFIDENCE_I18N: Dict[str, Dict[str, str]] = {
         "reason_lookup_incomplete": "Les donn\u00e9es produit \u00e9taient incompl\u00e8tes pour une v\u00e9rification compl\u00e8te.",
         "reason_serving_missing": "Les informations de portion n'\u00e9taient pas enti\u00e8rement disponibles.",
         "reason_safety_conditional": "La confiance de l'alerte de s\u00e9curit\u00e9 est conditionnelle.",
+        "reason_category_contradiction": "Les donn\u00e9es disponibles semblent incoh\u00e9rentes avec la cat\u00e9gorie du produit.",
     },
 }
 
@@ -1510,6 +1518,23 @@ _CLEAN_WATER_MARKERS = [
     "wasser", "mineralwasser", "mineral water with carbonation", "mit kohlensäure",
     "eau", "eau minérale", "eau minerale", "eau gazeuse",
     "νερό", "μεταλλικό νερό", "ανθρακούχο νερό",
+]
+
+_STRONG_WATER_IDENTITY_MARKERS = [
+    "mineral water", "natural mineral water", "sparkling water", "carbonated water", "bottled water",
+    "mineralwasser", "natÃ¼rliches mineralwasser", "natuerliches mineralwasser", "sprudelwasser",
+    "eau minÃ©rale", "eau minerale", "eau gazeuse",
+    "\u03bc\u03b5\u03c4\u03b1\u03bb\u03bb\u03b9\u03ba\u03cc \u03bd\u03b5\u03c1\u03cc",
+    "\u03bc\u03b5\u03c4\u03b1\u03bb\u03bb\u03b9\u03ba\u03bf \u03bd\u03b5\u03c1\u03bf",
+    "\u03b1\u03bd\u03b8\u03c1\u03b1\u03ba\u03bf\u03cd\u03c7\u03bf \u03bd\u03b5\u03c1\u03cc",
+    "\u03b1\u03bd\u03b8\u03c1\u03b1\u03ba\u03bf\u03c5\u03c7\u03bf \u03bd\u03b5\u03c1\u03bf",
+]
+
+_WATER_CONTRADICTION_FOOD_MARKERS = [
+    "dairy", "dairies", "cheese", "cheeses", "cream cheese", "cream-cheese", "cream cheeses", "cream-cheeses",
+    "fermented-milk", "milk", "mustard", "gelatin", "gelatine", "rennet", "yogurt", "yoghurt",
+    "frischkÃ¤se", "frischkaese", "milch", "senf", "gelatine", "kÃ¤se", "kaese",
+    "fromage", "lait", "moutarde", "prÃ©sure", "presure",
 ]
 
 _CHEESE_EXCLUSION_MARKERS = [
@@ -3155,6 +3180,104 @@ def _contains_any(text: str, needles: List[str]) -> bool:
     return any(str(needle or "").lower() in tl for needle in needles)
 
 
+def _source_product(raw: Any) -> Dict[str, Any]:
+    if isinstance(raw, dict) and isinstance(raw.get("product"), dict):
+        return raw.get("product") or {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _water_identity_text(normalized: Dict[str, Any], raw: Any) -> str:
+    product = _source_product(raw)
+    parts = [
+        normalized.get("name"),
+        product.get("product_name"),
+        product.get("product_name_en"),
+        product.get("generic_name"),
+        product.get("generic_name_en"),
+        product.get("labels"),
+    ]
+    return " | ".join(str(item).strip().lower() for item in parts if str(item or "").strip())
+
+
+def _water_conflict_evidence_text(normalized: Dict[str, Any], raw: Any, ingredients: List[Dict[str, Any]]) -> str:
+    product = _source_product(raw)
+    parts: List[str] = []
+    for value in [
+        normalized.get("brand"),
+        normalized.get("ingredients_text"),
+        product.get("brands"),
+        product.get("generic_name"),
+        product.get("ingredients_text"),
+        product.get("allergens"),
+        product.get("traces"),
+    ]:
+        if str(value or "").strip():
+            parts.append(str(value).strip().lower())
+    for key in ("categories", "categories_tags", "additives_tags", "additives_original_tags", "allergens_tags", "traces_tags"):
+        for source in (normalized, product):
+            raw_value = source.get(key) if isinstance(source, dict) else None
+            if isinstance(raw_value, str) and raw_value.strip():
+                parts.append(raw_value.strip().lower())
+            elif isinstance(raw_value, list):
+                parts.extend(str(item).strip().lower() for item in raw_value if str(item).strip())
+    for item in _as_list(ingredients):
+        if isinstance(item, dict) and str(item.get("name") or "").strip():
+            parts.append(str(item.get("name")).strip().lower())
+    return " | ".join(parts)
+
+
+def _detect_water_category_contradiction(
+    normalized: Dict[str, Any],
+    raw: Any,
+    per100: Dict[str, Optional[float]],
+    ingredients: List[Dict[str, Any]],
+    ingredients_intelligence: Dict[str, Any],
+) -> Dict[str, Any]:
+    identity_text = _water_identity_text(normalized, raw)
+    has_water_identity = _contains_any(identity_text, _STRONG_WATER_IDENTITY_MARKERS)
+    if not has_water_identity:
+        return {"applied": False}
+
+    evidence_text = _water_conflict_evidence_text(normalized, raw, ingredients)
+    evidence: List[str] = []
+    if _contains_any(evidence_text, _WATER_CONTRADICTION_FOOD_MARKERS):
+        evidence.append("non_water_category_or_ingredient")
+
+    markers = ingredients_intelligence.get("markers") if isinstance(ingredients_intelligence, dict) else {}
+    if not isinstance(markers, dict):
+        markers = {}
+    if int(markers.get("preservatives") or 0) > 0 or int(markers.get("e_numbers") or 0) > 0:
+        evidence.append("additives_inconsistent_with_plain_water")
+    if _as_list(ingredients_intelligence.get("allergens") if isinstance(ingredients_intelligence, dict) else []):
+        evidence.append("allergens_inconsistent_with_plain_water")
+
+    impossible_fields: List[str] = []
+    thresholds = {
+        "energy_kcal": 5.0,
+        "sugar_g": 0.5,
+        "salt_g": 0.1,
+        "saturated_fat_g": 0.1,
+        "protein_g": 0.5,
+    }
+    for field, threshold in thresholds.items():
+        value = _to_float(per100.get(field))
+        if value is not None and value > threshold:
+            impossible_fields.append(field)
+    if impossible_fields:
+        evidence.append("ordinary_macros_inconsistent_with_plain_water")
+
+    if not evidence:
+        return {"applied": False}
+    return {
+        "applied": True,
+        "code": "water_category_contradiction",
+        "reason": "category_nutrition_conflict",
+        "evidence": list(dict.fromkeys(evidence)),
+        "suppressed_nutrition_fields": ["energy_kcal", "sugar_g", "salt_g", "sat_fat_g", "protein_g"],
+        "impossible_nutrition_fields": impossible_fields,
+    }
+
+
 _ALCOHOL_CATEGORY_MARKERS = [
     "alcoholic-beverages",
     "alcoholic beverages",
@@ -4607,6 +4730,8 @@ def _confidence_note_items(
 
     if bool(_get_path(breakdown, "who_baseline", "score_guard_applied")):
         _append_unique_text(notes, tx(lang, "note_nutrition_guard"))
+    if bool(_get_path(data_quality, "category_contradiction", "applied")):
+        _append_unique_text(notes, tx(lang, "note_category_contradiction"))
 
     return notes[:4]
 
@@ -4932,6 +5057,10 @@ def _apply_analysis_confidence_layer(result: Dict[str, Any], lang: str) -> Dict[
     if any(str(item.get("confidence") or "").strip().lower() == "conditional" for item in safety_alerts if isinstance(item, dict)):
         _append_confidence_reason(reasons, tc(lang, "reason_safety_conditional"))
         rank = min(rank, 2)
+
+    if bool(_get_path(data_quality, "category_contradiction", "applied")):
+        _append_confidence_reason(reasons, tc(lang, "reason_category_contradiction"))
+        rank = 1
 
     final_confidence = "high" if rank >= 3 else ("medium" if rank == 2 else "low")
     result["analysis_confidence"] = final_confidence
@@ -6582,6 +6711,7 @@ def _analyze_normalized_product(
 
         per100 = _nutrients_per_100(norm)
         ingredients_intelligence = _recalibrate_processing_intelligence(norm, per100, ingredients, ingredients_intelligence)
+        category_contradiction = _detect_water_category_contradiction(norm, raw, per100, ingredients, ingredients_intelligence)
         product_categories = norm.get("categories") or norm.get("categories_tags") or []
         alcohol_status = _detect_alcohol_status(norm, raw)
         analysis_state, analysis_confidence = _analysis_mode(
@@ -6640,6 +6770,9 @@ def _analyze_normalized_product(
         if isinstance(score_cap, int):
             score = min(score, score_cap)
         score = int(round(_clamp(score, 1.0, 100.0)))
+        if bool(category_contradiction.get("applied")):
+            score = min(score, 59)
+            analysis_confidence = "low"
         clean_water_floor = _clean_water_score_floor(
             norm,
             per100,
@@ -6666,6 +6799,7 @@ def _analyze_normalized_product(
         breakdown["nutrition_completeness_guard"] = nutrition_guard
         breakdown["pattern_adjustments"] = pattern_adjustments
         breakdown["balance_adjustments"] = balance_adjustments
+        breakdown["category_contradiction_guard"] = category_contradiction
         floor_adjustments = _whole_food_floor_adjustments(
             norm,
             per100,
@@ -6704,6 +6838,15 @@ def _analyze_normalized_product(
 
         why, tips = _build_explanations(per100, breakdown, is_bev, lang=lang)
         dq = _localize_data_quality_notes(_data_quality(norm, per100, bev_meta), lang)
+        if bool(category_contradiction.get("applied")):
+            dq["confidence"] = min(_to_float(dq.get("confidence")) or 0.25, 0.25)
+            dq["category_contradiction"] = category_contradiction
+            flags = _as_list(dq.get("quality_flags"))
+            flags.append("water_category_contradiction")
+            dq["quality_flags"] = list(dict.fromkeys(str(item) for item in flags if str(item)))
+            notes = _as_list(dq.get("notes"))
+            _append_unique_text(notes, tx(lang, "note_category_contradiction"))
+            dq["notes"] = notes
         analysis_confidence = _align_analysis_confidence(analysis_state, analysis_confidence, dq)
         vitascore_explanation = _build_vitascore_explanation(
             basic_nutrition_score=base_score if base_score_available else None,
@@ -6722,6 +6865,9 @@ def _analyze_normalized_product(
         elif alcohol_status.get("is_unverified_beer_radler"):
             vitascore_explanation["positive_factors"] = []
             _append_unique_text(vitascore_explanation["confidence_notes"], tx(lang, "note_alcohol_unverified"))
+        if bool(category_contradiction.get("applied")):
+            vitascore_explanation["positive_factors"] = []
+            _append_unique_text(vitascore_explanation["confidence_notes"], tx(lang, "note_category_contradiction"))
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
         return _fallback_assessment_response(
@@ -6752,6 +6898,24 @@ def _analyze_normalized_product(
         "barcode": str(norm.get("barcode") or "").strip() or (key if key and not key.startswith("manual:") else None),
     }
 
+    nutrition_output = {
+        "unit": str(per100.get("unit") or _get_path(norm, "nutrition_per_100", "unit") or "g").strip().lower() or "g",
+        "fat_g": per100.get("fat_g"),
+        "carb_g": per100.get("carb_g"),
+        "sugar_g": per100.get("sugar_g"),
+        "salt_g": per100.get("salt_g"),
+        "sat_fat_g": per100.get("saturated_fat_g"),
+        "protein_g": per100.get("protein_g"),
+        "energy_kcal": per100.get("energy_kcal"),
+        "serving_size": _to_float(_get_path(norm, "nutrition_per_100", "serving_size")),
+    }
+    if bool(category_contradiction.get("applied")):
+        for field in _as_list(category_contradiction.get("suppressed_nutrition_fields")):
+            if field == "saturated_fat_g":
+                nutrition_output["sat_fat_g"] = None
+            elif field in nutrition_output:
+                nutrition_output[field] = None
+
     result = _apply_analysis_confidence_layer({
         "key": key,
         "source": source,
@@ -6768,17 +6932,7 @@ def _analyze_normalized_product(
         "safety_alerts": safety_lookup.get("alerts", []),
         "ingredients": ingredients,
         "ingredients_intelligence": ingredients_intelligence,
-        "nutrition_per_100": {
-            "unit": str(per100.get("unit") or _get_path(norm, "nutrition_per_100", "unit") or "g").strip().lower() or "g",
-            "fat_g": per100.get("fat_g"),
-            "carb_g": per100.get("carb_g"),
-            "sugar_g": per100.get("sugar_g"),
-            "salt_g": per100.get("salt_g"),
-            "sat_fat_g": per100.get("saturated_fat_g"),
-            "protein_g": per100.get("protein_g"),
-            "energy_kcal": per100.get("energy_kcal"),
-            "serving_size": _to_float(_get_path(norm, "nutrition_per_100", "serving_size")),
-        },
+        "nutrition_per_100": nutrition_output,
         "vitascore": score,
         "vitascore_version": "v3_hybrid_pro",
         "vitascore_breakdown": breakdown,
@@ -6797,6 +6951,7 @@ def _analyze_normalized_product(
             "lookup_missing_fields": lookup_missing,
             "analysis_state": analysis_state,
             "analysis_confidence": analysis_confidence,
+            "category_contradiction": category_contradiction,
             "safety_alerts_checked": bool(safety_lookup.get("checked")),
             "safety_alerts_source": safety_lookup.get("source"),
             "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),

@@ -86,6 +86,13 @@ Fail:
 ## Recommended Smoke Assertions
 Use these quick checks to catch the highest-value regressions:
 
+- `20126353` / Mitsikeli natural mineral water data-quality guard
+  - Enter barcode `20126353`.
+  - Confirm the result does not show high confidence.
+  - Confirm the quick verdict is informational only, not `Excellent`, `Good choice`, `Εξαιρετικό`, `Καλή επιλογή`, `Καλύτερη επιλογή`, or the DE/FR equivalents.
+  - Confirm ordinary food macros from the inconsistent source record are not presented as trusted water nutrition.
+  - Confirm the confidence/data-quality details mention inconsistent category/source data.
+
 - `Coca-Cola Original Taste`
   - `Säuerungsmittel` resolves to `Acidifier` in EN.
   - `Farbstoff` resolves to `Χρωστική` in EL.

@@ -6150,10 +6150,15 @@
       `;
     }
 
+    function categoryContradictionApplies(data = null){
+      return !!(data?.data_quality?.category_contradiction?.applied || data?.meta?.category_contradiction?.applied);
+    }
+
     function quickVerdictLabel(score, data = null){
       const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
       const alcoholStatus = String(alcohol?.status || "").toLowerCase();
       if (alcohol?.is_alcoholic || alcoholStatus === "alcoholic" || alcohol?.is_unverified_beer_radler || alcoholStatus === "unverified_beer_radler") return t("quick_verdict_informational");
+      if (categoryContradictionApplies(data)) return t("quick_verdict_informational");
       const confidence = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
       const stateKey = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (confidence === "low" || stateKey === "limited_estimate") return t("quick_verdict_partial");
@@ -6169,6 +6174,7 @@
       const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
       const alcoholStatus = String(alcohol?.status || "").toLowerCase();
       if (alcohol?.is_alcoholic || alcoholStatus === "alcoholic" || alcohol?.is_unverified_beer_radler || alcoholStatus === "unverified_beer_radler") return "trustNotice info";
+      if (categoryContradictionApplies(data)) return "trustNotice info";
       const confidence = String(data?.analysis_confidence || data?.meta?.analysis_confidence || "").toLowerCase();
       const stateKey = String(data?.analysis_state || data?.meta?.analysis_state || "").toLowerCase();
       if (confidence === "low" || confidence === "medium" || stateKey === "partial_analysis" || stateKey === "limited_estimate") return "trustNotice";
