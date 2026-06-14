@@ -1,3 +1,4 @@
+import copy
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -241,12 +242,24 @@ class P0SafetyDataQualityTests(unittest.IsolatedAsyncioTestCase):
             result["vitascore_explanation"]["confidence_notes"],
         )
         self.assertEqual(result["vitascore_explanation"]["positive_factors"], [])
+        self.assertEqual(result["vitascore_explanation"]["negative_factors"], [])
+        self.assertEqual(result["vitascore_explanation"]["score_adjustments"], [])
+        self.assertIsNone(result["vitascore_explanation"]["basic_nutrition_score"])
+        self.assertEqual(result["why_this_score"], [])
+        self.assertEqual(result["tips"], [])
+        self.assertIsNone(result["who_impact"])
+        source_trust = result["data_quality"]["source_data_trust"]
+        self.assertFalse(source_trust["trusted"])
+        self.assertEqual(source_trust["reason"], "category_contradiction")
+        self.assertIn("nutrition", source_trust["suppressed_sections"])
+        self.assertIn("basic_nutrition_score", source_trust["suppressed_sections"])
+        self.assertIn("allergens", source_trust["suppressed_sections"])
+        self.assertIn("additives", source_trust["suppressed_sections"])
+        self.assertIn("ingredients_intelligence", source_trust["suppressed_sections"])
         self.assertIsNone(result["nutrition_per_100"]["sugar_g"])
         self.assertIsNone(result["nutrition_per_100"]["salt_g"])
         self.assertIsNone(result["nutrition_per_100"]["sat_fat_g"])
         self.assertIsNone(result["nutrition_per_100"]["protein_g"])
-        self.assertIn("E202", result["ingredients_intelligence"]["detected_e_numbers"])
-        self.assertIn("milk_lactose", {item["id"] for item in result["allergen_detection"]["detected"]})
 
     async def test_plain_mineral_water_control_is_not_marked_as_category_contradiction(self) -> None:
         result = await ss.analyze_manual_product(
@@ -290,6 +303,25 @@ class P0SafetyDataQualityTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["data_quality"].get("category_contradiction", {}).get("applied", False))
         self.assertNotIn("water_category_contradiction", result["data_quality"].get("quality_flags", []))
 
+    async def test_non_contradictory_dairy_payload_keeps_ingredient_and_allergen_details(self) -> None:
+        payload = copy.deepcopy(MITSIKELI_BAD_WATER_OFF_PAYLOAD)
+        product = payload["product"]
+        product["product_name"] = "Cream Cheese"
+        product["generic_name"] = "Cream cheese spread"
+
+        with patch.object(
+            ss,
+            "fetch_off_product",
+            AsyncMock(return_value=OFFResult(ok=True, status=200, payload=payload)),
+        ):
+            result = await ss.scan_product("20126353", lang="en")
+
+        self.assertFalse(result["data_quality"].get("category_contradiction", {}).get("applied", False))
+        self.assertNotIn("source_data_trust", result["data_quality"])
+        self.assertIsNotNone(result["vitascore_explanation"]["basic_nutrition_score"])
+        self.assertIn("E202", result["ingredients_intelligence"]["detected_e_numbers"])
+        self.assertIn("milk_lactose", {item["id"] for item in result["allergen_detection"]["detected"]})
+
     def test_water_category_contradiction_strings_cover_supported_languages(self) -> None:
         for lang in ("el", "en", "de", "fr"):
             self.assertNotEqual(ss.tx(lang, "note_category_contradiction"), "note_category_contradiction")
@@ -327,6 +359,20 @@ class P0SafetyDataQualityUiTests(unittest.TestCase):
         self.assertIn("data?.data_quality?.category_contradiction?.applied", content)
         self.assertIn("if (categoryContradictionApplies(data)) return t(\"quick_verdict_informational\");", content)
         self.assertIn("if (categoryContradictionApplies(data)) return \"trustNotice info\";", content)
+
+    def test_frontend_suppresses_trusted_source_sections_for_category_contradiction(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+        self.assertEqual(content.count("category_contradiction_source_data_note:"), 4)
+        self.assertIn("function renderCategoryContradictionSourceDataNotice(data = null)", content)
+        self.assertIn("if (categoryContradictionApplies(data)) return [];", content)
+        self.assertIn("if (categoryContradictionApplies(data)) return ``;", content)
+        self.assertIn("if (categoryContradictionApplies(data)) return \"\";", content)
+        self.assertIn("const contradictedSourceData = categoryContradictionApplies(d);", content)
+        self.assertIn("const per100 = contradictedSourceData ? {} : (d?.vitascore_breakdown?.per_100?.inputs || {});", content)
+        self.assertIn("const baselineScore = contradictedSourceData", content)
+        self.assertIn("contradictedSourceData ? renderCategoryContradictionSourceDataNotice(d)", content)
+        self.assertIn("categoryContradictionApplies(state.data) ? []", content)
 
     def test_frontend_cross_category_warning_applies_to_family_mismatch(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")

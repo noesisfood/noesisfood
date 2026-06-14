@@ -91,6 +91,8 @@ Use these quick checks to catch the highest-value regressions:
   - Confirm the result does not show high confidence.
   - Confirm the quick verdict is informational only, not `Excellent`, `Good choice`, `Εξαιρετικό`, `Καλή επιλογή`, `Καλύτερη επιλογή`, or the DE/FR equivalents.
   - Confirm ordinary food macros from the inconsistent source record are not presented as trusted water nutrition.
+  - Confirm Basic Nutrition Score is not presented as a normal trusted subscore for the contradicted source record.
+  - Confirm allergen/additive/ingredient-intelligence data from the contaminated source record are not presented as normal trusted detected indications.
   - Confirm the confidence/data-quality details mention inconsistent category/source data.
 
 - `Coca-Cola Original Taste`

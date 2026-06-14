@@ -1091,6 +1091,7 @@
         quick_verdict_informational: "Informational only",
         quick_verdict_partial: "Partial result",
         quick_verdict_note: "Detailed product data is available below.",
+        category_contradiction_source_data_note: "Nutrition/ingredient data from this source are not shown as trusted because they conflict with the product category.",
         usage_context_label_seasoning: "Seasoning use",
         usage_context_title: "Usage context",
         quick_reasons_title: "Top reasons",
@@ -1408,6 +1409,7 @@
         quick_verdict_informational: "Μόνο ενημερωτικά",
         quick_verdict_partial: "Μερικό αποτέλεσμα",
         quick_verdict_note: "Τα αναλυτικά στοιχεία είναι διαθέσιμα παρακάτω.",
+        category_contradiction_source_data_note: "Τα διατροφικά/συστατικά στοιχεία αυτής της πηγής δεν εμφανίζονται ως αξιόπιστα, επειδή συγκρούονται με την κατηγορία του προϊόντος.",
         quick_reasons_title: "Κύριοι λόγοι",
         quick_signals_title: "Βασικά σήματα",
         full_details_title: "Πλήρη στοιχεία",
@@ -1717,6 +1719,7 @@
         quick_verdict_informational: "Nur informativ",
         quick_verdict_partial: "Teilergebnis",
         quick_verdict_note: "Detaillierte Produktdaten sind unten verfügbar.",
+        category_contradiction_source_data_note: "Nährwert- und Zutatenangaben aus dieser Quelle werden nicht als verlässlich angezeigt, da sie der Produktkategorie widersprechen.",
         quick_reasons_title: "Wichtigste Gründe",
         quick_signals_title: "Wichtige Signale",
         full_details_title: "Vollständige Details",
@@ -2026,6 +2029,7 @@
         quick_verdict_informational: "Informatif uniquement",
         quick_verdict_partial: "Résultat partiel",
         quick_verdict_note: "Les données détaillées du produit sont disponibles ci-dessous.",
+        category_contradiction_source_data_note: "Les données nutritionnelles/ingrédients de cette source ne sont pas affichées comme fiables, car elles contredisent la catégorie du produit.",
         quick_reasons_title: "Raisons principales",
         quick_signals_title: "Signaux clés",
         full_details_title: "Détails complets",
@@ -3375,6 +3379,7 @@
     }
 
     function renderAllergenCard(data){
+      if (categoryContradictionApplies(data)) return "";
       const allergen = data?.allergen_detection || data?.meta?.allergen_detection || null;
       if (!allergen || typeof allergen !== "object") return "";
       const detected = Array.isArray(allergen?.detected) ? allergen.detected : [];
@@ -3470,6 +3475,7 @@
     }
 
     function renderDietarySignalsCard(data){
+      if (categoryContradictionApplies(data)) return "";
       const dietary = data?.dietary_signals || data?.meta?.dietary_signals || null;
       if (!dietary || typeof dietary !== "object") return "";
       const order = ["vegan", "vegetarian", "halal"];
@@ -3544,7 +3550,9 @@
       const d = data || {};
       const product = d?.product || {};
       const score = Number.isFinite(Number(d?.vitascore)) ? `${Number(d.vitascore)}/100` : "-";
-      const baselineScore = d?.vitascore_explanation?.basic_nutrition_score ?? d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
+      const baselineScore = categoryContradictionApplies(d)
+        ? null
+        : (d?.vitascore_explanation?.basic_nutrition_score ?? d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score);
       const baselineText = Number.isFinite(Number(baselineScore)) ? `${Number(baselineScore)}/100` : "";
       const confidenceKey = resolvedAnalysisConfidenceKey(d);
       const confidenceLabel = localizedConfidenceBadgeLabel(confidenceKey);
@@ -6154,6 +6162,15 @@
       return !!(data?.data_quality?.category_contradiction?.applied || data?.meta?.category_contradiction?.applied);
     }
 
+    function renderCategoryContradictionSourceDataNotice(data = null){
+      if (!categoryContradictionApplies(data)) return "";
+      return `
+        <div class="trustNotice info" style="margin-top:12px;">
+          ${_escapeHtml(t("category_contradiction_source_data_note"))}
+        </div>
+      `;
+    }
+
     function quickVerdictLabel(score, data = null){
       const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
       const alcoholStatus = String(alcohol?.status || "").toLowerCase();
@@ -6252,6 +6269,7 @@
     }
 
     function quickSignalItems(data){
+      if (categoryContradictionApplies(data)) return [];
       const intel = data?.ingredients_intelligence || {};
       const markers = intel?.markers || {};
       const eCount = Array.isArray(intel?.e_number_details) ? intel.e_number_details.length : 0;
@@ -6269,6 +6287,7 @@
     }
 
     function whoServingBlock(data){
+      if (categoryContradictionApplies(data)) return ``;
       const who = data?.who_impact;
       if (!who) return ``;
 
@@ -6296,6 +6315,14 @@
     }
 
     function buildWhyScoreHTML(data){
+      if (categoryContradictionApplies(data)){
+        return `
+          <div class="section">
+            <div class="sectionTitle">${t("why_title")}</div>
+            ${renderCategoryContradictionSourceDataNotice(data)}
+          </div>
+        `;
+      }
       const structured = evaluateScoreExplanations(data);
       const why = Array.isArray(data?.why_this_score) ? data.why_this_score : [];
       const tips = Array.isArray(data?.tips) ? data.tips : [];
@@ -6316,6 +6343,14 @@
     }
 
     function renderIngredientsIntel(data){
+      if (categoryContradictionApplies(data)){
+        return `
+          <div class="section">
+            <div class="sectionTitle">${t("ingredients_title")}</div>
+            ${renderCategoryContradictionSourceDataNotice(data)}
+          </div>
+        `;
+      }
       const intel = data?.ingredients_intelligence || null;
       const ings = Array.isArray(intel?.sanitized_ingredients)
         ? intel.sanitized_ingredients
@@ -6559,7 +6594,10 @@
         const compareTarget = compareCandidates.find(item => String(item?.key || "") === String(state.compareTargetKey || "")) || compareCandidates[0] || null;
         const compareTargetKey = String(compareTarget?.key || "");
         const score = d?.vitascore;
-        const baselineScore = d?.vitascore_explanation?.basic_nutrition_score ?? d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score;
+        const contradictedSourceData = categoryContradictionApplies(d);
+        const baselineScore = contradictedSourceData
+          ? null
+          : (d?.vitascore_explanation?.basic_nutrition_score ?? d?.vitascore_breakdown?.pre_pattern_score ?? d?.vitascore_breakdown?.who_baseline?.score);
         const baselineScoreText = baselineScoreDisplayText(baselineScore);
         const analysisState = String(d?.analysis_state || d?.meta?.analysis_state || "full_analysis").toLowerCase();
         const assessmentLabel = t("final_assessment");
@@ -6568,7 +6606,7 @@
         const quickSignals = quickSignalItems(d);
         const quickVerdict = usageContextApplies(d) ? usageContextPrimaryLabel(d) : quickVerdictLabel(score, d);
         const tier = tierFromScore(score);
-        const per100 = d?.vitascore_breakdown?.per_100?.inputs || {};
+        const per100 = contradictedSourceData ? {} : (d?.vitascore_breakdown?.per_100?.inputs || {});
         const unit = d?.meta?.serving?.unit || (p?.quantity?.toLowerCase?.().includes("ml") ? "ml" : "g");
         const sugar = per100.sugar_g_per_100 ?? d?.nutrition_per_100?.sugar_g;
         const salt = per100.salt_g_per_100 ?? d?.nutrition_per_100?.salt_g;
@@ -6597,16 +6635,18 @@
               </div>
               <div class="${quickVerdictNoticeClass(d)}" style="margin-top:12px;"><b>${quickVerdict}</b></div>
               ${renderUsageContextBlock(d)}
-              <div class="grid2">
-                <div class="kv"><small>${t("baseline_score_label")}</small><b>${baselineScoreText}</b></div>
-                <div class="kv"><small>${t("sugar")}</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-                <div class="kv"><small>${t("salt")}</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-                <div class="kv"><small>${t("sat_fat")}</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-                <div class="kv"><small>${t("protein")}</small><b>${fmtNum(prot)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
-              </div>
+              ${contradictedSourceData ? renderCategoryContradictionSourceDataNotice(d) : `
+                <div class="grid2">
+                  <div class="kv"><small>${t("baseline_score_label")}</small><b>${baselineScoreText}</b></div>
+                  <div class="kv"><small>${t("sugar")}</small><b>${fmtNum(sugar)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                  <div class="kv"><small>${t("salt")}</small><b>${fmtNum(salt)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                  <div class="kv"><small>${t("sat_fat")}</small><b>${fmtNum(sat)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                  <div class="kv"><small>${t("protein")}</small><b>${fmtNum(prot)} g/100${unit === "ml" ? "ml" : "g"}</b></div>
+                </div>
+              `}
               ${quickReasons.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_reasons_title")}</b><br/>${quickReasons.map(item => `- ${_escapeHtml(item.message || "")}`).join("<br/>")}</div>` : ``}
               ${quickSignals.length ? `<div class="whyFoot" style="margin-top:12px;"><b>${t("quick_signals_title")}</b><br/>${quickSignals.map(item => `- ${_escapeHtml(item)}`).join("<br/>")}</div>` : ``}
-              <div class="whyFoot" style="margin-top:10px;"><b>${t("baseline_score_label")}</b><br/>${t("baseline_score_explainer")}<br/>${t("final_vita_explainer")}</div>
+              ${contradictedSourceData ? `` : `<div class="whyFoot" style="margin-top:10px;"><b>${t("baseline_score_label")}</b><br/>${t("baseline_score_explainer")}<br/>${t("final_vita_explainer")}</div>`}
               <div class="mini" style="margin-top:8px;">${t("quick_verdict_note")}</div>
               <div class="btns" style="margin-top:10px;">
                 <button class="ghost" id="correctNutritionBtn">${t("correct_nutrition_values")}</button>
@@ -6688,7 +6728,7 @@
           ${whoServingBlock(state.data || {})}
           ${renderIngredientsIntel(state.data || {})}
         `;
-        const eDetails = Array.isArray(state.data?.ingredients_intelligence?.e_number_details) ? state.data.ingredients_intelligence.e_number_details : [];
+        const eDetails = categoryContradictionApplies(state.data) ? [] : (Array.isArray(state.data?.ingredients_intelligence?.e_number_details) ? state.data.ingredients_intelligence.e_number_details : []);
         if (eDetails.length){
           ensureENumberKnowledgeBaseLoaded();
         }

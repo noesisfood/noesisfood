@@ -6841,15 +6841,30 @@ def _analyze_normalized_product(
         if bool(category_contradiction.get("applied")):
             dq["confidence"] = min(_to_float(dq.get("confidence")) or 0.25, 0.25)
             dq["category_contradiction"] = category_contradiction
+            dq["source_data_trust"] = {
+                "trusted": False,
+                "reason": "category_contradiction",
+                "suppressed_sections": [
+                    "nutrition",
+                    "basic_nutrition_score",
+                    "allergens",
+                    "additives",
+                    "ingredients_intelligence",
+                    "dietary_signals",
+                ],
+            }
             flags = _as_list(dq.get("quality_flags"))
             flags.append("water_category_contradiction")
             dq["quality_flags"] = list(dict.fromkeys(str(item) for item in flags if str(item)))
             notes = _as_list(dq.get("notes"))
             _append_unique_text(notes, tx(lang, "note_category_contradiction"))
             dq["notes"] = notes
+            why = []
+            tips = []
+            who = None
         analysis_confidence = _align_analysis_confidence(analysis_state, analysis_confidence, dq)
         vitascore_explanation = _build_vitascore_explanation(
-            basic_nutrition_score=base_score if base_score_available else None,
+            basic_nutrition_score=None if bool(category_contradiction.get("applied")) else (base_score if base_score_available else None),
             final_score=score,
             per100=per100,
             intelligence=ingredients_intelligence,
@@ -6867,6 +6882,8 @@ def _analyze_normalized_product(
             _append_unique_text(vitascore_explanation["confidence_notes"], tx(lang, "note_alcohol_unverified"))
         if bool(category_contradiction.get("applied")):
             vitascore_explanation["positive_factors"] = []
+            vitascore_explanation["negative_factors"] = []
+            vitascore_explanation["score_adjustments"] = []
             _append_unique_text(vitascore_explanation["confidence_notes"], tx(lang, "note_category_contradiction"))
         ingredients_intelligence = _localize_intelligence(ingredients_intelligence, lang)
     except Exception:
