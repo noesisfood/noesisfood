@@ -89,6 +89,9 @@ Use these quick checks to catch the highest-value regressions:
 - `20126353` / Mitsikeli natural mineral water data-quality guard
   - Enter barcode `20126353`.
   - Confirm the result does not show high confidence.
+  - Confirm the contaminated source product name/brand are not shown as the trusted product identity.
+  - Confirm a neutral inconsistent-source title is shown and the barcode remains visible or traceable.
+  - Confirm the UI suggests existing photo/manual correction paths rather than inventing the correct product identity.
   - Confirm the quick verdict is informational only, not `Excellent`, `Good choice`, `Εξαιρετικό`, `Καλή επιλογή`, `Καλύτερη επιλογή`, or the DE/FR equivalents.
   - Confirm ordinary food macros from the inconsistent source record are not presented as trusted water nutrition.
   - Confirm Basic Nutrition Score is not presented as a normal trusted subscore for the contradicted source record.

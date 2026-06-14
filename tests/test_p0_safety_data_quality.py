@@ -251,6 +251,7 @@ class P0SafetyDataQualityTests(unittest.IsolatedAsyncioTestCase):
         source_trust = result["data_quality"]["source_data_trust"]
         self.assertFalse(source_trust["trusted"])
         self.assertEqual(source_trust["reason"], "category_contradiction")
+        self.assertIn("product_identity", source_trust["suppressed_sections"])
         self.assertIn("nutrition", source_trust["suppressed_sections"])
         self.assertIn("basic_nutrition_score", source_trust["suppressed_sections"])
         self.assertIn("allergens", source_trust["suppressed_sections"])
@@ -373,6 +374,24 @@ class P0SafetyDataQualityUiTests(unittest.TestCase):
         self.assertIn("const baselineScore = contradictedSourceData", content)
         self.assertIn("contradictedSourceData ? renderCategoryContradictionSourceDataNotice(d)", content)
         self.assertIn("categoryContradictionApplies(state.data) ? []", content)
+
+    def test_frontend_hides_contaminated_source_identity_for_category_contradiction(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+        self.assertEqual(content.count("category_contradiction_identity_title:"), 4)
+        self.assertEqual(content.count("category_contradiction_identity_guidance:"), 4)
+        self.assertIn("function categoryContradictionIdentityTitle(data = null)", content)
+        self.assertIn("function categoryContradictionIdentityMeta(data = null)", content)
+        self.assertIn("function renderCategoryContradictionIdentityGuidance(data = null)", content)
+        self.assertIn("const productTitle = contradictedSourceData", content)
+        self.assertIn("const productMeta = contradictedSourceData", content)
+        self.assertIn("categoryContradictionIdentityTitle(d)", content)
+        self.assertIn("categoryContradictionIdentityMeta(d)", content)
+        self.assertIn("(!contradictedSourceData && p?.image_url)", content)
+        self.assertIn("Barcode: ${barcode}", content)
+        self.assertIn("renderCategoryContradictionIdentityGuidance(d)", content)
+        self.assertIn("p?.name || t(\"unknown_product\")", content)
+        self.assertIn("p?.brand ? p.brand + \" | \" : \"\"", content)
 
     def test_frontend_cross_category_warning_applies_to_family_mismatch(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")

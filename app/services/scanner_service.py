@@ -6845,6 +6845,7 @@ def _analyze_normalized_product(
                 "trusted": False,
                 "reason": "category_contradiction",
                 "suppressed_sections": [
+                    "product_identity",
                     "nutrition",
                     "basic_nutrition_score",
                     "allergens",

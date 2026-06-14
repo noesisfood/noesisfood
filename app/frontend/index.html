@@ -1091,6 +1091,8 @@
         quick_verdict_informational: "Informational only",
         quick_verdict_partial: "Partial result",
         quick_verdict_note: "Detailed product data is available below.",
+        category_contradiction_identity_title: "Inconsistent source data",
+        category_contradiction_identity_guidance: "The available source data do not match the product category. Photograph the label or enter the details manually for a more reliable assessment.",
         category_contradiction_source_data_note: "Nutrition/ingredient data from this source are not shown as trusted because they conflict with the product category.",
         usage_context_label_seasoning: "Seasoning use",
         usage_context_title: "Usage context",
@@ -1409,6 +1411,8 @@
         quick_verdict_informational: "Μόνο ενημερωτικά",
         quick_verdict_partial: "Μερικό αποτέλεσμα",
         quick_verdict_note: "Τα αναλυτικά στοιχεία είναι διαθέσιμα παρακάτω.",
+        category_contradiction_identity_title: "Ασύμβατα δεδομένα πηγής",
+        category_contradiction_identity_guidance: "Τα διαθέσιμα στοιχεία της πηγής δεν ταιριάζουν με την κατηγορία του προϊόντος. Φωτογράφισε την ετικέτα ή συμπλήρωσε τα στοιχεία χειροκίνητα για πιο αξιόπιστη αξιολόγηση.",
         category_contradiction_source_data_note: "Τα διατροφικά/συστατικά στοιχεία αυτής της πηγής δεν εμφανίζονται ως αξιόπιστα, επειδή συγκρούονται με την κατηγορία του προϊόντος.",
         quick_reasons_title: "Κύριοι λόγοι",
         quick_signals_title: "Βασικά σήματα",
@@ -1719,6 +1723,8 @@
         quick_verdict_informational: "Nur informativ",
         quick_verdict_partial: "Teilergebnis",
         quick_verdict_note: "Detaillierte Produktdaten sind unten verfügbar.",
+        category_contradiction_identity_title: "Widersprüchliche Quelldaten",
+        category_contradiction_identity_guidance: "Die verfügbaren Quelldaten passen nicht zur Produktkategorie. Fotografiere das Etikett oder gib die Angaben manuell ein, um eine verlässlichere Bewertung zu erhalten.",
         category_contradiction_source_data_note: "Nährwert- und Zutatenangaben aus dieser Quelle werden nicht als verlässlich angezeigt, da sie der Produktkategorie widersprechen.",
         quick_reasons_title: "Wichtigste Gründe",
         quick_signals_title: "Wichtige Signale",
@@ -2029,6 +2035,8 @@
         quick_verdict_informational: "Informatif uniquement",
         quick_verdict_partial: "Résultat partiel",
         quick_verdict_note: "Les données détaillées du produit sont disponibles ci-dessous.",
+        category_contradiction_identity_title: "Données source incohérentes",
+        category_contradiction_identity_guidance: "Les données disponibles de la source ne correspondent pas à la catégorie du produit. Photographiez l’étiquette ou saisissez les informations manuellement pour une évaluation plus fiable.",
         category_contradiction_source_data_note: "Les données nutritionnelles/ingrédients de cette source ne sont pas affichées comme fiables, car elles contredisent la catégorie du produit.",
         quick_reasons_title: "Raisons principales",
         quick_signals_title: "Signaux clés",
@@ -3557,12 +3565,16 @@
       const confidenceKey = resolvedAnalysisConfidenceKey(d);
       const confidenceLabel = localizedConfidenceBadgeLabel(confidenceKey);
       const confidenceClass = confidenceKey === "high" ? "good" : "warn";
-      const productName = String(product?.name || t("unknown_product")).trim() || t("unknown_product");
+      const productName = categoryContradictionApplies(d)
+        ? categoryContradictionIdentityTitle(d)
+        : (String(product?.name || t("unknown_product")).trim() || t("unknown_product"));
+      const identityMeta = categoryContradictionApplies(d) ? categoryContradictionIdentityMeta(d) : "";
       return `
         <div class="scoreSummaryCompact">
           <div class="scoreSummaryCompactMeta">
             <div class="mini">${t("final_assessment")}</div>
             <b>${_escapeHtml(productName)}</b>
+            ${identityMeta ? `<div class="mini">${_escapeHtml(identityMeta)}</div>` : ``}
             <div class="scoreSummaryCompactScore">
               <span class="scoreSummaryCompactValue">${_escapeHtml(score)}</span>
               ${baselineText ? `<span class="mini">${t("baseline_score_label")}: ${_escapeHtml(baselineText)}</span>` : ``}
@@ -6171,6 +6183,30 @@
       `;
     }
 
+    function productBarcodeValue(data = null){
+      const product = data?.product || {};
+      return String(product?.barcode || data?.barcode || data?.code || state?.key || "").trim();
+    }
+
+    function categoryContradictionIdentityTitle(data = null){
+      if (!categoryContradictionApplies(data)) return "";
+      return t("category_contradiction_identity_title");
+    }
+
+    function categoryContradictionIdentityMeta(data = null){
+      const barcode = productBarcodeValue(data);
+      return barcode ? `Barcode: ${barcode}` : "";
+    }
+
+    function renderCategoryContradictionIdentityGuidance(data = null){
+      if (!categoryContradictionApplies(data)) return "";
+      return `
+        <div class="trustNotice info" style="margin-top:12px;">
+          ${_escapeHtml(t("category_contradiction_identity_guidance"))}
+        </div>
+      `;
+    }
+
     function quickVerdictLabel(score, data = null){
       const alcohol = data?.alcohol_status || data?.meta?.alcohol_status || {};
       const alcoholStatus = String(alcohol?.status || "").toLowerCase();
@@ -6612,14 +6648,20 @@
         const salt = per100.salt_g_per_100 ?? d?.nutrition_per_100?.salt_g;
         const sat = per100.saturated_fat_g_per_100 ?? d?.nutrition_per_100?.sat_fat_g;
         const prot = per100.protein_g_per_100 ?? d?.nutrition_per_100?.protein_g;
+        const productTitle = contradictedSourceData
+          ? categoryContradictionIdentityTitle(d)
+          : (p?.name || t("unknown_product"));
+        const productMeta = contradictedSourceData
+          ? categoryContradictionIdentityMeta(d)
+          : `${p?.brand ? p.brand + " | " : ""}${d?.vitascore_version || ""}`;
 
         app.innerHTML = `
           <div class="section resultHeroCard">
             <div class="prodHead">
-              ${p?.image_url ? `<img class="prodImg" src="${p.image_url}" alt="product"/>` : `<div class="prodImg"></div>`}
+              ${(!contradictedSourceData && p?.image_url) ? `<img class="prodImg" src="${p.image_url}" alt="product"/>` : `<div class="prodImg"></div>`}
               <div class="prodMeta">
-                <b>${p?.name || t("unknown_product")}</b>
-                <span>${p?.brand ? p.brand + " | " : ""}${d?.vitascore_version || ""}</span>
+                <b>${_escapeHtml(productTitle)}</b>
+                ${productMeta ? `<span>${_escapeHtml(productMeta)}</span>` : ``}
               </div>
             </div>
             <div class="section scorePrimaryCard" style="margin-top:12px;">
@@ -6634,6 +6676,7 @@
                 <div class="tier" style="background:${tier.color}; border-color:${tier.border};">${tier.label}</div>
               </div>
               <div class="${quickVerdictNoticeClass(d)}" style="margin-top:12px;"><b>${quickVerdict}</b></div>
+              ${renderCategoryContradictionIdentityGuidance(d)}
               ${renderUsageContextBlock(d)}
               ${contradictedSourceData ? renderCategoryContradictionSourceDataNotice(d) : `
                 <div class="grid2">

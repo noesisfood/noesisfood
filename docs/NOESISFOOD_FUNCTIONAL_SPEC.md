@@ -181,6 +181,7 @@ For bottled water, mineral water, natural mineral water, or sparkling water iden
 
 In that state, NoesisFood must not show high confidence, must not show strong positive food-choice verdicts, and must not present impossible ordinary macronutrients as trusted water nutrition.
 The result may remain visible as informational only, but ordinary nutrition macros, Basic Nutrition Score, allergen/additive signals, dietary signals, and ingredient-intelligence sections from the contradicted source record must be hidden or clearly marked as untrusted rather than displayed as normal product facts.
+The source product name, brand, and image must also not be presented as trusted identity when the same source record is contradicted; the UI should use neutral inconsistent-source wording, keep the barcode traceable when available, and direct users to existing photo/manual correction paths.
 The user-facing wording must remain neutral and localized across `EL`, `EN`, `DE`, and `FR`.
 
 ### Alcohol-status constraints
