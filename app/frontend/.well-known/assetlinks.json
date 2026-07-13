@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.noesisfood.app",
       "sha256_cert_fingerprints": [
-        "AF:A2:CC:DA:B9:DD:41:24:17:6D:70:58:00:8F:41:52:52:91:71:11:7A:25:D1:61:2E:C6:A4:EA:34:A2:A7:B9"
+        "AF:A2:CC:DA:B9:DD:41:24:17:6D:70:58:00:8F:41:52:52:91:71:11:7A:25:D1:61:2E:C6:A4:EA:34:A2:A7:B9",
+        "9D:BA:01:6F:DE:67:0D:E2:65:D4:B2:08:BF:B6:16:5A:8F:07:1C:00:14:CA:A6:6A:0D:80:8C:B0:FF:94:6A:EB"
       ]
     }
   }
