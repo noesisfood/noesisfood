@@ -6663,6 +6663,7 @@ def _fallback_assessment_response(
             "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
         },
     }, lang)
+    return result
 
 
 def _analyze_normalized_product(
