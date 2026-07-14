@@ -32,6 +32,10 @@ class SoyDrinkRegressionTests(unittest.IsolatedAsyncioTestCase):
             ss,
             "_lookup_external_safety_alerts",
             return_value={"checked": False, "source": None, "has_matches": False, "alerts": []},
+        ), patch.object(
+            ss,
+            "_find_local_product",
+            return_value=None,
         ):
             for lang in SUPPORTED_LANGS:
                 with self.subTest(lang=lang):
@@ -63,6 +67,45 @@ class SoyDrinkRegressionTests(unittest.IsolatedAsyncioTestCase):
                         self.assertTrue(any("begrenzte" in note for note in notes))
                     elif lang == "fr":
                         self.assertTrue(any("estimation" in note for note in notes))
+
+    async def test_reported_soy_drink_lookup_uses_curated_tester_photo_data(self) -> None:
+        ss._SCAN_RESULT_CACHE.clear()
+        with patch.object(
+            ss,
+            "fetch_off_product",
+            side_effect=AssertionError("curated local product should be used before OpenFoodFacts"),
+        ), patch.object(
+            ss,
+            "_lookup_external_safety_alerts",
+            return_value={"checked": False, "source": None, "has_matches": False, "alerts": []},
+        ):
+            result = await ss.scan_product(BARCODE, lang="en")
+
+        self.assertFalse(result.get("error"))
+        self.assertEqual(result["source"], "local")
+        self.assertEqual(result["matched_by"], "local_db")
+        self.assertNotEqual(result["lookup_state"], "not_found")
+        self.assertEqual(result["product"]["barcode"], BARCODE)
+        self.assertEqual(result["product"]["name"], "Μικρές φάρμες του βουνού - Ρόφημα από σόγια")
+        self.assertEqual(result["product"]["brand"], "Μικρές φάρμες του βουνού")
+        self.assertEqual(result["product"]["quantity"], "1L")
+        self.assertIn("ingredients", result["lookup_missing_fields"])
+        curated_review = result["meta"]["curated_review"]
+        self.assertEqual(curated_review["source"], "tester_label_photos")
+        self.assertIn("curator reviewed", curated_review["note"])
+        self.assertIn("no external database verification", curated_review["note"])
+        self.assertEqual(curated_review["confidence"], 0.8)
+
+        nutrition = result["nutrition_per_100"]
+        self.assertEqual(nutrition["unit"], "ml")
+        self.assertEqual(nutrition["energy_kcal"], 31.0)
+        self.assertEqual(nutrition["fat_g"], 1.5)
+        self.assertEqual(nutrition["sat_fat_g"], 0.3)
+        self.assertEqual(nutrition["carb_g"], 0.9)
+        self.assertEqual(nutrition["sugar_g"], 0.5)
+        self.assertEqual(nutrition["protein_g"], 3.3)
+        self.assertEqual(nutrition["salt_g"], 0.09)
+        self.assertEqual(result["ingredients"], [])
 
     def test_reported_soy_drink_nutrition_ocr_rescue_accepts_bilingual_comma_decimal_table(self) -> None:
         payload = {

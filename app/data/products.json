@@ -2,6 +2,39 @@
   "schema_version": "v0",
   "products": [
     {
+      "key": "mikres_farmes_soy_drink_5205941062666",
+      "barcode": "5205941062666",
+      "name": "Μικρές φάρμες του βουνού - Ρόφημα από σόγια",
+      "brand": "Μικρές φάρμες του βουνού",
+      "quantity": "1L",
+      "categories": [
+        "Soy drink"
+      ],
+      "serving_size": {
+        "value": 100.0,
+        "unit": "ml"
+      },
+      "nutrients_per_100": {
+        "unit": "ml",
+        "energy_kj": 130.0,
+        "energy_kcal": 31.0,
+        "fat_g": 1.5,
+        "saturated_fat_g": 0.3,
+        "carb_g": 0.9,
+        "sugar_g": 0.5,
+        "protein_g": 3.3,
+        "salt_g": 0.09
+      },
+      "review": {
+        "note": "tester-provided label photos; curator reviewed; identity and nutrition transcribed from label photos; ingredients not provided/visible; no external database verification",
+        "date": "2026-07-14",
+        "confidence": 0.8,
+        "source": "tester_label_photos"
+      },
+      "producer": "International Food S.r.l.",
+      "importer": "MARKET IN A.E.B.E."
+    },
+    {
       "key": "test_coke",
       "barcode": "5449000000996",
       "name": "Coca-Cola Original Taste",

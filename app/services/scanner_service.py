@@ -6977,6 +6977,14 @@ def _analyze_normalized_product(
             "corrected_in_session": corrected_in_session,
         },
     }, lang)
+    if source == "local" and isinstance(raw, dict) and isinstance(raw.get("review"), dict):
+        review = raw.get("review") or {}
+        result.setdefault("meta", {})["curated_review"] = {
+            "source": str(review.get("source") or "curated_local_data").strip(),
+            "note": str(review.get("note") or "").strip(),
+            "date": str(review.get("date") or "").strip(),
+            "confidence": _to_float(review.get("confidence")),
+        }
     result = _attach_allergen_detection(result, norm, raw, lang)
     result = _attach_dietary_signals(result, norm, raw, lang)
     return _attach_usage_context(result, norm, lang)
@@ -7180,9 +7188,24 @@ async def scan_product(key: str, lang: str = "en") -> Dict[str, Any]:
             fallback_nutrients = curated.get("nutrients_per_100")
             nutrients_per_100 = fallback_nutrients if isinstance(fallback_nutrients, dict) else None
         if isinstance(nutrients_per_100, dict):
+            nutrition_per_100 = norm.get("nutrition_per_100") if isinstance(norm.get("nutrition_per_100"), dict) else {}
+            nutrition_per_100.update({
+                "unit": str(nutrients_per_100.get("unit") or _get_path(norm, "serving", "unit") or "").strip().lower() or None,
+                "energy_kcal": nutrients_per_100.get("energy_kcal"),
+                "fat_g": nutrients_per_100.get("fat_g"),
+                "carb_g": nutrients_per_100.get("carb_g"),
+                "sugar_g": nutrients_per_100.get("sugar_g"),
+                "salt_g": nutrients_per_100.get("salt_g"),
+                "sat_fat_g": nutrients_per_100.get("saturated_fat_g"),
+                "protein_g": nutrients_per_100.get("protein_g"),
+                "serving_size": _to_float(_get_path(norm, "serving", "value")),
+            })
+            norm["nutrition_per_100"] = nutrition_per_100
             norm["nutriments"] = {
                 "per_100": {
                     "energy_kcal": nutrients_per_100.get("energy_kcal"),
+                    "fat_g": nutrients_per_100.get("fat_g"),
+                    "carb_g": nutrients_per_100.get("carb_g"),
                     "sugar_g": nutrients_per_100.get("sugar_g"),
                     "salt_g": nutrients_per_100.get("salt_g"),
                     "saturated_fat_g": nutrients_per_100.get("saturated_fat_g"),
