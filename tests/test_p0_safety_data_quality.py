@@ -391,7 +391,8 @@ class P0SafetyDataQualityUiTests(unittest.TestCase):
         self.assertIn("Barcode: ${barcode}", content)
         self.assertIn("renderCategoryContradictionIdentityGuidance(d)", content)
         self.assertIn("p?.name || t(\"unknown_product\")", content)
-        self.assertIn("p?.brand ? p.brand + \" | \" : \"\"", content)
+        self.assertIn("String(p?.brand || \"\").trim()", content)
+        self.assertNotIn("${d?.vitascore_version || \"\"}", content)
 
     def test_frontend_cross_category_warning_applies_to_family_mismatch(self) -> None:
         content = Path("app/frontend/index.html").read_text(encoding="utf-8")
