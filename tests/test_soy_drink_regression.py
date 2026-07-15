@@ -106,6 +106,11 @@ class SoyDrinkRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(nutrition["protein_g"], 3.3)
         self.assertEqual(nutrition["salt_g"], 0.09)
         self.assertEqual(result["ingredients"], [])
+        self.assertEqual(result["vitascore"], 82)
+        self.assertEqual(result["analysis_confidence"], "medium")
+        self.assertIn("ingredients", result["lookup_missing_fields"])
+        self.assertNotIn("Simple ingredient profile", result["vitascore_explanation"]["positive_factors"])
+        self.assertNotIn("Relatively low processing", result["vitascore_explanation"]["positive_factors"])
 
     def test_reported_soy_drink_nutrition_ocr_rescue_accepts_bilingual_comma_decimal_table(self) -> None:
         payload = {
@@ -163,6 +168,12 @@ class SoyDrinkRegressionTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.subTest(key=key):
                 self.assertGreaterEqual(content.count(f"{key}:"), len(SUPPORTED_LANGS))
+
+    def test_frontend_result_subtitle_does_not_expose_internal_vitascore_version(self) -> None:
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+        self.assertIn(': String(p?.brand || "").trim();', content)
+        self.assertNotIn('`${p?.brand ? p.brand + " | " : ""}${d?.vitascore_version || ""}`', content)
 
 
 if __name__ == "__main__":

@@ -4679,14 +4679,15 @@ def _nutrition_factor_lists(
     e_count = len(_as_list(intelligence.get("detected_e_numbers"))) if isinstance(intelligence, dict) else 0
     if not e_count:
         e_count = len(_as_list(intelligence.get("e_number_details"))) if isinstance(intelligence, dict) else 0
+    has_ingredient_evidence = bool(_as_list(intelligence.get("sanitized_ingredients"))) if isinstance(intelligence, dict) else False
 
     if protein is not None and protein >= 8:
         _append_unique_text(positive, tx(lang, "factor_high_protein"))
     if sugar is not None and sugar <= 5:
         _append_unique_text(positive, tx(lang, "factor_low_sugar"))
-    if processing_score is not None and processing_score <= 2:
+    if has_ingredient_evidence and processing_score is not None and processing_score <= 2:
         _append_unique_text(positive, tx(lang, "factor_minimal_processing"))
-    if e_count <= 1 and all(int(markers.get(key) or 0) == 0 for key in ("preservatives", "colorants", "sweeteners")):
+    if has_ingredient_evidence and e_count <= 1 and all(int(markers.get(key) or 0) == 0 for key in ("preservatives", "colorants", "sweeteners")):
         _append_unique_text(positive, tx(lang, "factor_simple_profile"))
 
     if sugar is not None and sugar >= 10:

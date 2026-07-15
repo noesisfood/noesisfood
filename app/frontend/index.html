@@ -5729,6 +5729,7 @@
         markers: data?.ingredients_intelligence?.markers || {},
         processingLabel: String(data?.ingredients_intelligence?.processing_label || "").trim(),
         ingredientCount: ings.length,
+        hasIngredientEvidence: ings.length > 0,
         productText,
         productCategories,
         data
@@ -5770,11 +5771,12 @@
             return true;
           }
           case "processing_label_any": {
+            if (!evidence.hasIngredientEvidence) return false;
             const current = _ingredientLookupKey(evidence.processingLabel);
             return triggerTerms.some(term => _ingredientLookupKey(term) === current);
           }
           case "ingredient_count_lte":
-            return Number(evidence.ingredientCount || 0) <= Number(conditions.max || 0);
+            return evidence.hasIngredientEvidence && Number(evidence.ingredientCount || 0) <= Number(conditions.max || 0);
           case "ingredient_count_gte":
             return Number(evidence.ingredientCount || 0) >= Number(conditions.min || 0);
           case "product_text_any":
@@ -5841,11 +5843,12 @@
           return true;
         }
         case "processing_label_any": {
+          if (!evidence.hasIngredientEvidence) return false;
           const current = _ingredientLookupKey(evidence.processingLabel);
           return triggerTerms.some(term => _ingredientLookupKey(term) === current);
         }
         case "ingredient_count_lte":
-          return Number(evidence.ingredientCount || 0) <= Number(conditions.max || 0);
+          return evidence.hasIngredientEvidence && Number(evidence.ingredientCount || 0) <= Number(conditions.max || 0);
         case "ingredient_count_gte":
           return Number(evidence.ingredientCount || 0) >= Number(conditions.min || 0);
         case "product_text_any":
@@ -6653,7 +6656,7 @@
           : (p?.name || t("unknown_product"));
         const productMeta = contradictedSourceData
           ? categoryContradictionIdentityMeta(d)
-          : `${p?.brand ? p.brand + " | " : ""}${d?.vitascore_version || ""}`;
+          : String(p?.brand || "").trim();
 
         app.innerHTML = `
           <div class="section resultHeroCard">
