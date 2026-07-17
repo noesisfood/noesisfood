@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from app.services import scanner_service as ss
@@ -73,6 +74,11 @@ class DeltaAdvanceRegressionTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual({item["id"] for item in result["allergen_detection"]["detected"]}, {"milk_lactose"})
         self.assertEqual(result["allergen_detection"]["possible_signals"], [])
+        sanitized_names = [item["name"] for item in result["ingredients_intelligence"]["sanitized_ingredients"]]
+        self.assertEqual(len(sanitized_names), len(ingredient_names))
+        self.assertIn("fresh whole and skimmed cow's milk", sanitized_names)
+        self.assertIn("flavouring", sanitized_names)
+        self.assertEqual(result["ingredients_intelligence"]["markers"]["flavourings"], 1)
         self.assertEqual(result["ingredients_intelligence"]["detected_e_numbers"], [])
         self.assertIn("additives", result["lookup_missing_fields"])
 
@@ -134,6 +140,37 @@ class DeltaAdvanceRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["product"]["barcode"], BARCODE)
         self.assertEqual(result["product"]["name"], "Unknown product")
         self.assertFalse(result["final_render_allowed"])
+
+
+class DeltaAdvanceFrontendDisplayRegressionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.frontend = Path("app/frontend/index.html").read_text(encoding="utf-8")
+
+    def test_frontend_uses_curated_ingredient_items_for_language_and_grouping(self) -> None:
+        self.assertIn("function ingredientItemsForDisplay(data)", self.frontend)
+        self.assertIn("const ings = ingredientItemsForDisplay(data);", self.frontend)
+        self.assertIn("function hasIngredientList(data)", self.frontend)
+        self.assertIn("return ingredientItemsForDisplay(data).some", self.frontend)
+
+    def test_unknown_curated_ingredients_render_instead_of_disappearing(self) -> None:
+        self.assertIn("if (_looksLikeCaptureNoise(original)) return", self.frontend)
+        self.assertIn(
+            "return { primary: _escapeHtml(original), secondary: \"\", translated: false, visible: true };",
+            self.frontend,
+        )
+
+    def test_additives_only_missing_does_not_prompt_ingredient_scan(self) -> None:
+        self.assertIn("const needsIngredientList = lookupMissing.includes(\"ingredients\") || !hasIngredients;", self.frontend)
+        self.assertIn("const needsAdditiveDetails = lookupMissing.includes(\"additives\");", self.frontend)
+        self.assertNotIn(
+            "const needsIngredients = lookupMissing.includes(\"ingredients\") || lookupMissing.includes(\"additives\")",
+            self.frontend,
+        )
+        self.assertIn(
+            ": (needsIngredientList && !usedIngredientPhoto ? \"ingredients\" : \"refresh\");",
+            self.frontend,
+        )
 
 
 if __name__ == "__main__":

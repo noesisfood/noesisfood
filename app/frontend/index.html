@@ -3172,19 +3172,21 @@
       const missingCoreFields = Array.isArray(data?.data_quality?.missing_core_fields) ? data.data_quality.missing_core_fields : [];
       const photoMeta = data?.photo_extraction || data?.meta?.photo_extraction || {};
       const needsNutrition = missingCoreFields.length > 0 || lookupMissing.includes("nutriments") || lookupMissing.includes("serving_size");
-      const needsIngredients = lookupMissing.includes("ingredients") || lookupMissing.includes("additives") || !Array.isArray(data?.ingredients) || !data.ingredients.length;
+      const hasIngredients = hasIngredientList(data);
+      const needsIngredientList = lookupMissing.includes("ingredients") || !hasIngredients;
+      const needsAdditiveDetails = lookupMissing.includes("additives");
       const usedNutritionPhoto = Boolean(photoMeta?.used_nutrition_photo) || Boolean(state.photoForm?.nutrition_image_data_url);
       const usedIngredientPhoto = Boolean(photoMeta?.used_ingredient_photo) || Boolean(state.photoForm?.ingredient_image_data_url);
       const missingLabels = summarizedMissingFields(data);
       const reasonItems = [];
       if (!missingLabels.length){
         if (needsNutrition) reasonItems.push(t("enrich_reason_nutrition"));
-        if (needsIngredients) reasonItems.push(t("enrich_reason_ingredients"));
+        if (needsIngredientList || needsAdditiveDetails) reasonItems.push(t("enrich_reason_ingredients"));
         if (lookupMissing.includes("serving_size")) reasonItems.push(t("enrich_reason_serving"));
       }
       const nextStep = needsNutrition && !usedNutritionPhoto
         ? "nutrition"
-        : (needsIngredients && !usedIngredientPhoto ? "ingredients" : "refresh");
+        : (needsIngredientList && !usedIngredientPhoto ? "ingredients" : "refresh");
       const nutritionBtnClass = nextStep === "nutrition" ? "primary" : "ghost";
       const ingredientBtnClass = nextStep === "ingredients" ? "primary" : "ghost";
       const nextStepLabel = nextStep === "nutrition"
@@ -5022,11 +5024,23 @@
       const meta = data?.ingredients_meta || {};
       let sourceLang = meta?.source_language ? String(meta.source_language).toUpperCase() : null;
       if (!sourceLang){
-        const ings = Array.isArray(data?.ingredients) ? data.ingredients : [];
+        const ings = ingredientItemsForDisplay(data);
         const textBlob = ings.map(i => i?.name || "").join(" ");
         sourceLang = inferLanguageCode(textBlob);
       }
       return sourceLang || "";
+    }
+
+    function ingredientItemsForDisplay(data){
+      const intel = data?.ingredients_intelligence || null;
+      if (Array.isArray(intel?.sanitized_ingredients) && intel.sanitized_ingredients.length) {
+        return intel.sanitized_ingredients;
+      }
+      return Array.isArray(data?.ingredients) ? data.ingredients : [];
+    }
+
+    function hasIngredientList(data){
+      return ingredientItemsForDisplay(data).some(item => String(item?.name || "").trim());
     }
 
     function _buildUnmatchedIngredientContext(data){
@@ -5581,7 +5595,8 @@
 
       const translated = localizeGlossaryValue(original, "", captureContext) || localizeCanonicalIngredientFallback(original);
       if (!translated) {
-        return { primary: "", secondary: "", translated: false, visible: false };
+        if (_looksLikeCaptureNoise(original)) return { primary: "", secondary: "", translated: false, visible: false };
+        return { primary: _escapeHtml(original), secondary: "", translated: false, visible: true };
       }
       return {
         primary: _escapeHtml(translated),
@@ -6391,9 +6406,7 @@
         `;
       }
       const intel = data?.ingredients_intelligence || null;
-      const ings = Array.isArray(intel?.sanitized_ingredients)
-        ? intel.sanitized_ingredients
-        : (Array.isArray(data?.ingredients) ? data.ingredients : []);
+      const ings = ingredientItemsForDisplay(data);
       const eDetails = Array.isArray(intel?.e_number_details) ? intel.e_number_details : [];
       const flags = Array.isArray(intel?.flags) ? intel.flags : [];
       const markers = intel?.markers || {};
