@@ -7,10 +7,110 @@
       "name": "\u0393\u0399\u03a9\u03a4\u0397\u03a3 Sweet & Balance \u03a6\u03c1\u03bf\u03c5\u03af \u03b6\u03b5\u03bb\u03ad \u03bc\u03b5 \u03b3\u03b5\u03cd\u03c3\u03b7 \u03ba\u03b5\u03c1\u03ac\u03c3\u03b9",
       "brand": "\u0393\u0399\u03a9\u03a4\u0397\u03a3 / Jotis",
       "quantity": "2 x 150 g",
+      "package_quantity": "2 x 150 g",
+      "servings_per_package": 2,
+      "serving_size": {
+        "value": 150.0,
+        "unit": "g"
+      },
+      "nutrients_per_100": {
+        "unit": "g",
+        "energy_kj": 108.0,
+        "energy_kcal": 26.0,
+        "fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "carb_g": 5.6,
+        "carbohydrates_g": 5.6,
+        "sugar_g": 0.1,
+        "sugars_g": 0.1,
+        "polyols_g": 5.2,
+        "fiber_g": 0.0,
+        "protein_g": 1.7,
+        "salt_g": 0.18
+      },
+      "nutrients_per_serving": {
+        "unit": "g",
+        "serving_size": 150.0,
+        "energy_kj": 162.0,
+        "energy_kcal": 40.0,
+        "fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "carb_g": 8.4,
+        "carbohydrates_g": 8.4,
+        "sugar_g": 0.1,
+        "sugars_g": 0.1,
+        "polyols_g": 7.7,
+        "fiber_g": 0.0,
+        "protein_g": 2.6,
+        "salt_g": 0.25
+      },
       "review": {
-        "note": "fourth closed-testing cycle tester feedback; tester-provided front, back label, and barcode photos; curator reviewed identity and quantity only; nutrition, ingredients, allergens, additives, and dietary claims not transcribed because they were not provided as clearly readable text in the report; no external database verification",
+        "note": "fourth closed-testing cycle tester feedback; tester-provided front, back label, and barcode photos; curator reviewed identity, quantity, serving metadata, and nutrition from label photo; ingredients, allergens, additives, and dietary claims not transcribed because a full clear ingredient list is not curated; no external database verification",
         "date": "2026-07-17",
-        "confidence": 0.75,
+        "confidence": 0.82,
+        "source": "tester_label_photos",
+        "review_status": "curator_reviewed"
+      }
+    },
+    {
+      "key": "delta_advance_yogurt_dessert_apple_banana_5201037713061",
+      "barcode": "5201037713061",
+      "name": "\u0394\u0395\u039b\u03a4\u0391 advance \u03b5\u03c0\u03b9\u03b4\u03cc\u03c1\u03c0\u03b9\u03bf \u03b3\u03b9\u03b1\u03bf\u03c5\u03c1\u03c4\u03b9\u03bf\u03cd \u03bc\u03ae\u03bb\u03bf \u03bc\u03c0\u03b1\u03bd\u03ac\u03bd\u03b1",
+      "brand": "\u0394\u0395\u039b\u03a4\u0391 / Delta",
+      "quantity": "280 g",
+      "package_quantity": "2 x 140 g",
+      "servings_per_package": 2,
+      "age_hint": "from 6 months",
+      "categories": [
+        "Yogurt dessert",
+        "Baby dairy product"
+      ],
+      "serving_size": {
+        "value": 140.0,
+        "unit": "g"
+      },
+      "nutrients_per_100": {
+        "unit": "g",
+        "energy_kj": 361.0,
+        "energy_kcal": 86.0,
+        "fat_g": 2.4,
+        "saturated_fat_g": 1.5,
+        "carb_g": 11.9,
+        "carbohydrates_g": 11.9,
+        "sugar_g": 9.8,
+        "sugars_g": 9.8,
+        "protein_g": 3.5,
+        "salt_g": 0.1
+      },
+      "ingredients": {
+        "text": "fresh whole and skimmed cow's milk; milk protein 7%; concentrated grape juice; apple 3%; banana 3%; natural starch; ferrous lactate; vitamin mix B6 niacin folic acid vitamin C; flavouring; yogurt culture",
+        "language": "en",
+        "source_language": "en",
+        "source": "tester_label_photos"
+      },
+      "allergen_info": {
+        "allergens": "milk",
+        "allergens_tags": [
+          "en:milk"
+        ],
+        "allergens_from_ingredients": "milk"
+      },
+      "raw_label_metadata": {
+        "age_hint": "from 6 months",
+        "micronutrients_per_100": {
+          "calcium_mg": 100.0,
+          "iron_mg": 1.2,
+          "vitamin_b12_ug": 0.25,
+          "vitamin_b6_mg": 0.105,
+          "vitamin_b2_mg": 0.12,
+          "niacin_mg": 1.35,
+          "folic_acid_ug": 15.0
+        }
+      },
+      "review": {
+        "note": "new closed-tester product from Froso; tester-provided label information; curator reviewed identity, quantity, serving metadata, nutrition, ingredients, age hint, and milk allergen from visible label text; micronutrients retained as raw label metadata only; no external database verification",
+        "date": "2026-07-17",
+        "confidence": 0.86,
         "source": "tester_label_photos",
         "review_status": "curator_reviewed"
       }

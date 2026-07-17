@@ -8,7 +8,8 @@ from app.services.openfoodfacts_service import OFFResult
 BARCODE = "5201002004064"
 SUPPORTED_LANGS = ("el", "en", "de", "fr")
 NUTRITION_FIELDS = ("energy_kcal", "fat_g", "carb_g", "sugar_g", "salt_g", "sat_fat_g", "protein_g")
-EXPECTED_MISSING_FIELDS = {"ingredients", "nutriments", "serving_size", "additives", "categories"}
+EXPECTED_NOT_FOUND_MISSING_FIELDS = {"ingredients", "nutriments", "serving_size", "additives", "categories"}
+EXPECTED_CURATED_MISSING_FIELDS = {"ingredients", "additives", "categories"}
 
 
 def _ean13_check_digit(code: str) -> int:
@@ -50,10 +51,10 @@ class ClosedTestingMultipackRegressionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(result["product"]["barcode"], BARCODE)
                     self.assertEqual(result["product"]["name"], "Unknown product")
                     self.assertFalse(result["final_render_allowed"])
-                    self.assertTrue(EXPECTED_MISSING_FIELDS.issubset(set(result["lookup_missing_fields"])))
+                    self.assertTrue(EXPECTED_NOT_FOUND_MISSING_FIELDS.issubset(set(result["lookup_missing_fields"])))
                     self.assertTrue(all(result["nutrition_per_100"].get(field) is None for field in NUTRITION_FIELDS))
 
-    async def test_reported_jotis_multipack_uses_curated_tester_identity_only_entry(self) -> None:
+    async def test_reported_jotis_multipack_uses_curated_tester_nutrition_entry(self) -> None:
         with patch.object(
             ss,
             "fetch_off_product",
@@ -69,11 +70,11 @@ class ClosedTestingMultipackRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["source"], "local")
         self.assertEqual(result["matched_by"], "local_db")
         self.assertEqual(result["lookup_state"], "found_but_incomplete")
-        self.assertEqual(result["analysis_state"], "limited_estimate")
+        self.assertEqual(result["analysis_state"], "partial_analysis")
         self.assertEqual(result["analysis_confidence"], "low")
-        self.assertEqual(result["scan_resolution_state"], "unresolved_scan")
-        self.assertFalse(result["final_render_allowed"])
-        self.assertEqual(result["final_render_reason"], "incomplete_or_unresolved_scan")
+        self.assertEqual(result["scan_resolution_state"], "final_resolved_product")
+        self.assertTrue(result["final_render_allowed"])
+        self.assertEqual(result["final_render_reason"], "resolved_product_payload")
 
         product = result["product"]
         self.assertEqual(product["barcode"], BARCODE)
@@ -82,10 +83,23 @@ class ClosedTestingMultipackRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(product["quantity"], "2 x 150 g")
         self.assertEqual(product["categories"], [])
 
-        self.assertTrue(EXPECTED_MISSING_FIELDS.issubset(set(result["lookup_missing_fields"])))
+        self.assertEqual(set(result["lookup_missing_fields"]), EXPECTED_CURATED_MISSING_FIELDS)
+        nutrition = result["nutrition_per_100"]
+        self.assertEqual(nutrition["unit"], "g")
+        self.assertEqual(nutrition["energy_kcal"], 26.0)
+        self.assertEqual(nutrition["fat_g"], 0.0)
+        self.assertEqual(nutrition["sat_fat_g"], 0.0)
+        self.assertEqual(nutrition["carb_g"], 5.6)
+        self.assertEqual(nutrition["sugar_g"], 0.1)
+        self.assertEqual(nutrition["protein_g"], 1.7)
+        self.assertEqual(nutrition["salt_g"], 0.18)
+        self.assertEqual(nutrition["serving_size"], 150.0)
+        self.assertEqual(result["meta"]["serving"], {"amount": 150.0, "unit": "g", "source": "from_product"})
+
         self.assertEqual(result["ingredients"], [])
-        self.assertTrue(all(result["nutrition_per_100"].get(field) is None for field in NUTRITION_FIELDS))
         self.assertEqual(result["allergen_detection"]["detected"], [])
+        self.assertEqual(result["allergen_detection"]["possible_signals"], [])
+        self.assertEqual(result["ingredients_intelligence"]["detected_e_numbers"], [])
         self.assertEqual(result["dietary_signals"]["vegan"]["status"], "unclear")
         self.assertEqual(result["dietary_signals"]["vegetarian"]["status"], "unclear")
         self.assertEqual(result["dietary_signals"]["halal"]["status"], "unclear")
@@ -93,9 +107,35 @@ class ClosedTestingMultipackRegressionTests(unittest.IsolatedAsyncioTestCase):
         curated_review = result["meta"]["curated_review"]
         self.assertEqual(curated_review["source"], "tester_label_photos")
         self.assertIn("fourth closed-testing cycle tester feedback", curated_review["note"])
-        self.assertIn("curator reviewed identity and quantity only", curated_review["note"])
+        self.assertIn("curator reviewed identity, quantity, serving metadata, and nutrition", curated_review["note"])
+        self.assertIn("ingredients, allergens, additives, and dietary claims not transcribed", curated_review["note"])
         self.assertIn("no external database verification", curated_review["note"])
-        self.assertEqual(curated_review["confidence"], 0.75)
+        self.assertEqual(curated_review["confidence"], 0.82)
+
+    def test_reported_jotis_multipack_curated_raw_label_metadata_is_present(self) -> None:
+        products = ss._load_json(ss.PRODUCTS_FILE, {}).get("products", [])
+        item = next(product for product in products if product.get("barcode") == BARCODE)
+
+        self.assertEqual(item["package_quantity"], "2 x 150 g")
+        self.assertEqual(item["servings_per_package"], 2)
+        self.assertEqual(item["serving_size"], {"value": 150.0, "unit": "g"})
+
+        per100 = item["nutrients_per_100"]
+        self.assertEqual(per100["energy_kj"], 108.0)
+        self.assertEqual(per100["energy_kcal"], 26.0)
+        self.assertEqual(per100["carbohydrates_g"], 5.6)
+        self.assertEqual(per100["sugars_g"], 0.1)
+        self.assertEqual(per100["polyols_g"], 5.2)
+        self.assertEqual(per100["fiber_g"], 0.0)
+
+        serving = item["nutrients_per_serving"]
+        self.assertEqual(serving["serving_size"], 150.0)
+        self.assertEqual(serving["energy_kj"], 162.0)
+        self.assertEqual(serving["energy_kcal"], 40.0)
+        self.assertEqual(serving["carbohydrates_g"], 8.4)
+        self.assertEqual(serving["sugars_g"], 0.1)
+        self.assertEqual(serving["polyols_g"], 7.7)
+        self.assertEqual(serving["fiber_g"], 0.0)
 
 
 if __name__ == "__main__":
