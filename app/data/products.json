@@ -2,6 +2,20 @@
   "schema_version": "v0",
   "products": [
     {
+      "key": "jotis_sweet_balance_cherry_jelly_5201002004064",
+      "barcode": "5201002004064",
+      "name": "\u0393\u0399\u03a9\u03a4\u0397\u03a3 Sweet & Balance \u03a6\u03c1\u03bf\u03c5\u03af \u03b6\u03b5\u03bb\u03ad \u03bc\u03b5 \u03b3\u03b5\u03cd\u03c3\u03b7 \u03ba\u03b5\u03c1\u03ac\u03c3\u03b9",
+      "brand": "\u0393\u0399\u03a9\u03a4\u0397\u03a3 / Jotis",
+      "quantity": "2 x 150 g",
+      "review": {
+        "note": "fourth closed-testing cycle tester feedback; tester-provided front, back label, and barcode photos; curator reviewed identity and quantity only; nutrition, ingredients, allergens, additives, and dietary claims not transcribed because they were not provided as clearly readable text in the report; no external database verification",
+        "date": "2026-07-17",
+        "confidence": 0.75,
+        "source": "tester_label_photos",
+        "review_status": "curator_reviewed"
+      }
+    },
+    {
       "key": "mikres_farmes_soy_drink_5205941062666",
       "barcode": "5205941062666",
       "name": "Μικρές φάρμες του βουνού - Ρόφημα από σόγια",
