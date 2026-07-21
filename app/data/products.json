@@ -149,6 +149,77 @@
       "importer": "MARKET IN A.E.B.E."
     },
     {
+      "key": "amita_fun_natural_juice_5201005073111",
+      "barcode": "5201005073111",
+      "name": "Amita Fun 100% natural juice",
+      "brand": "Amita",
+      "quantity": "250 ml",
+      "package_quantity": "250 ml",
+      "servings_per_package": 1,
+      "categories": [
+        "Fruit juice",
+        "Mixed fruit juice beverage"
+      ],
+      "serving_size": {
+        "value": 250.0,
+        "unit": "ml"
+      },
+      "nutrients_per_100": {
+        "unit": "ml",
+        "energy_kj": 191.0,
+        "energy_kcal": 45.0,
+        "fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "carb_g": 10.9,
+        "carbohydrates_g": 10.9,
+        "sugar_g": 10.2,
+        "sugars_g": 10.2,
+        "fiber_g": 0.4,
+        "protein_g": 0.3,
+        "salt_g": 0.01
+      },
+      "nutrients_per_serving": {
+        "unit": "ml",
+        "serving_size": 250.0,
+        "energy_kj": 478.0,
+        "energy_kcal": 113.0
+      },
+      "ingredients": {
+        "text": "apple concentrated juice 75%; orange concentrated juice 11%; apricot pulp 9%; pear concentrated juice 5%; vitamins B6 B12 C E",
+        "language": "en",
+        "source_language": "el",
+        "source": "tester_label_photos"
+      },
+      "raw_label_metadata": {
+        "front_label_claims": [
+          "100% natural juice",
+          "partially from fruit juice concentrates",
+          "with vitamins B, C, E"
+        ],
+        "label_language": "el",
+        "ingredients_text_el": "\u03a7\u03c5\u03bc\u03cc\u03c2 \u03bc\u03ae\u03bb\u03bf\u03c5 \u03b1\u03c0\u03cc \u03c3\u03c5\u03bc\u03c0\u03c5\u03ba\u03bd\u03c9\u03bc\u03ad\u03bd\u03bf \u03c7\u03c5\u03bc\u03cc (75%), \u03c7\u03c5\u03bc\u03cc\u03c2 \u03c0\u03bf\u03c1\u03c4\u03bf\u03ba\u03b1\u03bb\u03b9\u03bf\u03cd \u03b1\u03c0\u03cc \u03c3\u03c5\u03bc\u03c0\u03c5\u03ba\u03bd\u03c9\u03bc\u03ad\u03bd\u03bf \u03c7\u03c5\u03bc\u03cc (11%), \u03c0\u03bf\u03bb\u03c4\u03cc\u03c2 \u03b2\u03b5\u03c1\u03af\u03ba\u03bf\u03ba\u03bf\u03c5 (9%), \u03c7\u03c5\u03bc\u03cc\u03c2 \u03b1\u03c7\u03bb\u03b1\u03b4\u03b9\u03bf\u03cd \u03b1\u03c0\u03cc \u03c3\u03c5\u03bc\u03c0\u03c5\u03ba\u03bd\u03c9\u03bc\u03ad\u03bd\u03bf \u03c7\u03c5\u03bc\u03cc (5%), \u03b2\u03b9\u03c4\u03b1\u03bc\u03af\u03bd\u03b5\u03c2 (B6, B12, C, E).",
+        "micronutrients_per_100": {
+          "vitamin_b6_mg": 0.28,
+          "vitamin_b12_ug": 0.5,
+          "vitamin_c_mg": 16.0,
+          "vitamin_e_mg": 2.4
+        },
+        "micronutrients_nrv_percent": {
+          "vitamin_b6": 20,
+          "vitamin_b12": 20,
+          "vitamin_c": 20,
+          "vitamin_e": 20
+        }
+      },
+      "review": {
+        "note": "new closed-tester product from Froso; tester-provided label photos; curator reviewed identity, quantity, front-label text, nutrition, ingredients, and vitamin metadata from visible Greek label text; vitamins retained as raw label metadata only; additives, allergens, and dietary claims not added because they were not explicitly listed as such; no external database verification",
+        "date": "2026-07-21",
+        "confidence": 0.87,
+        "source": "tester_label_photos",
+        "review_status": "curator_reviewed"
+      }
+    },
+    {
       "key": "test_coke",
       "barcode": "5449000000996",
       "name": "Coca-Cola Original Taste",
