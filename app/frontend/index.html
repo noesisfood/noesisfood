@@ -1131,6 +1131,7 @@
         allergen_source_ingredient_text: "Ingredient text",
         allergen_source_ocr_ingredient_photo: "OCR ingredient photo",
         allergen_source_manual_input: "Manual input",
+        allergen_no_explicit_source: "No explicit allergen source was available in the label data checked.",
         allergen_warning_fallback: "Always check the official product label if you have allergies.",
         source_language_missing: "Ingredient language was not detected",
         sugar: "Sugar",
@@ -1449,6 +1450,7 @@
         allergen_source_ingredient_text: "Κείμενο συστατικών",
         allergen_source_ocr_ingredient_photo: "OCR φωτογραφίας συστατικών",
         allergen_source_manual_input: "Χειροκίνητη εισαγωγή",
+        allergen_no_explicit_source: "Δεν υπήρχε ρητή πηγή αλλεργιογόνων στα διαθέσιμα δεδομένα ετικέτας.",
         allergen_warning_fallback: "Αν έχετε αλλεργία, ελέγχετε πάντα την επίσημη συσκευασία του προϊόντος.",
         source_language_missing: "Δεν εντοπίστηκε γλώσσα συστατικών",
         sugar: "Ζάχαρη",
@@ -1761,6 +1763,7 @@
         allergen_source_ingredient_text: "Zutaten-Text",
         allergen_source_ocr_ingredient_photo: "OCR-Zutatenfoto",
         allergen_source_manual_input: "Manuelle Eingabe",
+        allergen_no_explicit_source: "Keine ausdrückliche Allergenquelle war in den geprüften Etikettendaten verfügbar.",
         allergen_warning_fallback: "Wenn Sie Allergien haben, prüfen Sie immer das offizielle Produktetikett.",
         source_language_missing: "Die Sprache der Zutaten wurde nicht erkannt",
         sugar: "Zucker",
@@ -2073,6 +2076,7 @@
         allergen_source_ingredient_text: "Texte des ingrédients",
         allergen_source_ocr_ingredient_photo: "Photo OCR des ingrédients",
         allergen_source_manual_input: "Saisie manuelle",
+        allergen_no_explicit_source: "Aucune source explicite d’allergènes n’était disponible dans les données d’étiquette vérifiées.",
         allergen_warning_fallback: "Si vous avez des allergies, vérifiez toujours l'étiquette officielle du produit.",
         source_language_missing: "La langue des ingrédients n'a pas été détectée",
         sugar: "Sucre",
@@ -3437,7 +3441,7 @@
               <div class="mini">${t("allergen_none_found")}</div>
             </div>
           ` : ``}
-          <div class="whyFoot" style="margin-top:12px;"><b>${t("allergen_sources_checked")}</b><br/>${sourcesChecked.length ? sourcesChecked.map(localizedAllergenSourceLabel).map(_escapeHtml).join(", ") : "-"}</div>
+          <div class="whyFoot" style="margin-top:12px;"><b>${t("allergen_sources_checked")}</b><br/>${sourcesChecked.length ? sourcesChecked.map(localizedAllergenSourceLabel).map(_escapeHtml).join(", ") : _escapeHtml(t("allergen_no_explicit_source"))}</div>
           <div class="err" style="margin-top:10px;">${_escapeHtml(warning)}</div>
         </div>
       `;
@@ -5021,7 +5025,7 @@
     }
 
     function _inferIngredientSourceLanguage(data){
-      const meta = data?.ingredients_meta || {};
+      const meta = data?.ingredients_meta || data?.meta?.ingredients_meta || {};
       let sourceLang = meta?.source_language ? String(meta.source_language).toUpperCase() : null;
       if (!sourceLang){
         const ings = ingredientItemsForDisplay(data);
@@ -5667,6 +5671,7 @@
     const fmtNum = (x) => {
       if (x === null || x === undefined || Number.isNaN(Number(x))) return "-";
       const n = Number(x);
+      if (n !== 0 && Math.abs(n) < 0.1) return (Math.round(n * 100) / 100).toString();
       return (Math.round(n * 10) / 10).toString();
     };
 
@@ -5689,7 +5694,7 @@
     }
 
     function ingredientLanguageBadge(data){
-      const meta = data?.ingredients_meta || {};
+      const meta = data?.ingredients_meta || data?.meta?.ingredients_meta || {};
       const uiLang = meta?.language ? String(meta.language).toUpperCase() : null;
       const sourceLang = _inferIngredientSourceLanguage(data) || null;
 

@@ -6929,6 +6929,12 @@ def _analyze_normalized_product(
         "energy_kcal": per100.get("energy_kcal"),
         "serving_size": _to_float(_get_path(norm, "nutrition_per_100", "serving_size")),
     }
+    ingredients_meta = norm.get("ingredients_meta") if isinstance(norm.get("ingredients_meta"), dict) else {}
+    ingredients_meta_output = {
+        key: str(ingredients_meta.get(key) or "").strip()
+        for key in ("language", "source_language", "source")
+        if str(ingredients_meta.get(key) or "").strip()
+    }
     if bool(category_contradiction.get("applied")):
         for field in _as_list(category_contradiction.get("suppressed_nutrition_fields")):
             if field == "saturated_fat_g":
@@ -6951,6 +6957,7 @@ def _analyze_normalized_product(
         "safety_alerts_has_matches": bool(safety_lookup.get("has_matches")),
         "safety_alerts": safety_lookup.get("alerts", []),
         "ingredients": ingredients,
+        "ingredients_meta": ingredients_meta_output,
         "ingredients_intelligence": ingredients_intelligence,
         "nutrition_per_100": nutrition_output,
         "vitascore": score,
@@ -6971,6 +6978,7 @@ def _analyze_normalized_product(
             "lookup_missing_fields": lookup_missing,
             "analysis_state": analysis_state,
             "analysis_confidence": analysis_confidence,
+            "ingredients_meta": ingredients_meta_output,
             "category_contradiction": category_contradiction,
             "safety_alerts_checked": bool(safety_lookup.get("checked")),
             "safety_alerts_source": safety_lookup.get("source"),

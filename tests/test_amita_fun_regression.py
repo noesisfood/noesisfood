@@ -41,6 +41,10 @@ class AmitaFunRegressionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(result["matched_by"], "local_db")
                     self.assertEqual(result["scan_resolution_state"], "final_resolved_product")
                     self.assertTrue(result["final_render_allowed"])
+                    self.assertEqual(result["vitascore"], 42)
+                    self.assertEqual(result["ingredients_meta"]["source_language"], "el")
+                    self.assertEqual(result["ingredients_meta"]["language"], "en")
+                    self.assertEqual(result["meta"]["ingredients_meta"]["source_language"], "el")
 
                     product = result["product"]
                     self.assertEqual(product["barcode"], BARCODE)
