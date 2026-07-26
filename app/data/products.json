@@ -220,6 +220,82 @@
       }
     },
     {
+      "key": "divanis_pure_milk_butter_sheep_goat_milk_5205757000067",
+      "barcode": "5205757000067",
+      "name": "\u0391\u03b3\u03bd\u03cc \u03b2\u03bf\u03cd\u03c4\u03c5\u03c1\u03bf \u03b3\u03ac\u03bb\u03b1\u03ba\u03c4\u03bf\u03c2",
+      "name_en": "Pure milk butter",
+      "brand": "\u03a4\u03c5\u03c1\u03bf\u03ba\u03bf\u03bc\u03b5\u03af\u03bf \u0394\u03b9\u03b2\u03ac\u03bd\u03b7\u03c2 / Divanis",
+      "quantity": "500 g",
+      "categories": [
+        "Butter",
+        "Dairy product"
+      ],
+      "serving_size": {
+        "value": 10.0,
+        "unit": "g"
+      },
+      "nutrients_per_100": {
+        "unit": "g",
+        "energy_kj": 3672.0,
+        "energy_kcal": 895.0,
+        "fat_g": 99.0,
+        "saturated_fat_g": 57.0,
+        "carb_g": 0.0,
+        "carbohydrates_g": 0.0,
+        "sugar_g": 0.0,
+        "sugars_g": 0.0,
+        "protein_g": 0.0,
+        "sodium_g": 0.0,
+        "salt_g": 0.1
+      },
+      "nutrients_per_serving": {
+        "unit": "g",
+        "serving_size": 10.0,
+        "energy_kj": 367.0,
+        "energy_kcal": 89.0,
+        "fat_g": 9.9,
+        "saturated_fat_g": 5.7,
+        "carb_g": 0.0,
+        "carbohydrates_g": 0.0,
+        "sugar_g": 0.0,
+        "sugars_g": 0.0,
+        "protein_g": 0.0,
+        "sodium_g": 0.0,
+        "salt_g": 0.01
+      },
+      "ingredients": {
+        "text": "\u0391\u03b3\u03bd\u03cc \u03b2\u03bf\u03cd\u03c4\u03c5\u03c1\u03bf \u03b3\u03ac\u03bb\u03b1\u03ba\u03c4\u03bf\u03c2 \u03b1\u03c0\u03cc \u03b1\u03b9\u03b3\u03bf\u03c0\u03c1\u03cc\u03b2\u03b5\u03b9\u03bf \u03b3\u03ac\u03bb\u03b1",
+        "language": "el",
+        "source_language": "el",
+        "source": "tester_label_photos",
+        "confidence": "partial"
+      },
+      "allergen_info": {
+        "allergens": "milk, lactose",
+        "allergens_tags": [
+          "en:milk"
+        ],
+        "allergens_from_ingredients": "milk butter; sheep and goat milk",
+        "ingredients_text": "\u0391\u03b3\u03bd\u03cc \u03b2\u03bf\u03cd\u03c4\u03c5\u03c1\u03bf \u03b3\u03ac\u03bb\u03b1\u03ba\u03c4\u03bf\u03c2 \u03b1\u03c0\u03cc \u03b1\u03b9\u03b3\u03bf\u03c0\u03c1\u03cc\u03b2\u03b5\u03b9\u03bf \u03b3\u03ac\u03bb\u03b1"
+      },
+      "raw_label_metadata": {
+        "description_el": "\u03b1\u03c0\u03cc \u03b1\u03b9\u03b3\u03bf\u03c0\u03c1\u03cc\u03b2\u03b5\u03b9\u03bf \u03b3\u03ac\u03bb\u03b1",
+        "description_en": "from sheep and goat milk",
+        "use": "for cooking and pastry",
+        "company": "\u0398\u03b5\u03c3\u03c3\u03b1\u03bb\u03b9\u03ba\u03cc \u03a4\u03c1\u03b9\u03ba\u03ac\u03bb\u03c9\u03bd \u0391\u0395",
+        "certification_text": "ISO 22000",
+        "milk_origin": "EU",
+        "ingredient_confidence": "partial"
+      },
+      "review": {
+        "note": "tester-provided label photos; curator reviewed identity, quantity, nutrition, serving table, company label text, ISO 22000 label text, EU milk origin, and explicit milk/lactose allergen signal from visible label text; ingredient confidence remains partial because no full ingredient list was provided; additives, E-numbers, and dietary claims not added; no external database verification",
+        "date": "2026-07-26",
+        "confidence": 0.84,
+        "source": "tester_label_photos",
+        "review_status": "curator_reviewed"
+      }
+    },
+    {
       "key": "test_coke",
       "barcode": "5449000000996",
       "name": "Coca-Cola Original Taste",
