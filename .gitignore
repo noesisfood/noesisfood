@@ -6,6 +6,15 @@ __pycache__/
 .venv/
 venv/
 .env.*
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+**/service-account*.json
+**/*service_account*.json
+**/google-credentials*.json
 data/*.json
 .DS_Store
 

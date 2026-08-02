@@ -1,6 +1,5 @@
-const CACHE_NAME = "noesisfood-shell-v2";
+const CACHE_NAME = "noesisfood-shell-v3";
 const APP_SHELL_ASSETS = [
-  "/",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
@@ -13,6 +12,8 @@ const NEVER_CACHE_PREFIXES = [
   "/scan/manual",
   "/scan/photo",
   "/feedback/correction",
+  "/license",
+  "/license/",
   "/internal/beta",
 ];
 
@@ -28,7 +29,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && /^noesisfood-shell-v[0-9]+$/.test(key)) {
             return caches.delete(key);
           }
           return Promise.resolve(false);
@@ -56,13 +57,9 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate" || url.pathname === "/") {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy)).catch(() => undefined);
-          return response;
-        })
-        .catch(() => caches.match("/") || caches.match(request))
+      fetch(request, { cache: "no-store", credentials: "same-origin" }).catch(() =>
+        new Response("", { status: 503, statusText: "Offline" })
+      )
     );
     return;
   }

@@ -3,9 +3,10 @@
 import logging
 import os
 import time
-from fastapi import APIRouter, Body, Header, Query
+from fastapi import APIRouter, Body, Depends, Header, Query
 from fastapi.responses import JSONResponse
 
+from app.licensing import require_licensed_session
 from app.services.correction_feedback_service import submit_correction_feedback
 from app.services.internal_beta_review_service import get_internal_beta_review_summary
 from app.services.monitoring_service import log_event
@@ -63,7 +64,7 @@ def _beta_review_token_valid(header_value: str | None) -> tuple[bool, bool]:
     provided = str(header_value or "").strip()
     return provided == configured, True
 
-@router.get("/scan/{key}")
+@router.get("/scan/{key}", dependencies=[Depends(require_licensed_session)])
 async def scan_endpoint(key: str, lang: str = Query("en")):
     started_at = time.perf_counter()
     lang = lang if lang in {"el", "en", "de", "fr"} else "en"
@@ -134,7 +135,7 @@ async def scan_endpoint(key: str, lang: str = Query("en")):
         )
 
 
-@router.post("/scan/manual")
+@router.post("/scan/manual", dependencies=[Depends(require_licensed_session)])
 async def scan_manual_endpoint(payload: dict = Body(default={}), lang: str = Query("en")):
     lang = lang if lang in {"el", "en", "de", "fr"} else "en"
     log_event(
@@ -188,7 +189,7 @@ async def scan_manual_endpoint(payload: dict = Body(default={}), lang: str = Que
         )
 
 
-@router.post("/scan/photo")
+@router.post("/scan/photo", dependencies=[Depends(require_licensed_session)])
 async def scan_photo_endpoint(payload: dict = Body(default={}), lang: str = Query("en")):
     lang = lang if lang in {"el", "en", "de", "fr"} else "en"
     log_event(logger, "scan_started", source="photo", lang=lang)
@@ -248,7 +249,7 @@ async def scan_photo_endpoint(payload: dict = Body(default={}), lang: str = Quer
         )
 
 
-@router.post("/feedback/correction")
+@router.post("/feedback/correction", dependencies=[Depends(require_licensed_session)])
 async def correction_feedback_endpoint(payload: dict = Body(default={}), lang: str = Query("en")):
     lang = lang if lang in {"el", "en", "de", "fr"} else "en"
     try:

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f2742" />
+  <title>NoesisFood</title>
+  <style>
+    :root{
+      --ink:#10243a;
+      --body:#445b55;
+      --muted:#657a74;
+      --line:rgba(16,36,58,.14);
+      --paper:#fffdf8;
+      --leaf:#78c943;
+      --mint:#e9f6ed;
+      --sky:#eaf2fb;
+      --berry:#7b3f72;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#fffdf8 0%,#edf7f0 100%);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px 18px 36px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:21px}
+    .brand img{width:38px;height:38px;border-radius:8px}
+    select{border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font-weight:800;padding:8px 10px}
+    .hero{min-height:calc(100vh - 148px);display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:36px;align-items:center;padding-bottom:30px}
+    h1{font-size:clamp(42px,7vw,78px);line-height:.95;margin:0 0 18px;letter-spacing:0}
+    .lead{font-size:19px;line-height:1.55;color:var(--body);max-width:650px;margin:0 0 24px}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}
+    .button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:12px 16px;border-radius:8px;border:1px solid var(--line);text-decoration:none;font-weight:900;color:var(--ink);background:white}
+    .button.primary{background:var(--ink);color:white;border-color:var(--ink)}
+    .visual{background:linear-gradient(135deg,var(--mint),var(--sky));border:1px solid var(--line);border-radius:8px;padding:22px;min-height:430px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 24px 60px rgba(16,36,58,.12)}
+    .score{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;background:white;border:1px solid var(--line);border-radius:8px;padding:18px}
+    .score strong{font-size:18px}
+    .score b{font-size:54px;color:var(--leaf)}
+    .facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+    .fact{background:rgba(255,255,255,.76);border:1px solid var(--line);border-radius:8px;padding:14px;min-height:96px}
+    .fact span{display:block;color:var(--muted);font-size:13px;margin-bottom:8px}
+    .fact strong{font-size:16px}
+    .points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+    .point{border-top:1px solid var(--line);padding-top:14px;color:var(--body);line-height:1.45}
+    footer{display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px;color:var(--muted)}
+    footer a{color:var(--ink);font-weight:800}
+    [data-license-status]{position:absolute;left:-9999px}
+    @media(max-width:820px){
+      .hero{grid-template-columns:1fr;min-height:auto}
+      h1{font-size:48px}
+      .visual{min-height:340px}
+      .points{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><img src="/static/brand/noesisfood-logo-source.png" alt="" />NoesisFood</div>
+      <select id="lang" aria-label="Language">
+        <option value="en">EN</option>
+        <option value="el">EL</option>
+        <option value="de">DE</option>
+        <option value="fr">FR</option>
+      </select>
+    </header>
+    <main class="hero">
+      <section>
+        <h1 data-i18n="title">NoesisFood</h1>
+        <p class="lead" data-i18n="lead">A paid Android app for packaged-food label analysis, with barcode lookup, photo-assisted reading, allergens, dietary signals, usage context, and transparent Vita Score explanations.</p>
+        <div class="actions">
+          <a class="button primary" href="https://play.google.com/store/apps/details?id=com.noesisfood.app" data-i18n="play">Buy on Google Play</a>
+          <a class="button" href="/privacy" data-i18n="privacy">Privacy Policy</a>
+          <a class="button" href="/data-deletion" data-i18n="deletion">Data Deletion</a>
+        </div>
+        <div class="points">
+          <div class="point" data-i18n="p1">Informational food-label support, not medical advice.</div>
+          <div class="point" data-i18n="p2">Designed for supermarket packaged products and multilingual use.</div>
+          <div class="point" data-i18n="p3">Full scanner access is available only inside the licensed Android app.</div>
+        </div>
+      </section>
+      <aside class="visual" aria-label="NoesisFood preview">
+        <div class="score"><strong data-i18n="cardTitle">Label analysis preview</strong><b>82</b></div>
+        <div class="facts">
+          <div class="fact"><span data-i18n="allergensLabel">Allergens</span><strong data-i18n="allergens">Source-aware signals</strong></div>
+          <div class="fact"><span data-i18n="dietLabel">Dietary signals</span><strong data-i18n="diet">Cautious label reading</strong></div>
+          <div class="fact"><span data-i18n="sourceLabel">Sources</span><strong data-i18n="sources">Product and safety context</strong></div>
+          <div class="fact"><span data-i18n="scoreLabel">Score</span><strong data-i18n="score">Explained, not absolute</strong></div>
+        </div>
+      </aside>
+    </main>
+    <footer>
+      <span data-i18n="owner">NoesisFood by Panagiotis Flemetakis.</span>
+      <a href="/privacy" data-i18n="privacy">Privacy Policy</a>
+      <a href="/data-deletion" data-i18n="deletion">Data Deletion</a>
+    </footer>
+  </div>
+  <span data-license-status="browser"></span>
+  <script src="/static/license-bootstrap.js" defer></script>
+  <script>
+    const copy = {
+      en: {
+        title:"NoesisFood", lead:"A paid Android app for packaged-food label analysis, with barcode lookup, photo-assisted reading, allergens, dietary signals, usage context, and transparent Vita Score explanations.", play:"Buy on Google Play", privacy:"Privacy Policy", deletion:"Data Deletion", p1:"Informational food-label support, not medical advice.", p2:"Designed for supermarket packaged products and multilingual use.", p3:"Full scanner access is available only inside the licensed Android app.", cardTitle:"Label analysis preview", allergensLabel:"Allergens", allergens:"Source-aware signals", dietLabel:"Dietary signals", diet:"Cautious label reading", sourceLabel:"Sources", sources:"Product and safety context", scoreLabel:"Score", score:"Explained, not absolute", owner:"NoesisFood by Panagiotis Flemetakis."
+      },
+      el: {
+        title:"NoesisFood", lead:"Πληρωμένη εφαρμογή Android για ανάλυση ετικετών συσκευασμένων τροφίμων, με αναζήτηση barcode, υποβοήθηση από φωτογραφία, αλλεργιογόνα, διατροφικές ενδείξεις, πλαίσιο χρήσης και διαφανείς εξηγήσεις Vita Score.", play:"Αγορά στο Google Play", privacy:"Πολιτική απορρήτου", deletion:"Διαγραφή δεδομένων", p1:"Ενημερωτική υποστήριξη ανάγνωσης ετικέτας, όχι ιατρική συμβουλή.", p2:"Σχεδιασμένο για συσκευασμένα προϊόντα supermarket και πολυγλωσσική χρήση.", p3:"Η πλήρης πρόσβαση στον σαρωτή είναι διαθέσιμη μόνο μέσα από την αδειοδοτημένη Android εφαρμογή.", cardTitle:"Προεπισκόπηση ανάλυσης ετικέτας", allergensLabel:"Αλλεργιογόνα", allergens:"Ενδείξεις με βάση την πηγή", dietLabel:"Διατροφικές ενδείξεις", diet:"Προσεκτική ανάγνωση ετικέτας", sourceLabel:"Πηγές", sources:"Προϊοντικό και safety πλαίσιο", scoreLabel:"Score", score:"Με εξήγηση, όχι απόλυτο", owner:"NoesisFood από τον Παναγιώτη Φλεμετάκη."
+      },
+      de: {
+        title:"NoesisFood", lead:"Eine kostenpflichtige Android-App zur Analyse von Etiketten verpackter Lebensmittel, mit Barcode-Suche, fotogestütztem Lesen, Allergenen, Ernährungssignalen, Nutzungskontext und transparenten Vita-Score-Erklärungen.", play:"Bei Google Play kaufen", privacy:"Datenschutz", deletion:"Datenlöschung", p1:"Informative Unterstützung für Lebensmitteletiketten, keine medizinische Beratung.", p2:"Für verpackte Supermarktprodukte und mehrsprachige Nutzung entwickelt.", p3:"Voller Scanner-Zugang ist nur in der lizenzierten Android-App verfügbar.", cardTitle:"Vorschau der Etikettenanalyse", allergensLabel:"Allergene", allergens:"Quellenbewusste Signale", dietLabel:"Ernährungssignale", diet:"Vorsichtige Etikettenlesung", sourceLabel:"Quellen", sources:"Produkt- und Sicherheitskontext", scoreLabel:"Score", score:"Erklärt, nicht absolut", owner:"NoesisFood von Panagiotis Flemetakis."
+      },
+      fr: {
+        title:"NoesisFood", lead:"Une application Android payante pour l’analyse des étiquettes d’aliments emballés, avec recherche par code-barres, lecture assistée par photo, allergènes, signaux alimentaires, contexte d’usage et explications transparentes du Vita Score.", play:"Acheter sur Google Play", privacy:"Politique de confidentialité", deletion:"Suppression des données", p1:"Aide informative à la lecture des étiquettes, pas un avis médical.", p2:"Conçu pour les produits emballés de supermarché et l’usage multilingue.", p3:"L’accès complet au scanner est disponible uniquement dans l’application Android licenciée.", cardTitle:"Aperçu de l’analyse d’étiquette", allergensLabel:"Allergènes", allergens:"Signaux tenant compte des sources", dietLabel:"Signaux alimentaires", diet:"Lecture prudente de l’étiquette", sourceLabel:"Sources", sources:"Contexte produit et sécurité", scoreLabel:"Score", score:"Expliqué, non absolu", owner:"NoesisFood par Panagiotis Flemetakis."
+      }
+    };
+    const select = document.getElementById("lang");
+    function applyLang(lang){
+      const resolved = copy[lang] ? lang : "en";
+      document.documentElement.lang = resolved;
+      localStorage.setItem("nf_landing_lang", resolved);
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        node.textContent = copy[resolved][node.getAttribute("data-i18n")] || node.textContent;
+      });
+      select.value = resolved;
+    }
+    select.addEventListener("change", () => applyLang(select.value));
+    applyLang(localStorage.getItem("nf_landing_lang") || navigator.language.slice(0,2).toLowerCase());
+  </script>
+</body>
+</html>
