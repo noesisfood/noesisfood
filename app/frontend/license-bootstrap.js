@@ -2,11 +2,17 @@
   "use strict";
 
   const TARGET_ORIGIN = "https://noesisfood.app";
+  const CHANNEL_READY_TYPE = "noesisfood.license.channelReady";
   const MESSAGE_TYPE = "noesisfood.license.challenge";
   const RESPONSE_TYPE = "noesisfood.license.integrityToken";
   const ERROR_TYPE = "noesisfood.license.error";
+  const REQUEST_HASH_RE = /^[A-Za-z0-9_-]{43}$/;
+  const CHALLENGE_TOKEN_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+
+  let nativePort = null;
   let pendingChallengeToken = "";
   let pendingRequestHash = "";
+  let challengeInFlight = false;
   let sessionInFlight = false;
 
   function isExpectedOrigin(origin) {
@@ -16,6 +22,27 @@
   function setStatus(key) {
     const el = document.querySelector("[data-license-status]");
     if (el) el.setAttribute("data-license-status", key);
+  }
+
+  function parseMessageData(data) {
+    if (typeof data === "string") {
+      try {
+        return JSON.parse(data);
+      } catch (_error) {
+        return null;
+      }
+    }
+    return data && typeof data === "object" ? data : null;
+  }
+
+  function isValidChallenge(challenge) {
+    const requestHash = String(challenge && challenge.request_hash || "");
+    const challengeToken = String(challenge && challenge.challenge_token || "");
+    const expiresAt = Number(challenge && challenge.expires_at || 0);
+    return REQUEST_HASH_RE.test(requestHash)
+      && CHALLENGE_TOKEN_RE.test(challengeToken)
+      && Number.isFinite(expiresAt)
+      && expiresAt > Math.floor(Date.now() / 1000);
   }
 
   async function clearOldAppCaches() {
@@ -41,20 +68,23 @@
       headers: { Accept: "application/json" },
     });
     if (!response.ok) throw new Error("challenge_unavailable");
-    return response.json();
+    const challenge = await response.json();
+    if (!isValidChallenge(challenge)) throw new Error("malformed_challenge");
+    return challenge;
   }
 
   function postChallengeToNative(challenge) {
+    if (!nativePort || challengeInFlight) return;
     pendingChallengeToken = String(challenge.challenge_token || "");
     pendingRequestHash = String(challenge.request_hash || "");
-    const message = {
+    challengeInFlight = true;
+    nativePort.postMessage(JSON.stringify({
       type: MESSAGE_TYPE,
       version: 1,
       requestHash: pendingRequestHash,
       challengeToken: pendingChallengeToken,
       expiresAt: Number(challenge.expires_at || 0),
-    };
-    window.postMessage(JSON.stringify(message), TARGET_ORIGIN);
+    }));
   }
 
   async function createSession(integrityToken, challengeToken) {
@@ -71,42 +101,63 @@
     window.location.reload();
   }
 
-  window.addEventListener("message", (event) => {
-    if (!isExpectedOrigin(event.origin)) return;
-    let data = event.data;
-    if (typeof data === "string") {
-      try {
-        data = JSON.parse(data);
-      } catch (_error) {
-        return;
-      }
-    }
-    if (!data || typeof data !== "object") return;
+  function handleNativePortMessage(event) {
+    const data = parseMessageData(event.data);
+    if (!data || data.version !== 1) return;
     if (data.type === ERROR_TYPE) {
+      challengeInFlight = false;
       setStatus("error");
       return;
     }
     if (data.type !== RESPONSE_TYPE) return;
     const integrityToken = String(data.integrityToken || "");
     const challengeToken = String(data.challengeToken || "");
-    if (!integrityToken || challengeToken !== pendingChallengeToken || !pendingRequestHash) return;
-    createSession(integrityToken, challengeToken).catch(() => setStatus("denied"));
+    if (!challengeInFlight || !integrityToken || challengeToken !== pendingChallengeToken || !pendingRequestHash) {
+      return;
+    }
+    createSession(integrityToken, challengeToken).catch(() => {
+      challengeInFlight = false;
+      sessionInFlight = false;
+      setStatus("denied");
+    });
+  }
+
+  async function beginNativeLicensing(port) {
+    nativePort = port;
+    nativePort.onmessage = handleNativePortMessage;
+    if (typeof nativePort.start === "function") nativePort.start();
+    setStatus("starting");
+    await clearOldAppCaches();
+    const challenge = await requestChallenge();
+    postChallengeToNative(challenge);
+    setStatus("waiting");
+  }
+
+  window.addEventListener("message", (event) => {
+    if (!isExpectedOrigin(event.origin) || nativePort) return;
+    const data = parseMessageData(event.data);
+    if (!data || data.type !== CHANNEL_READY_TYPE || data.version !== 1) return;
+    const port = event.ports && event.ports[0];
+    if (!port) return;
+    beginNativeLicensing(port).catch(() => {
+      nativePort = null;
+      pendingChallengeToken = "";
+      pendingRequestHash = "";
+      challengeInFlight = false;
+      sessionInFlight = false;
+      setStatus("browser");
+    });
   });
 
   window.NoesisFoodLicenseBootstrap = {
     clearOldAppCaches,
     async start() {
-      setStatus("starting");
       await clearOldAppCaches();
-      const challenge = await requestChallenge();
-      postChallengeToNative(challenge);
-      setStatus("waiting");
     },
-    _test: { isExpectedOrigin },
+    _test: { isExpectedOrigin, isValidChallenge, parseMessageData },
   };
 
   window.addEventListener("load", () => {
     clearOldAppCaches().catch(() => undefined);
-    requestChallenge().then(postChallengeToNative).catch(() => setStatus("browser"));
   });
 })();

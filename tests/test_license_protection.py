@@ -259,12 +259,40 @@ class LicensingStaticTests(unittest.TestCase):
             self.assertIn(text, content)
         self.assertIn("https://play.google.com/store/apps/details?id=com.noesisfood.app", content)
         self.assertNotIn("/scan/photo", content)
+        self.assertIn('<script src="/static/license-bootstrap.js" defer></script>', content)
 
     def test_bootstrap_rejects_invalid_origin_and_posts_session_request(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
         self.assertIn('origin === TARGET_ORIGIN', content)
         self.assertIn('"/license/session"', content)
         self.assertIn("no-store", content)
+
+    def test_bootstrap_uses_twa_message_port_contract(self):
+        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
+        self.assertIn('const CHANNEL_READY_TYPE = "noesisfood.license.channelReady"', content)
+        self.assertIn('window.addEventListener("message"', content)
+        self.assertIn("event.ports && event.ports[0]", content)
+        self.assertIn("nativePort = port", content)
+        self.assertIn("nativePort.onmessage = handleNativePortMessage", content)
+        self.assertIn('if (typeof nativePort.start === "function") nativePort.start();', content)
+        self.assertIn("nativePort.postMessage(JSON.stringify({", content)
+        self.assertIn("function handleNativePortMessage(event)", content)
+        self.assertNotIn("window.postMessage(", content)
+
+    def test_bootstrap_does_not_fetch_challenge_before_native_port_exists(self):
+        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
+        load_block = content[content.index('window.addEventListener("load"'):]
+        start_block = content[content.index("async start()"):content.index("_test:")]
+        self.assertNotIn("requestChallenge()", load_block)
+        self.assertNotIn("requestChallenge()", start_block)
+        self.assertIn("const challenge = await requestChallenge();", content)
+        self.assertLess(content.index("nativePort = port"), content.index("const challenge = await requestChallenge();"))
+
+    def test_bootstrap_successful_session_reloads_root_with_cookie(self):
+        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
+        self.assertIn('credentials: "same-origin"', content)
+        self.assertIn('if (!response.ok) throw new Error("session_denied");', content)
+        self.assertIn("window.location.reload();", content)
 
     def test_service_worker_cache_migration_and_private_cache_exclusions(self):
         content = Path("app/frontend/service-worker.js").read_text(encoding="utf-8")

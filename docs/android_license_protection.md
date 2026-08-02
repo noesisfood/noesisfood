@@ -70,22 +70,22 @@ Client identifiers are hashed before limiter storage. `X-Forwarded-For` is only 
 
 1. Keep the existing listing published.
 2. Upload only after local debug validation and manual code review.
-3. Use Managed Publishing for versionCode 9.
-4. Publish versionName `1.0.8`, versionCode `9`, package `com.noesisfood.app`.
-5. Verify a clean Google Play install receives versionCode 9 before enabling lockdown.
+3. Use Managed Publishing for the protected Android bundle.
+4. Publish the reviewed `com.noesisfood.app` bundle through the intended testing or production track.
+5. Verify a clean Google Play install receives the expected version before enabling lockdown.
 
 ## Internal Testing
 
-1. Build and install a debug/internal test artifact configured with `PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER`.
+1. Build a signed internal testing bundle configured with `PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER`.
 2. Deploy backend code with both flags false.
 3. Enable `PLAY_INTEGRITY_ENFORCEMENT_ENABLED=true` in a test environment first.
-4. Confirm the TWA receives a challenge, returns an integrity token, and gets a session cookie.
+4. Confirm the TWA establishes the postMessage channel, receives the native `noesisfood.license.channelReady` message with a `MessagePort`, sends a challenge through that port, returns an integrity token through that port, and gets a session cookie.
 5. Confirm `/scan/{key}`, `/scan/manual`, `/scan/photo`, and `/feedback/correction` work with the licensed session.
 6. Confirm a normal browser still sees the existing app while lockdown is false.
 
 ## Production Cutover
 
-Enable in this order only after versionCode 9 is approved and verified from Google Play:
+Enable in this order only after the protected version is approved and verified from Google Play:
 
 1. Set `PLAY_INTEGRITY_ENFORCEMENT_ENABLED=true`.
 2. Verify session creation from a clean Play-installed TWA.
@@ -103,6 +103,16 @@ Immediate rollback is one environment change:
 3. Restart the Render service if the platform does not apply environment changes live.
 4. Root and private APIs return to pre-lockdown behavior with the code still deployed.
 
-## Known Risk
+## TWA PostMessage Handshake
 
-The pinned `androidbrowserhelper:2.6.2` launcher does not expose a stable public session accessor for postMessage. The Android implementation first tries a public getter if present, then uses a narrowly isolated reflective accessor for the current TWA launcher session. Replacing this with an official accessor should be prioritized when the pinned TWA stack can be upgraded.
+The Android launcher owns the `CustomTabsSession` used to start the Trusted Web Activity. After navigation finishes, it validates `https://noesisfood.app` with `RELATION_USE_AS_ORIGIN`. Only after successful validation does it request a postMessage channel with source and target origin both set to `https://noesisfood.app`.
+
+When `onMessageChannelReady()` fires, Android sends exactly one non-secret handshake message through `CustomTabsSession.postMessage(...)` using a non-null `Bundle`:
+
+```json
+{"type":"noesisfood.license.channelReady","version":1}
+```
+
+The landing bootstrap accepts that initial window message only from `https://noesisfood.app` and only when `event.ports[0]` is present. It stores that single `MessagePort`, attaches the port response handler, starts the port when supported, then fetches `/license/challenge` and sends the existing challenge JSON through `MessagePort.postMessage(...)`. Normal browsers never receive the native handshake and therefore remain passive on the landing page.
+
+Native Play Integrity is requested only after Android receives and validates the web challenge through `CustomTabsCallback.onPostMessage()`. Android returns `noesisfood.license.integrityToken` or `noesisfood.license.error` through the same Custom Tabs postMessage channel. The web bootstrap receives those responses on the stored port and posts `/license/session` with credentials; on success it reloads `/` so the HttpOnly session cookie unlocks the private app shell.
