@@ -303,7 +303,7 @@ function makePort(label) {{
   }};
 }}
 for (const event of events) {{
-  const ports = event.withPort ? [makePort(event.portLabel || "port")] : [];
+  const ports = event.omitPorts ? undefined : (event.withPort ? [makePort(event.portLabel || "port")] : []);
   for (const callback of window.listeners.message || []) {{
     callback({{
       origin: event.origin,
@@ -318,6 +318,7 @@ console.log(JSON.stringify({{
   hasPort: Boolean(state && state.port),
   portLabel: state && state.port ? state.port.label : null,
   consumed: Boolean(state && state.consumed),
+  stateKeys: state ? Object.keys(state).sort() : [],
   dispatched,
 }}));
 """
@@ -352,9 +353,12 @@ console.log(JSON.stringify({{
         self.assertIn('window.addEventListener("message", function (event)', head)
         self.assertIn('event.origin !== "android-app://noesisfood.app"', head)
         self.assertNotIn('event.origin !== "https://noesisfood.app"', head)
-        self.assertIn('data.type !== "noesisfood.license.channelReady"', head)
-        self.assertIn("data.version !== 1", head)
-        self.assertIn("event.ports && event.ports[0]", head)
+        self.assertNotIn("parseMessageData", head)
+        self.assertNotIn('data.type !== "noesisfood.license.channelReady"', head)
+        self.assertNotIn("data.version !== 1", head)
+        self.assertNotIn("event.data", head)
+        self.assertIn("!event.ports || event.ports.length < 1", head)
+        self.assertIn("var port = event.ports[0]", head)
         self.assertIn("state.port || state.consumed", head)
         self.assertIn("state.port = port", head)
         self.assertIn('window.dispatchEvent(new CustomEvent(readyEventName))', head)
@@ -366,9 +370,8 @@ console.log(JSON.stringify({{
         self.assertNotIn("RegExp", head)
 
     def test_landing_early_catcher_accepts_only_exact_twa_app_origin(self):
-        valid_data = '{"type":"noesisfood.license.channelReady","version":1}'
         accepted = self._run_landing_early_catcher([
-            {"origin": "android-app://noesisfood.app", "data": valid_data, "withPort": True, "portLabel": "accepted"}
+            {"origin": "android-app://noesisfood.app", "data": "", "withPort": True, "portLabel": "accepted"}
         ])
         self.assertTrue(accepted["hasPort"])
         self.assertEqual(accepted["portLabel"], "accepted")
@@ -384,30 +387,46 @@ console.log(JSON.stringify({{
         for origin in rejected_origins:
             with self.subTest(origin=origin):
                 rejected = self._run_landing_early_catcher([
-                    {"origin": origin, "data": valid_data, "withPort": True, "portLabel": "rejected"}
+                    {"origin": origin, "data": "", "withPort": True, "portLabel": "rejected"}
                 ])
                 self.assertFalse(rejected["hasPort"])
                 self.assertEqual(rejected["dispatched"], [])
 
-    def test_landing_early_catcher_keeps_strict_message_contract(self):
+    def test_landing_early_catcher_accepts_valid_port_transfer_with_ignored_payload(self):
         cases = [
-            {"origin": "android-app://noesisfood.app", "data": '{"type":"wrong","version":1}', "withPort": True},
-            {"origin": "android-app://noesisfood.app", "data": '{"type":"noesisfood.license.channelReady","version":2}', "withPort": True},
-            {"origin": "android-app://noesisfood.app", "data": '{"type":"noesisfood.license.channelReady","version":1}', "withPort": False},
-            {"origin": "android-app://noesisfood.app", "data": "{", "withPort": True},
-            {"origin": "android-app://noesisfood.app", "data": None, "withPort": True},
+            "",
+            "ordinary string",
+            "{",
+            {"unexpected": "object"},
         ]
-        for event in cases:
-            with self.subTest(event=event):
-                result = self._run_landing_early_catcher([event])
+        for data in cases:
+            with self.subTest(data=data):
+                result = self._run_landing_early_catcher([
+                    {"origin": "android-app://noesisfood.app", "data": data, "withPort": True, "portLabel": "accepted"}
+                ])
+                self.assertTrue(result["hasPort"])
+                self.assertEqual(result["portLabel"], "accepted")
+                self.assertEqual(result["stateKeys"], ["consumed", "port"])
+                self.assertEqual(result["dispatched"], ["noesisfood:license-port-ready"])
+
+    def test_landing_early_catcher_rejects_events_without_transferred_port(self):
+        for data in ["", "ordinary string", "{", {"unexpected": "object"}]:
+            with self.subTest(data=data):
+                result = self._run_landing_early_catcher([
+                    {"origin": "android-app://noesisfood.app", "data": data, "withPort": False}
+                ])
                 self.assertFalse(result["hasPort"])
                 self.assertEqual(result["dispatched"], [])
+        missing_ports = self._run_landing_early_catcher([
+            {"origin": "android-app://noesisfood.app", "data": "", "omitPorts": True}
+        ])
+        self.assertFalse(missing_ports["hasPort"])
+        self.assertEqual(missing_ports["dispatched"], [])
 
     def test_landing_early_catcher_retains_first_valid_port_and_ignores_duplicates(self):
-        valid_data = {"type": "noesisfood.license.channelReady", "version": 1}
         result = self._run_landing_early_catcher([
-            {"origin": "android-app://noesisfood.app", "data": valid_data, "withPort": True, "portLabel": "first"},
-            {"origin": "android-app://noesisfood.app", "data": valid_data, "withPort": True, "portLabel": "second"},
+            {"origin": "android-app://noesisfood.app", "data": "", "withPort": True, "portLabel": "first"},
+            {"origin": "android-app://noesisfood.app", "data": '{"type":"wrong","version":1}', "withPort": True, "portLabel": "second"},
         ])
         self.assertTrue(result["hasPort"])
         self.assertEqual(result["portLabel"], "first")
@@ -424,6 +443,7 @@ console.log(JSON.stringify({{
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         head = self._landing_head()
         self.assertIn("{ port: null, consumed: false }", head)
+        self.assertNotIn("event.data", head)
         for forbidden in ["challengeToken", "integrityToken", "cookie", "credential", "requestHash"]:
             self.assertNotIn(forbidden, head)
 
@@ -451,6 +471,16 @@ console.log(JSON.stringify({{
         self.assertIn("function handleNativePortMessage(event)", content)
         self.assertNotIn('window.addEventListener("message"', content)
         self.assertNotIn("window.postMessage(", content)
+
+    def test_bootstrap_later_port_messages_require_exact_type_and_version(self):
+        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
+        handler = content[content.index("function handleNativePortMessage(event)"):content.index("async function beginNativeLicensing")]
+        self.assertIn("const data = parseMessageData(event.data);", handler)
+        self.assertIn("if (!data || data.version !== 1) return;", handler)
+        self.assertIn("if (data.type === ERROR_TYPE)", handler)
+        self.assertIn("if (data.type !== RESPONSE_TYPE) return;", handler)
+        self.assertIn("challengeToken !== pendingChallengeToken", handler)
+        self.assertIn("createSession(integrityToken, challengeToken)", handler)
 
     def test_bootstrap_consumes_retained_port_at_most_once(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")

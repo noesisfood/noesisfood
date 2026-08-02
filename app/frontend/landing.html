@@ -12,22 +12,10 @@
       var state = window[stateName] || { port: null, consumed: false };
       window[stateName] = state;
 
-      function parseMessageData(data) {
-        if (typeof data === "string") {
-          try {
-            return JSON.parse(data);
-          } catch (_error) {
-            return null;
-          }
-        }
-        return data && typeof data === "object" ? data : null;
-      }
-
       window.addEventListener("message", function (event) {
         if (event.origin !== "android-app://noesisfood.app" || state.port || state.consumed) return;
-        var data = parseMessageData(event.data);
-        if (!data || data.type !== "noesisfood.license.channelReady" || data.version !== 1) return;
-        var port = event.ports && event.ports[0];
+        if (!event.ports || event.ports.length < 1) return;
+        var port = event.ports[0];
         if (!port) return;
         state.port = port;
         window.dispatchEvent(new CustomEvent(readyEventName));
