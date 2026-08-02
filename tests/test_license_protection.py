@@ -261,6 +261,30 @@ class LicensingStaticTests(unittest.TestCase):
         self.assertNotIn("/scan/photo", content)
         self.assertIn('<script src="/static/license-bootstrap.js" defer></script>', content)
 
+    def test_landing_installs_early_twa_port_catcher_in_head(self):
+        content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
+        head = content[content.index("<head>"):content.index("</head>")]
+        bootstrap_index = content.index('<script src="/static/license-bootstrap.js" defer></script>')
+        self.assertLess(content.index("__NOESISFOOD_LICENSE_PORT_STATE__"), bootstrap_index)
+        self.assertLess(head.index("__NOESISFOOD_LICENSE_PORT_STATE__"), head.index("<title>"))
+        self.assertIn('window.addEventListener("message", function (event)', head)
+        self.assertIn('event.origin !== "https://noesisfood.app"', head)
+        self.assertIn('data.type !== "noesisfood.license.channelReady"', head)
+        self.assertIn("data.version !== 1", head)
+        self.assertIn("event.ports && event.ports[0]", head)
+        self.assertIn("state.port || state.consumed", head)
+        self.assertIn("state.port = port", head)
+        self.assertIn('window.dispatchEvent(new CustomEvent(readyEventName))', head)
+        self.assertNotIn("/license/challenge", head)
+        self.assertNotIn("window.postMessage(", head)
+
+    def test_landing_catcher_keeps_only_non_secret_port_state(self):
+        content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
+        head = content[content.index("<head>"):content.index("</head>")]
+        self.assertIn("{ port: null, consumed: false }", head)
+        for forbidden in ["challengeToken", "integrityToken", "cookie", "credential", "requestHash"]:
+            self.assertNotIn(forbidden, head)
+
     def test_bootstrap_rejects_invalid_origin_and_posts_session_request(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
         self.assertIn('origin === TARGET_ORIGIN', content)
@@ -270,14 +294,30 @@ class LicensingStaticTests(unittest.TestCase):
     def test_bootstrap_uses_twa_message_port_contract(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
         self.assertIn('const CHANNEL_READY_TYPE = "noesisfood.license.channelReady"', content)
-        self.assertIn('window.addEventListener("message"', content)
-        self.assertIn("event.ports && event.ports[0]", content)
+        self.assertIn('const PORT_STATE_NAME = "__NOESISFOOD_LICENSE_PORT_STATE__"', content)
+        self.assertIn('const PORT_READY_EVENT = "noesisfood:license-port-ready"', content)
+        self.assertIn("consumeRetainedNativePort();", content)
+        self.assertIn("window.addEventListener(PORT_READY_EVENT, consumeRetainedNativePort)", content)
+        self.assertIn("const port = state.port", content)
+        self.assertIn('typeof port.postMessage !== "function"', content)
+        self.assertIn("state.consumed = true", content)
+        self.assertIn("state.port = null", content)
         self.assertIn("nativePort = port", content)
         self.assertIn("nativePort.onmessage = handleNativePortMessage", content)
         self.assertIn('if (typeof nativePort.start === "function") nativePort.start();', content)
         self.assertIn("nativePort.postMessage(JSON.stringify({", content)
         self.assertIn("function handleNativePortMessage(event)", content)
+        self.assertNotIn('window.addEventListener("message"', content)
         self.assertNotIn("window.postMessage(", content)
+
+    def test_bootstrap_consumes_retained_port_at_most_once(self):
+        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
+        consume_block = content[content.index("function consumeRetainedNativePort()"):content.index("consumeRetainedNativePort();")]
+        self.assertIn("state.consumed || nativeLicensingStarted", consume_block)
+        self.assertIn("state.consumed = true", consume_block)
+        self.assertIn("state.port = null", consume_block)
+        self.assertIn("nativeLicensingStarted = true", consume_block)
+        self.assertIn("beginNativeLicensing(port).catch", consume_block)
 
     def test_bootstrap_does_not_fetch_challenge_before_native_port_exists(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
@@ -287,6 +327,8 @@ class LicensingStaticTests(unittest.TestCase):
         self.assertNotIn("requestChallenge()", start_block)
         self.assertIn("const challenge = await requestChallenge();", content)
         self.assertLess(content.index("nativePort = port"), content.index("const challenge = await requestChallenge();"))
+        self.assertLess(content.index("nativePort.onmessage = handleNativePortMessage"), content.index("const challenge = await requestChallenge();"))
+        self.assertLess(content.index('if (typeof nativePort.start === "function") nativePort.start();'), content.index("const challenge = await requestChallenge();"))
 
     def test_bootstrap_successful_session_reloads_root_with_cookie(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")

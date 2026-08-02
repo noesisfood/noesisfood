@@ -3,6 +3,8 @@
 
   const TARGET_ORIGIN = "https://noesisfood.app";
   const CHANNEL_READY_TYPE = "noesisfood.license.channelReady";
+  const PORT_STATE_NAME = "__NOESISFOOD_LICENSE_PORT_STATE__";
+  const PORT_READY_EVENT = "noesisfood:license-port-ready";
   const MESSAGE_TYPE = "noesisfood.license.challenge";
   const RESPONSE_TYPE = "noesisfood.license.integrityToken";
   const ERROR_TYPE = "noesisfood.license.error";
@@ -14,6 +16,7 @@
   let pendingRequestHash = "";
   let challengeInFlight = false;
   let sessionInFlight = false;
+  let nativeLicensingStarted = false;
 
   function isExpectedOrigin(origin) {
     return origin === TARGET_ORIGIN;
@@ -133,12 +136,19 @@
     setStatus("waiting");
   }
 
-  window.addEventListener("message", (event) => {
-    if (!isExpectedOrigin(event.origin) || nativePort) return;
-    const data = parseMessageData(event.data);
-    if (!data || data.type !== CHANNEL_READY_TYPE || data.version !== 1) return;
-    const port = event.ports && event.ports[0];
-    if (!port) return;
+  function getRetainedPortState() {
+    const state = window[PORT_STATE_NAME];
+    return state && typeof state === "object" ? state : null;
+  }
+
+  function consumeRetainedNativePort() {
+    const state = getRetainedPortState();
+    if (!state || state.consumed || nativeLicensingStarted) return;
+    const port = state.port;
+    if (!port || typeof port.postMessage !== "function") return;
+    state.consumed = true;
+    state.port = null;
+    nativeLicensingStarted = true;
     beginNativeLicensing(port).catch(() => {
       nativePort = null;
       pendingChallengeToken = "";
@@ -147,14 +157,17 @@
       sessionInFlight = false;
       setStatus("browser");
     });
-  });
+  }
+
+  consumeRetainedNativePort();
+  window.addEventListener(PORT_READY_EVENT, consumeRetainedNativePort);
 
   window.NoesisFoodLicenseBootstrap = {
     clearOldAppCaches,
     async start() {
       await clearOldAppCaches();
     },
-    _test: { isExpectedOrigin, isValidChallenge, parseMessageData },
+    _test: { isExpectedOrigin, isValidChallenge, parseMessageData, consumeRetainedNativePort },
   };
 
   window.addEventListener("load", () => {
