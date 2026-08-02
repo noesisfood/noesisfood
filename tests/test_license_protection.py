@@ -1,5 +1,8 @@
 import importlib
+import json
 import os
+import subprocess
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -253,6 +256,85 @@ class LicensingTests(unittest.TestCase):
 
 
 class LicensingStaticTests(unittest.TestCase):
+    def _landing_head(self):
+        content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
+        return content[content.index("<head>"):content.index("</head>")]
+
+    def _landing_early_catcher_script(self):
+        head = self._landing_head()
+        start = head.index("<script>") + len("<script>")
+        end = head.index("</script>", start)
+        return head[start:end]
+
+    def _run_landing_early_catcher(self, events):
+        harness = f"""
+const script = {json.dumps(self._landing_early_catcher_script())};
+const events = {json.dumps(events)};
+const dispatched = [];
+const window = {{
+  listeners: {{}},
+  addEventListener(name, callback) {{
+    this.listeners[name] = this.listeners[name] || [];
+    this.listeners[name].push(callback);
+  }},
+  dispatchEvent(event) {{
+    dispatched.push(event.type);
+  }},
+  postMessage() {{
+    throw new Error("window.postMessage must not be called");
+  }},
+  fetch() {{
+    throw new Error("fetch must not be called");
+  }},
+}};
+class CustomEvent {{
+  constructor(type) {{
+    this.type = type;
+  }}
+}}
+global.window = window;
+global.CustomEvent = CustomEvent;
+eval(script);
+function makePort(label) {{
+  return {{
+    label,
+    postMessage() {{}},
+    start() {{}},
+  }};
+}}
+for (const event of events) {{
+  const ports = event.withPort ? [makePort(event.portLabel || "port")] : [];
+  for (const callback of window.listeners.message || []) {{
+    callback({{
+      origin: event.origin,
+      data: event.data,
+      ports,
+      source: null,
+    }});
+  }}
+}}
+const state = window.__NOESISFOOD_LICENSE_PORT_STATE__;
+console.log(JSON.stringify({{
+  hasPort: Boolean(state && state.port),
+  portLabel: state && state.port ? state.port.label : null,
+  consumed: Boolean(state && state.consumed),
+  dispatched,
+}}));
+"""
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".js", delete=False) as temp:
+            temp.write(harness)
+            temp_path = temp.name
+        try:
+            result = subprocess.run(
+                ["node", temp_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        finally:
+            Path(temp_path).unlink(missing_ok=True)
+        return json.loads(result.stdout)
+
     def test_landing_contains_el_en_de_fr_and_browser_purchase_flow(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         for text in ["Buy on Google Play", "Αγορά στο Google Play", "Bei Google Play kaufen", "Acheter sur Google Play"]:
@@ -263,12 +345,13 @@ class LicensingStaticTests(unittest.TestCase):
 
     def test_landing_installs_early_twa_port_catcher_in_head(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
-        head = content[content.index("<head>"):content.index("</head>")]
+        head = self._landing_head()
         bootstrap_index = content.index('<script src="/static/license-bootstrap.js" defer></script>')
         self.assertLess(content.index("__NOESISFOOD_LICENSE_PORT_STATE__"), bootstrap_index)
         self.assertLess(head.index("__NOESISFOOD_LICENSE_PORT_STATE__"), head.index("<title>"))
         self.assertIn('window.addEventListener("message", function (event)', head)
-        self.assertIn('event.origin !== "https://noesisfood.app"', head)
+        self.assertIn('event.origin !== "android-app://noesisfood.app"', head)
+        self.assertNotIn('event.origin !== "https://noesisfood.app"', head)
         self.assertIn('data.type !== "noesisfood.license.channelReady"', head)
         self.assertIn("data.version !== 1", head)
         self.assertIn("event.ports && event.ports[0]", head)
@@ -277,10 +360,69 @@ class LicensingStaticTests(unittest.TestCase):
         self.assertIn('window.dispatchEvent(new CustomEvent(readyEventName))', head)
         self.assertNotIn("/license/challenge", head)
         self.assertNotIn("window.postMessage(", head)
+        self.assertNotIn("startsWith", head)
+        self.assertNotIn("includes", head)
+        self.assertNotIn("match(", head)
+        self.assertNotIn("RegExp", head)
+
+    def test_landing_early_catcher_accepts_only_exact_twa_app_origin(self):
+        valid_data = '{"type":"noesisfood.license.channelReady","version":1}'
+        accepted = self._run_landing_early_catcher([
+            {"origin": "android-app://noesisfood.app", "data": valid_data, "withPort": True, "portLabel": "accepted"}
+        ])
+        self.assertTrue(accepted["hasPort"])
+        self.assertEqual(accepted["portLabel"], "accepted")
+        self.assertEqual(accepted["dispatched"], ["noesisfood:license-port-ready"])
+
+        rejected_origins = [
+            "https://noesisfood.app",
+            "null",
+            "",
+            "android-app://com.noesisfood.app",
+            "android-app://noesisfood.app.evil",
+        ]
+        for origin in rejected_origins:
+            with self.subTest(origin=origin):
+                rejected = self._run_landing_early_catcher([
+                    {"origin": origin, "data": valid_data, "withPort": True, "portLabel": "rejected"}
+                ])
+                self.assertFalse(rejected["hasPort"])
+                self.assertEqual(rejected["dispatched"], [])
+
+    def test_landing_early_catcher_keeps_strict_message_contract(self):
+        cases = [
+            {"origin": "android-app://noesisfood.app", "data": '{"type":"wrong","version":1}', "withPort": True},
+            {"origin": "android-app://noesisfood.app", "data": '{"type":"noesisfood.license.channelReady","version":2}', "withPort": True},
+            {"origin": "android-app://noesisfood.app", "data": '{"type":"noesisfood.license.channelReady","version":1}', "withPort": False},
+            {"origin": "android-app://noesisfood.app", "data": "{", "withPort": True},
+            {"origin": "android-app://noesisfood.app", "data": None, "withPort": True},
+        ]
+        for event in cases:
+            with self.subTest(event=event):
+                result = self._run_landing_early_catcher([event])
+                self.assertFalse(result["hasPort"])
+                self.assertEqual(result["dispatched"], [])
+
+    def test_landing_early_catcher_retains_first_valid_port_and_ignores_duplicates(self):
+        valid_data = {"type": "noesisfood.license.channelReady", "version": 1}
+        result = self._run_landing_early_catcher([
+            {"origin": "android-app://noesisfood.app", "data": valid_data, "withPort": True, "portLabel": "first"},
+            {"origin": "android-app://noesisfood.app", "data": valid_data, "withPort": True, "portLabel": "second"},
+        ])
+        self.assertTrue(result["hasPort"])
+        self.assertEqual(result["portLabel"], "first")
+        self.assertEqual(result["dispatched"], ["noesisfood:license-port-ready"])
+
+    def test_landing_early_catcher_is_passive_for_normal_browser_messages(self):
+        result = self._run_landing_early_catcher([
+            {"origin": "https://noesisfood.app", "data": {"type": "noesisfood.license.channelReady", "version": 1}, "withPort": True}
+        ])
+        self.assertFalse(result["hasPort"])
+        self.assertEqual(result["dispatched"], [])
 
     def test_landing_catcher_keeps_only_non_secret_port_state(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
-        head = content[content.index("<head>"):content.index("</head>")]
+        head = self._landing_head()
         self.assertIn("{ port: null, consumed: false }", head)
         for forbidden in ["challengeToken", "integrityToken", "cookie", "credential", "requestHash"]:
             self.assertNotIn(forbidden, head)

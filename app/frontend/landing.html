@@ -24,7 +24,7 @@
       }
 
       window.addEventListener("message", function (event) {
-        if (event.origin !== "https://noesisfood.app" || state.port || state.consumed) return;
+        if (event.origin !== "android-app://noesisfood.app" || state.port || state.consumed) return;
         var data = parseMessageData(event.data);
         if (!data || data.type !== "noesisfood.license.channelReady" || data.version !== 1) return;
         var port = event.ports && event.ports[0];
