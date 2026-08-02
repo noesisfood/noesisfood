@@ -9,7 +9,7 @@
   const RESPONSE_TYPE = "noesisfood.license.integrityToken";
   const ERROR_TYPE = "noesisfood.license.error";
   const REQUEST_HASH_RE = /^[A-Za-z0-9_-]{43}$/;
-  const CHALLENGE_TOKEN_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+  const CHALLENGE_TOKEN_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
   let nativePort = null;
   let pendingChallengeToken = "";

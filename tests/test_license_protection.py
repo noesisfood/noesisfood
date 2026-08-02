@@ -336,6 +336,101 @@ console.log(JSON.stringify({{
             Path(temp_path).unlink(missing_ok=True)
         return json.loads(result.stdout)
 
+    def _run_bootstrap_harness(self, challenge, call_consume=True):
+        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
+        harness = f"""
+const script = {json.dumps(content)};
+const challenge = {json.dumps(challenge)};
+const callConsume = {json.dumps(call_consume)};
+const sent = [];
+const statuses = [];
+const port = {{
+  postMessage(message) {{
+    const parsed = JSON.parse(message);
+    sent.push({{
+      type: parsed.type,
+      version: parsed.version,
+      requestHashLength: String(parsed.requestHash || "").length,
+      challengeTokenSegmentCount: String(parsed.challengeToken || "").split(".").length,
+      expiresAtType: typeof parsed.expiresAt,
+    }});
+  }},
+  start() {{
+    sent.push({{ started: true }});
+  }},
+}};
+const window = {{
+  __NOESISFOOD_LICENSE_PORT_STATE__: {{ port, consumed: false }},
+  listeners: {{}},
+  location: {{ reload() {{ throw new Error("reload must not be called"); }} }},
+  addEventListener(name, callback) {{
+    this.listeners[name] = this.listeners[name] || [];
+    this.listeners[name].push(callback);
+  }},
+  postMessage() {{
+    throw new Error("window.postMessage must not be called");
+  }},
+}};
+const document = {{
+  querySelector(selector) {{
+    if (selector !== "[data-license-status]") return null;
+    return {{
+      setAttribute(name, value) {{
+        statuses.push([name, value]);
+      }},
+    }};
+  }},
+}};
+const navigator = {{ serviceWorker: {{ getRegistrations: async () => [] }} }};
+const caches = {{ keys: async () => [] }};
+global.window = window;
+global.document = document;
+global.navigator = navigator;
+global.caches = caches;
+global.fetch = async function (url) {{
+  if (url !== "/license/challenge") throw new Error("unexpected fetch");
+  return {{
+    ok: true,
+    json: async () => challenge,
+  }};
+}};
+eval(script);
+if (callConsume) {{
+  window.NoesisFoodLicenseBootstrap._test.consumeRetainedNativePort();
+}}
+setTimeout(() => {{
+  console.log(JSON.stringify({{
+    valid: window.NoesisFoodLicenseBootstrap._test.isValidChallenge(challenge),
+    sent,
+    statuses,
+    consumed: window.__NOESISFOOD_LICENSE_PORT_STATE__.consumed,
+    retainedPort: Boolean(window.__NOESISFOOD_LICENSE_PORT_STATE__.port),
+  }}));
+}}, 0);
+"""
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".js", delete=False) as temp:
+            temp.write(harness)
+            temp_path = temp.name
+        try:
+            result = subprocess.run(
+                ["node", temp_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        finally:
+            Path(temp_path).unlink(missing_ok=True)
+        return json.loads(result.stdout)
+
+    def _valid_bootstrap_challenge(self, **overrides):
+        data = {
+            "request_hash": "A" * 43,
+            "challenge_token": "abc_DEF-123.XYZ_789-a",
+            "expires_at": int(time.time()) + 300,
+        }
+        data.update(overrides)
+        return data
+
     def test_landing_contains_el_en_de_fr_and_browser_purchase_flow(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         for text in ["Buy on Google Play", "Αγορά στο Google Play", "Bei Google Play kaufen", "Acheter sur Google Play"]:
@@ -471,6 +566,57 @@ console.log(JSON.stringify({{
         self.assertIn("function handleNativePortMessage(event)", content)
         self.assertNotIn('window.addEventListener("message"', content)
         self.assertNotIn("window.postMessage(", content)
+
+    def test_bootstrap_accepts_only_backend_style_two_segment_challenge_tokens(self):
+        accepted = self._run_bootstrap_harness(self._valid_bootstrap_challenge(), call_consume=False)
+        self.assertTrue(accepted["valid"])
+
+        rejected_tokens = {
+            "previous_three_segment_jws": "abc.DEF.ghi",
+            "one_segment": "abc",
+            "empty_left_segment": ".abc",
+            "empty_right_segment": "abc.",
+            "extra_dot": "abc.def.ghi",
+            "whitespace": "abc def.ghi",
+            "invalid_characters": "abc+def.ghi",
+        }
+        for name, token in rejected_tokens.items():
+            with self.subTest(name=name):
+                result = self._run_bootstrap_harness(
+                    self._valid_bootstrap_challenge(challenge_token=token),
+                    call_consume=False,
+                )
+                self.assertFalse(result["valid"])
+
+    def test_bootstrap_challenge_validation_keeps_request_hash_and_expires_at_checks(self):
+        invalid_cases = {
+            "short_request_hash": {"request_hash": "A" * 42},
+            "long_request_hash": {"request_hash": "A" * 44},
+            "invalid_request_hash_character": {"request_hash": ("A" * 42) + "."},
+            "non_numeric_expires_at": {"expires_at": "not-a-number"},
+            "expired_expires_at": {"expires_at": int(time.time()) - 1},
+        }
+        for name, override in invalid_cases.items():
+            with self.subTest(name=name):
+                result = self._run_bootstrap_harness(
+                    self._valid_bootstrap_challenge(**override),
+                    call_consume=False,
+                )
+                self.assertFalse(result["valid"])
+
+    def test_bootstrap_valid_challenge_reaches_message_port_send_path(self):
+        result = self._run_bootstrap_harness(self._valid_bootstrap_challenge())
+        self.assertTrue(result["valid"])
+        self.assertTrue(result["consumed"])
+        self.assertFalse(result["retainedPort"])
+        self.assertEqual(result["statuses"], [["data-license-status", "starting"], ["data-license-status", "waiting"]])
+        self.assertEqual(result["sent"][0], {"started": True})
+        self.assertEqual(len(result["sent"]), 2)
+        self.assertEqual(result["sent"][1]["type"], "noesisfood.license.challenge")
+        self.assertEqual(result["sent"][1]["version"], 1)
+        self.assertEqual(result["sent"][1]["requestHashLength"], 43)
+        self.assertEqual(result["sent"][1]["challengeTokenSegmentCount"], 2)
+        self.assertEqual(result["sent"][1]["expiresAtType"], "number")
 
     def test_bootstrap_later_port_messages_require_exact_type_and_version(self):
         content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
