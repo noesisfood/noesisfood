@@ -266,34 +266,75 @@ class LicensingStaticTests(unittest.TestCase):
         end = head.index("</script>", start)
         return head[start:end]
 
-    def _run_landing_early_catcher(self, events):
+    def _run_landing_handler(self, events, fetch_ok=True, json_ok=True):
         harness = f"""
 const script = {json.dumps(self._landing_early_catcher_script())};
 const events = {json.dumps(events)};
-const dispatched = [];
+const fetches = [];
+const statuses = [];
+let reloaded = false;
 const window = {{
   listeners: {{}},
+  location: {{
+    reload() {{
+      reloaded = true;
+    }},
+  }},
   addEventListener(name, callback) {{
     this.listeners[name] = this.listeners[name] || [];
     this.listeners[name].push(callback);
   }},
-  dispatchEvent(event) {{
-    dispatched.push(event.type);
-  }},
   postMessage() {{
     throw new Error("window.postMessage must not be called");
   }},
-  fetch() {{
-    throw new Error("fetch must not be called");
+}};
+const document = {{
+  querySelector(selector) {{
+    if (selector !== "[data-license-status]") return null;
+    return {{
+      setAttribute(name, value) {{
+        statuses.push([name, value]);
+      }},
+    }};
   }},
 }};
-class CustomEvent {{
-  constructor(type) {{
-    this.type = type;
-  }}
-}}
+const localStorage = {{
+  getItem() {{ return null; }},
+  setItem() {{}},
+}};
+const sessionStorage = {{
+  getItem() {{ return null; }},
+  setItem() {{
+    throw new Error("sessionStorage must not be used");
+  }},
+}};
+const indexedDB = {{
+  open() {{
+    throw new Error("IndexedDB must not be used");
+  }},
+}};
+global.fetch = async function (url, options) {{
+  fetches.push({{
+    url,
+    credentials: options && options.credentials,
+    method: options && options.method,
+    bodyKeys: Object.keys(JSON.parse(options.body)).sort(),
+    contentType: options && options.headers && options.headers["Content-Type"],
+    accept: options && options.headers && options.headers.Accept,
+  }});
+  return {{
+    ok: {json.dumps(fetch_ok)},
+    json: async () => {{
+      if (!{json.dumps(json_ok)}) throw new Error("bad json");
+      return {{ ok: true }};
+    }},
+  }};
+}};
 global.window = window;
-global.CustomEvent = CustomEvent;
+global.document = document;
+global.localStorage = localStorage;
+global.sessionStorage = sessionStorage;
+global.indexedDB = indexedDB;
 eval(script);
 function makePort(label) {{
   return {{
@@ -313,98 +354,12 @@ for (const event of events) {{
     }});
   }}
 }}
-const state = window.__NOESISFOOD_LICENSE_PORT_STATE__;
-console.log(JSON.stringify({{
-  hasPort: Boolean(state && state.port),
-  portLabel: state && state.port ? state.port.label : null,
-  consumed: Boolean(state && state.consumed),
-  stateKeys: state ? Object.keys(state).sort() : [],
-  dispatched,
-}}));
-"""
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".js", delete=False) as temp:
-            temp.write(harness)
-            temp_path = temp.name
-        try:
-            result = subprocess.run(
-                ["node", temp_path],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-        return json.loads(result.stdout)
-
-    def _run_bootstrap_harness(self, challenge, call_consume=True):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        harness = f"""
-const script = {json.dumps(content)};
-const challenge = {json.dumps(challenge)};
-const callConsume = {json.dumps(call_consume)};
-const sent = [];
-const statuses = [];
-const port = {{
-  postMessage(message) {{
-    const parsed = JSON.parse(message);
-    sent.push({{
-      type: parsed.type,
-      version: parsed.version,
-      requestHashLength: String(parsed.requestHash || "").length,
-      challengeTokenSegmentCount: String(parsed.challengeToken || "").split(".").length,
-      expiresAtType: typeof parsed.expiresAt,
-    }});
-  }},
-  start() {{
-    sent.push({{ started: true }});
-  }},
-}};
-const window = {{
-  __NOESISFOOD_LICENSE_PORT_STATE__: {{ port, consumed: false }},
-  listeners: {{}},
-  location: {{ reload() {{ throw new Error("reload must not be called"); }} }},
-  addEventListener(name, callback) {{
-    this.listeners[name] = this.listeners[name] || [];
-    this.listeners[name].push(callback);
-  }},
-  postMessage() {{
-    throw new Error("window.postMessage must not be called");
-  }},
-}};
-const document = {{
-  querySelector(selector) {{
-    if (selector !== "[data-license-status]") return null;
-    return {{
-      setAttribute(name, value) {{
-        statuses.push([name, value]);
-      }},
-    }};
-  }},
-}};
-const navigator = {{ serviceWorker: {{ getRegistrations: async () => [] }} }};
-const caches = {{ keys: async () => [] }};
-global.window = window;
-global.document = document;
-global.navigator = navigator;
-global.caches = caches;
-global.fetch = async function (url) {{
-  if (url !== "/license/challenge") throw new Error("unexpected fetch");
-  return {{
-    ok: true,
-    json: async () => challenge,
-  }};
-}};
-eval(script);
-if (callConsume) {{
-  window.NoesisFoodLicenseBootstrap._test.consumeRetainedNativePort();
-}}
 setTimeout(() => {{
   console.log(JSON.stringify({{
-    valid: window.NoesisFoodLicenseBootstrap._test.isValidChallenge(challenge),
-    sent,
+    fetches,
     statuses,
-    consumed: window.__NOESISFOOD_LICENSE_PORT_STATE__.consumed,
-    retainedPort: Boolean(window.__NOESISFOOD_LICENSE_PORT_STATE__.port),
+    reloaded,
+    globalKeys: Object.keys(window).sort(),
   }}));
 }}, 0);
 """
@@ -422,14 +377,15 @@ setTimeout(() => {{
             Path(temp_path).unlink(missing_ok=True)
         return json.loads(result.stdout)
 
-    def _valid_bootstrap_challenge(self, **overrides):
+    def _native_license_message(self, **overrides):
         data = {
-            "request_hash": "A" * 43,
-            "challenge_token": "abc_DEF-123.XYZ_789-a",
-            "expires_at": int(time.time()) + 300,
+            "type": "noesisfood.license.integrityToken",
+            "version": 1,
+            "integrityToken": "integrity-token",
+            "challengeToken": "abc_DEF-123.XYZ_789-a",
         }
         data.update(overrides)
-        return data
+        return json.dumps(data)
 
     def test_landing_contains_el_en_de_fr_and_browser_purchase_flow(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
@@ -437,40 +393,36 @@ setTimeout(() => {{
             self.assertIn(text, content)
         self.assertIn("https://play.google.com/store/apps/details?id=com.noesisfood.app", content)
         self.assertNotIn("/scan/photo", content)
-        self.assertIn('<script src="/static/license-bootstrap.js" defer></script>', content)
+        self.assertNotIn('<script src="/static/license-bootstrap.js" defer></script>', content)
 
-    def test_landing_installs_early_twa_port_catcher_in_head(self):
+    def test_landing_installs_native_first_session_handler_in_head(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         head = self._landing_head()
-        bootstrap_index = content.index('<script src="/static/license-bootstrap.js" defer></script>')
-        self.assertLess(content.index("__NOESISFOOD_LICENSE_PORT_STATE__"), bootstrap_index)
-        self.assertLess(head.index("__NOESISFOOD_LICENSE_PORT_STATE__"), head.index("<title>"))
+        self.assertLess(head.index('trustedOrigin = "android-app://noesisfood.app"'), head.index("<title>"))
         self.assertIn('window.addEventListener("message", function (event)', head)
-        self.assertIn('event.origin !== "android-app://noesisfood.app"', head)
+        self.assertIn("event.origin !== trustedOrigin", head)
         self.assertNotIn('event.origin !== "https://noesisfood.app"', head)
-        self.assertNotIn("parseMessageData", head)
-        self.assertNotIn('data.type !== "noesisfood.license.channelReady"', head)
-        self.assertNotIn("data.version !== 1", head)
-        self.assertNotIn("event.data", head)
+        self.assertIn('responseType = "noesisfood.license.integrityToken"', head)
+        self.assertNotIn("noesisfood.license.channelReady", head)
+        self.assertIn("data.version !== 1", head)
+        self.assertIn("parseMessage(event.data)", head)
         self.assertIn("!event.ports || event.ports.length < 1", head)
-        self.assertIn("var port = event.ports[0]", head)
-        self.assertIn("state.port || state.consumed", head)
-        self.assertIn("state.port = port", head)
-        self.assertIn('window.dispatchEvent(new CustomEvent(readyEventName))', head)
+        self.assertIn("!event.ports[0]", head)
+        self.assertIn('fetch("/license/session"', head)
+        self.assertIn('credentials: "include"', head)
+        self.assertIn("integrity_token", head)
+        self.assertIn("challenge_token", head)
         self.assertNotIn("/license/challenge", head)
         self.assertNotIn("window.postMessage(", head)
-        self.assertNotIn("startsWith", head)
-        self.assertNotIn("includes", head)
-        self.assertNotIn("match(", head)
-        self.assertNotIn("RegExp", head)
+        self.assertNotIn("localStorage.setItem", head)
+        self.assertNotIn("sessionStorage", head)
+        self.assertNotIn("indexedDB", head)
 
-    def test_landing_early_catcher_accepts_only_exact_twa_app_origin(self):
-        accepted = self._run_landing_early_catcher([
-            {"origin": "android-app://noesisfood.app", "data": "", "withPort": True, "portLabel": "accepted"}
+    def test_landing_accepts_only_exact_android_app_origin(self):
+        accepted = self._run_landing_handler([
+            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True}
         ])
-        self.assertTrue(accepted["hasPort"])
-        self.assertEqual(accepted["portLabel"], "accepted")
-        self.assertEqual(accepted["dispatched"], ["noesisfood:license-port-ready"])
+        self.assertEqual(len(accepted["fetches"]), 1)
 
         rejected_origins = [
             "https://noesisfood.app",
@@ -481,178 +433,94 @@ setTimeout(() => {{
         ]
         for origin in rejected_origins:
             with self.subTest(origin=origin):
-                rejected = self._run_landing_early_catcher([
-                    {"origin": origin, "data": "", "withPort": True, "portLabel": "rejected"}
+                rejected = self._run_landing_handler([
+                    {"origin": origin, "data": self._native_license_message(), "withPort": True}
                 ])
-                self.assertFalse(rejected["hasPort"])
-                self.assertEqual(rejected["dispatched"], [])
+                self.assertEqual(rejected["fetches"], [])
 
-    def test_landing_early_catcher_accepts_valid_port_transfer_with_ignored_payload(self):
-        cases = [
+    def test_landing_requires_first_integrity_token_message_version_and_port(self):
+        rejected_messages = [
             "",
             "ordinary string",
             "{",
-            {"unexpected": "object"},
+            json.dumps({"type": "wrong", "version": 1, "integrityToken": "x", "challengeToken": "a.b"}),
+            self._native_license_message(version=2),
         ]
-        for data in cases:
+        for data in rejected_messages:
             with self.subTest(data=data):
-                result = self._run_landing_early_catcher([
-                    {"origin": "android-app://noesisfood.app", "data": data, "withPort": True, "portLabel": "accepted"}
+                result = self._run_landing_handler([
+                    {"origin": "android-app://noesisfood.app", "data": data, "withPort": True}
                 ])
-                self.assertTrue(result["hasPort"])
-                self.assertEqual(result["portLabel"], "accepted")
-                self.assertEqual(result["stateKeys"], ["consumed", "port"])
-                self.assertEqual(result["dispatched"], ["noesisfood:license-port-ready"])
+                self.assertEqual(result["fetches"], [])
 
-    def test_landing_early_catcher_rejects_events_without_transferred_port(self):
-        for data in ["", "ordinary string", "{", {"unexpected": "object"}]:
-            with self.subTest(data=data):
-                result = self._run_landing_early_catcher([
-                    {"origin": "android-app://noesisfood.app", "data": data, "withPort": False}
+        no_port = self._run_landing_handler([
+            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": False}
+        ])
+        self.assertEqual(no_port["fetches"], [])
+        missing_ports = self._run_landing_handler([
+            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "omitPorts": True}
+        ])
+        self.assertEqual(missing_ports["fetches"], [])
+
+    def test_landing_rejects_malformed_empty_oversized_and_invalid_tokens(self):
+        long_token = "x" * 9000
+        invalid_cases = [
+            {"integrityToken": ""},
+            {"integrityToken": long_token},
+            {"challengeToken": ""},
+            {"challengeToken": "one"},
+            {"challengeToken": ".right"},
+            {"challengeToken": "left."},
+            {"challengeToken": "a.b.c"},
+            {"challengeToken": "a b.c"},
+            {"challengeToken": "a+b.c"},
+        ]
+        for override in invalid_cases:
+            with self.subTest(override=override):
+                result = self._run_landing_handler([
+                    {"origin": "android-app://noesisfood.app", "data": self._native_license_message(**override), "withPort": True}
                 ])
-                self.assertFalse(result["hasPort"])
-                self.assertEqual(result["dispatched"], [])
-        missing_ports = self._run_landing_early_catcher([
-            {"origin": "android-app://noesisfood.app", "data": "", "omitPorts": True}
-        ])
-        self.assertFalse(missing_ports["hasPort"])
-        self.assertEqual(missing_ports["dispatched"], [])
+                self.assertEqual(result["fetches"], [])
 
-    def test_landing_early_catcher_retains_first_valid_port_and_ignores_duplicates(self):
-        result = self._run_landing_early_catcher([
-            {"origin": "android-app://noesisfood.app", "data": "", "withPort": True, "portLabel": "first"},
-            {"origin": "android-app://noesisfood.app", "data": '{"type":"wrong","version":1}', "withPort": True, "portLabel": "second"},
+    def test_landing_posts_session_with_snake_case_credentials_include_and_reloads(self):
+        result = self._run_landing_handler([
+            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True}
         ])
-        self.assertTrue(result["hasPort"])
-        self.assertEqual(result["portLabel"], "first")
-        self.assertEqual(result["dispatched"], ["noesisfood:license-port-ready"])
+        self.assertEqual(len(result["fetches"]), 1)
+        self.assertEqual(result["fetches"][0]["url"], "/license/session")
+        self.assertEqual(result["fetches"][0]["method"], "POST")
+        self.assertEqual(result["fetches"][0]["credentials"], "include")
+        self.assertEqual(result["fetches"][0]["bodyKeys"], ["challenge_token", "integrity_token"])
+        self.assertEqual(result["fetches"][0]["contentType"], "application/json")
+        self.assertEqual(result["fetches"][0]["accept"], "application/json")
+        self.assertTrue(result["reloaded"])
 
-    def test_landing_early_catcher_is_passive_for_normal_browser_messages(self):
-        result = self._run_landing_early_catcher([
-            {"origin": "https://noesisfood.app", "data": {"type": "noesisfood.license.channelReady", "version": 1}, "withPort": True}
+    def test_landing_starts_only_one_session_request(self):
+        result = self._run_landing_handler([
+            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True},
+            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True},
         ])
-        self.assertFalse(result["hasPort"])
-        self.assertEqual(result["dispatched"], [])
+        self.assertEqual(len(result["fetches"]), 1)
 
-    def test_landing_catcher_keeps_only_non_secret_port_state(self):
+    def test_landing_normal_browser_remains_passive(self):
+        result = self._run_landing_handler([
+            {"origin": "https://noesisfood.app", "data": self._native_license_message(), "withPort": True}
+        ])
+        self.assertEqual(result["fetches"], [])
+
+    def test_landing_handler_keeps_tokens_out_of_global_storage_and_dom(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         head = self._landing_head()
-        self.assertIn("{ port: null, consumed: false }", head)
-        self.assertNotIn("event.data", head)
-        for forbidden in ["challengeToken", "integrityToken", "cookie", "credential", "requestHash"]:
-            self.assertNotIn(forbidden, head)
-
-    def test_bootstrap_rejects_invalid_origin_and_posts_session_request(self):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        self.assertIn('origin === TARGET_ORIGIN', content)
-        self.assertIn('"/license/session"', content)
-        self.assertIn("no-store", content)
-
-    def test_bootstrap_uses_twa_message_port_contract(self):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        self.assertIn('const CHANNEL_READY_TYPE = "noesisfood.license.channelReady"', content)
-        self.assertIn('const PORT_STATE_NAME = "__NOESISFOOD_LICENSE_PORT_STATE__"', content)
-        self.assertIn('const PORT_READY_EVENT = "noesisfood:license-port-ready"', content)
-        self.assertIn("consumeRetainedNativePort();", content)
-        self.assertIn("window.addEventListener(PORT_READY_EVENT, consumeRetainedNativePort)", content)
-        self.assertIn("const port = state.port", content)
-        self.assertIn('typeof port.postMessage !== "function"', content)
-        self.assertIn("state.consumed = true", content)
-        self.assertIn("state.port = null", content)
-        self.assertIn("nativePort = port", content)
-        self.assertIn("nativePort.onmessage = handleNativePortMessage", content)
-        self.assertIn('if (typeof nativePort.start === "function") nativePort.start();', content)
-        self.assertIn("nativePort.postMessage(JSON.stringify({", content)
-        self.assertIn("function handleNativePortMessage(event)", content)
-        self.assertNotIn('window.addEventListener("message"', content)
+        self.assertNotIn("__NOESISFOOD_LICENSE_PORT_STATE__", head)
+        self.assertNotIn("localStorage.setItem", head)
+        self.assertNotIn("sessionStorage", head)
+        self.assertNotIn("indexedDB", head)
+        self.assertNotIn("innerHTML", head)
+        self.assertNotIn("textContent = integrityToken", head)
+        self.assertNotIn("textContent = challengeToken", head)
+        self.assertNotIn("/license/challenge", content)
+        self.assertNotIn("noesisfood.license.challenge", content)
         self.assertNotIn("window.postMessage(", content)
-
-    def test_bootstrap_accepts_only_backend_style_two_segment_challenge_tokens(self):
-        accepted = self._run_bootstrap_harness(self._valid_bootstrap_challenge(), call_consume=False)
-        self.assertTrue(accepted["valid"])
-
-        rejected_tokens = {
-            "previous_three_segment_jws": "abc.DEF.ghi",
-            "one_segment": "abc",
-            "empty_left_segment": ".abc",
-            "empty_right_segment": "abc.",
-            "extra_dot": "abc.def.ghi",
-            "whitespace": "abc def.ghi",
-            "invalid_characters": "abc+def.ghi",
-        }
-        for name, token in rejected_tokens.items():
-            with self.subTest(name=name):
-                result = self._run_bootstrap_harness(
-                    self._valid_bootstrap_challenge(challenge_token=token),
-                    call_consume=False,
-                )
-                self.assertFalse(result["valid"])
-
-    def test_bootstrap_challenge_validation_keeps_request_hash_and_expires_at_checks(self):
-        invalid_cases = {
-            "short_request_hash": {"request_hash": "A" * 42},
-            "long_request_hash": {"request_hash": "A" * 44},
-            "invalid_request_hash_character": {"request_hash": ("A" * 42) + "."},
-            "non_numeric_expires_at": {"expires_at": "not-a-number"},
-            "expired_expires_at": {"expires_at": int(time.time()) - 1},
-        }
-        for name, override in invalid_cases.items():
-            with self.subTest(name=name):
-                result = self._run_bootstrap_harness(
-                    self._valid_bootstrap_challenge(**override),
-                    call_consume=False,
-                )
-                self.assertFalse(result["valid"])
-
-    def test_bootstrap_valid_challenge_reaches_message_port_send_path(self):
-        result = self._run_bootstrap_harness(self._valid_bootstrap_challenge())
-        self.assertTrue(result["valid"])
-        self.assertTrue(result["consumed"])
-        self.assertFalse(result["retainedPort"])
-        self.assertEqual(result["statuses"], [["data-license-status", "starting"], ["data-license-status", "waiting"]])
-        self.assertEqual(result["sent"][0], {"started": True})
-        self.assertEqual(len(result["sent"]), 2)
-        self.assertEqual(result["sent"][1]["type"], "noesisfood.license.challenge")
-        self.assertEqual(result["sent"][1]["version"], 1)
-        self.assertEqual(result["sent"][1]["requestHashLength"], 43)
-        self.assertEqual(result["sent"][1]["challengeTokenSegmentCount"], 2)
-        self.assertEqual(result["sent"][1]["expiresAtType"], "number")
-
-    def test_bootstrap_later_port_messages_require_exact_type_and_version(self):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        handler = content[content.index("function handleNativePortMessage(event)"):content.index("async function beginNativeLicensing")]
-        self.assertIn("const data = parseMessageData(event.data);", handler)
-        self.assertIn("if (!data || data.version !== 1) return;", handler)
-        self.assertIn("if (data.type === ERROR_TYPE)", handler)
-        self.assertIn("if (data.type !== RESPONSE_TYPE) return;", handler)
-        self.assertIn("challengeToken !== pendingChallengeToken", handler)
-        self.assertIn("createSession(integrityToken, challengeToken)", handler)
-
-    def test_bootstrap_consumes_retained_port_at_most_once(self):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        consume_block = content[content.index("function consumeRetainedNativePort()"):content.index("consumeRetainedNativePort();")]
-        self.assertIn("state.consumed || nativeLicensingStarted", consume_block)
-        self.assertIn("state.consumed = true", consume_block)
-        self.assertIn("state.port = null", consume_block)
-        self.assertIn("nativeLicensingStarted = true", consume_block)
-        self.assertIn("beginNativeLicensing(port).catch", consume_block)
-
-    def test_bootstrap_does_not_fetch_challenge_before_native_port_exists(self):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        load_block = content[content.index('window.addEventListener("load"'):]
-        start_block = content[content.index("async start()"):content.index("_test:")]
-        self.assertNotIn("requestChallenge()", load_block)
-        self.assertNotIn("requestChallenge()", start_block)
-        self.assertIn("const challenge = await requestChallenge();", content)
-        self.assertLess(content.index("nativePort = port"), content.index("const challenge = await requestChallenge();"))
-        self.assertLess(content.index("nativePort.onmessage = handleNativePortMessage"), content.index("const challenge = await requestChallenge();"))
-        self.assertLess(content.index('if (typeof nativePort.start === "function") nativePort.start();'), content.index("const challenge = await requestChallenge();"))
-
-    def test_bootstrap_successful_session_reloads_root_with_cookie(self):
-        content = Path("app/frontend/license-bootstrap.js").read_text(encoding="utf-8")
-        self.assertIn('credentials: "same-origin"', content)
-        self.assertIn('if (!response.ok) throw new Error("session_denied");', content)
-        self.assertIn("window.location.reload();", content)
 
     def test_service_worker_cache_migration_and_private_cache_exclusions(self):
         content = Path("app/frontend/service-worker.js").read_text(encoding="utf-8")

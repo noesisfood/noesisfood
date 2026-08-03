@@ -7,18 +7,76 @@
   <script>
     (function () {
       "use strict";
-      var stateName = "__NOESISFOOD_LICENSE_PORT_STATE__";
-      var readyEventName = "noesisfood:license-port-ready";
-      var state = window[stateName] || { port: null, consumed: false };
-      window[stateName] = state;
+      var state = { sessionStarted: false };
+      var trustedOrigin = "android-app://noesisfood.app";
+      var responseType = "noesisfood.license.integrityToken";
+      var errorType = "noesisfood.license.error";
+      var tokenPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+      var maxTokenLength = 8192;
+
+      function parseMessage(data) {
+        if (typeof data !== "string" || data.length < 2 || data.length > 20000) return null;
+        try {
+          return JSON.parse(data);
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function setStatus(value) {
+        var el = document.querySelector("[data-license-status]");
+        if (el) el.setAttribute("data-license-status", value);
+      }
+
+      function isBoundedString(value) {
+        return typeof value === "string" && value.length > 0 && value.length <= maxTokenLength;
+      }
+
+      function postSession(integrityToken, challengeToken) {
+        return fetch("/license/session", {
+          method: "POST",
+          credentials: "include",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ integrity_token: integrityToken, challenge_token: challengeToken })
+        }).then(function (response) {
+          if (!response.ok) throw new Error("session_denied");
+          return response.json();
+        }).then(function () {
+          window.location.reload();
+        });
+      }
 
       window.addEventListener("message", function (event) {
-        if (event.origin !== "android-app://noesisfood.app" || state.port || state.consumed) return;
+        if (event.origin !== trustedOrigin || state.sessionStarted) return;
         if (!event.ports || event.ports.length < 1) return;
-        var port = event.ports[0];
-        if (!port) return;
-        state.port = port;
-        window.dispatchEvent(new CustomEvent(readyEventName));
+        if (!event.ports[0]) return;
+
+        var data = parseMessage(event.data);
+        if (!data || data.version !== 1) return;
+        if (data.type === errorType) {
+          setStatus("error");
+          return;
+        }
+        if (data.type !== responseType) return;
+
+        var integrityToken = isBoundedString(data.integrityToken) ? data.integrityToken : "";
+        var challengeToken = isBoundedString(data.challengeToken) ? data.challengeToken : "";
+        if (!integrityToken || !tokenPattern.test(challengeToken)) {
+          integrityToken = "";
+          challengeToken = "";
+          return;
+        }
+
+        state.sessionStarted = true;
+        setStatus("starting");
+        postSession(integrityToken, challengeToken).catch(function () {
+          state.sessionStarted = false;
+          setStatus("denied");
+        }).then(function () {
+          integrityToken = "";
+          challengeToken = "";
+        });
       });
     })();
   </script>
@@ -112,7 +170,6 @@
     </footer>
   </div>
   <span data-license-status="browser"></span>
-  <script src="/static/license-bootstrap.js" defer></script>
   <script>
     const copy = {
       en: {
