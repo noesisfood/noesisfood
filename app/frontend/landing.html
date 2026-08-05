@@ -7,7 +7,7 @@
   <script>
     (function () {
       "use strict";
-      var state = { portAccepted: false, messageAccepted: false };
+      var state = { port: null, messageAccepted: false };
       var trustedOrigin = "android-app://noesisfood.app";
       var responseType = "noesisfood.license.integrityToken";
       var errorType = "noesisfood.license.error";
@@ -77,14 +77,17 @@
       }
 
       window.addEventListener("message", function (event) {
-        if (event.origin !== trustedOrigin || state.portAccepted) return;
-        if (!event.ports || event.ports.length < 1) return;
+        if (event.origin !== trustedOrigin || state.port) return;
+        if (!event.ports || event.ports.length !== 1) return;
         var port = event.ports[0];
         if (!port || typeof port.postMessage !== "function") return;
 
-        state.portAccepted = true;
+        state.port = port;
         port.onmessage = handleNativeMessage;
         if (typeof port.start === "function") port.start();
+        if (typeof event.data === "string" && event.data.length > 0) {
+          handleNativeMessage(event);
+        }
       });
     })();
   </script>

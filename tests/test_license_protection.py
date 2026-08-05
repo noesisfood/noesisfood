@@ -273,11 +273,13 @@ const events = {json.dumps(events)};
 const fetches = [];
 const statuses = [];
 let reloaded = false;
+let reloadCount = 0;
 const window = {{
   listeners: {{}},
   location: {{
     reload() {{
       reloaded = true;
+      reloadCount += 1;
     }},
   }},
   addEventListener(name, callback) {{
@@ -353,9 +355,12 @@ function makePort(label) {{
   }};
 }}
 for (const event of events) {{
+  const portCount = Number.isInteger(event.portCount) ? event.portCount : (event.withPort ? 1 : 0);
   const ports = event.omitPorts
     ? undefined
-    : (event.invalidPort ? [{{}}] : (event.withPort ? [makePort(event.portLabel || "port")] : []));
+    : (event.invalidPort
+      ? [{{}}]
+      : Array.from({{ length: portCount }}, (_, index) => makePort(event.portLabel || `port-${{index}}`)));
   for (const callback of window.listeners.message || []) {{
     callback({{
       type: "message",
@@ -377,6 +382,7 @@ setTimeout(() => {{
     fetches,
     statuses,
     reloaded,
+    reloadCount,
     globalKeys: Object.keys(window).sort(),
   }}));
 }}, 0);
@@ -415,6 +421,15 @@ setTimeout(() => {{
         event.update(overrides)
         return event
 
+    def _initial_twa_transfer_delivery(self, transfer_data, **overrides):
+        event = {
+            "origin": "android-app://noesisfood.app",
+            "data": transfer_data,
+            "withPort": True,
+        }
+        event.update(overrides)
+        return event
+
     def test_landing_contains_el_en_de_fr_and_browser_purchase_flow(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         for text in ["Buy on Google Play", "Αγορά στο Google Play", "Bei Google Play kaufen", "Acheter sur Google Play"]:
@@ -434,10 +449,12 @@ setTimeout(() => {{
         self.assertNotIn("noesisfood.license.channelReady", head)
         self.assertIn("data.version !== 1", head)
         self.assertIn("parseMessage(event.data)", head)
-        self.assertIn("!event.ports || event.ports.length < 1", head)
+        self.assertIn("!event.ports || event.ports.length !== 1", head)
         self.assertIn('typeof port.postMessage !== "function"', head)
         self.assertIn("port.onmessage = handleNativeMessage", head)
         self.assertIn('typeof port.start === "function"', head)
+        self.assertIn('typeof event.data === "string" && event.data.length > 0', head)
+        self.assertIn("handleNativeMessage(event)", head)
         self.assertIn('fetch("/license/session"', head)
         self.assertIn('credentials: "include"', head)
         self.assertIn("integrity_token", head)
@@ -447,6 +464,75 @@ setTimeout(() => {{
         self.assertNotIn("localStorage.setItem", head)
         self.assertNotIn("sessionStorage", head)
         self.assertNotIn("indexedDB", head)
+
+    def test_first_twa_transfer_event_with_payload_posts_session(self):
+        payload = self._native_license_message()
+        result = self._run_landing_handler([
+            self._initial_twa_transfer_delivery(payload)
+        ])
+
+        self.assertEqual(len(result["fetches"]), 1)
+        self.assertEqual(result["fetches"][0]["url"], "/license/session")
+        self.assertEqual(result["fetches"][0]["method"], "POST")
+        self.assertEqual(result["fetches"][0]["credentials"], "include")
+        self.assertEqual(result["fetches"][0]["bodyKeys"], ["challenge_token", "integrity_token"])
+        self.assertTrue(result["reloaded"])
+        self.assertEqual(result["reloadCount"], 1)
+
+        invalid_json_response = self._run_landing_handler([
+            self._initial_twa_transfer_delivery(payload)
+        ], json_ok=False)
+        self.assertEqual(len(invalid_json_response["fetches"]), 1)
+        self.assertFalse(invalid_json_response["reloaded"])
+        self.assertEqual(invalid_json_response["reloadCount"], 0)
+
+    def test_empty_transfer_then_port_payload_posts_session(self):
+        result = self._run_landing_handler([
+            self._native_first_twa_delivery(self._native_license_message())
+        ])
+
+        self.assertEqual(len(result["fetches"]), 1)
+        self.assertEqual(result["reloadCount"], 1)
+
+    def test_payload_seen_on_window_and_port_posts_only_once(self):
+        payload = self._native_license_message()
+        event = self._initial_twa_transfer_delivery(payload)
+        event["nativeMessages"] = [payload]
+        result = self._run_landing_handler([event])
+
+        self.assertEqual(len(result["fetches"]), 1)
+        self.assertEqual(result["reloadCount"], 1)
+
+    def test_initial_twa_transfer_payload_rejections_fail_closed(self):
+        payload = self._native_license_message()
+        rejected_events = {
+            "missing_port": self._initial_twa_transfer_delivery(payload, withPort=False),
+            "multiple_ports": self._initial_twa_transfer_delivery(payload, portCount=2),
+            "wrong_origin": self._initial_twa_transfer_delivery(payload, origin="https://noesisfood.app"),
+            "malformed_json": self._initial_twa_transfer_delivery("{"),
+            "wrong_type": self._initial_twa_transfer_delivery(
+                self._native_license_message(type="ordinary.browser.message")
+            ),
+            "wrong_version": self._initial_twa_transfer_delivery(
+                self._native_license_message(version=2)
+            ),
+            "invalid_integrity_token": self._initial_twa_transfer_delivery(
+                self._native_license_message(integrityToken="")
+            ),
+            "one_segment_challenge": self._initial_twa_transfer_delivery(
+                self._native_license_message(challengeToken="one_segment")
+            ),
+            "three_segment_challenge": self._initial_twa_transfer_delivery(
+                self._native_license_message(challengeToken="one.two.three")
+            ),
+            "normal_browser_message": self._initial_twa_transfer_delivery("ordinary browser message"),
+        }
+
+        for case, event in rejected_events.items():
+            with self.subTest(case=case):
+                result = self._run_landing_handler([event])
+                self.assertEqual(result["fetches"], [])
+                self.assertEqual(result["reloadCount"], 0)
 
     def test_landing_accepts_only_exact_android_app_origin(self):
         accepted = self._run_landing_handler([
