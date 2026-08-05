@@ -267,8 +267,58 @@ class LicenseHardeningRouteTests(unittest.TestCase):
             response = asyncio.run(main.validation_exception_handler(request, RequestValidationError([])))
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.body, b"Malformed license request")
-        self.assertEqual(len(captured.records), 1)
+        self.assertEqual(len(captured.records), 2)
         self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=request_validation_error")
+        self.assertEqual(captured.records[1].getMessage(), "event=license_validation_error_v1 type=other location=other")
+
+    def test_ingress_diagnostics_forwards_split_messages_unchanged(self):
+        from app.main import LicenseIngressDiagnostics
+
+        messages = [
+            {"type": "http.request", "body": b'{"integrity_token":"', "more_body": True},
+            {"type": "http.request", "body": b"x", "more_body": False},
+        ]
+        received = []
+
+        async def receive():
+            return messages[len(received)]
+
+        async def downstream(scope, wrapped_receive, send):
+            received.append(await wrapped_receive())
+            received.append(await wrapped_receive())
+
+        async def send(_message):
+            return None
+
+        scope = {
+            "type": "http",
+            "method": "POST",
+            "path": "/license/session",
+            "headers": [(b"content-type", b"application/json"), (b"content-length", b"21")],
+        }
+        with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+            asyncio.run(LicenseIngressDiagnostics(downstream)(scope, receive, send))
+
+        self.assertEqual(received, messages)
+        self.assertEqual(len(captured.records), 1)
+        self.assertEqual(
+            captured.records[0].getMessage(),
+            "event=license_ingress_body_v1 chunk_count=multiple total_size_bucket=1_to_256 more_body_sequence=multiple utf8_state=valid json_state=invalid content_type_class=application_json framing_class=content_length",
+        )
+        self.assertNotIn("integrity_token", captured.records[0].getMessage())
+        self.assertNotIn("x", captured.records[0].getMessage())
+
+    def test_runtime_route_shape_marker_is_bounded(self):
+        import app.main as main
+
+        with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+            asyncio.run(main.log_license_runtime_shape())
+        self.assertEqual(len(captured.records), 1)
+        message = captured.records[0].getMessage()
+        self.assertIn("license_runtime_shape_v1", message)
+        self.assertIn("body_field_present=no", message)
+        self.assertIn("body_parameter_count=zero", message)
+        self.assertIn("dependency_body_parameter_count=multiple", message)
 
     def test_malformed_json_route_logs_fixed_reason_and_keeps_response(self):
         from app.api.routes import license as license_route
@@ -328,11 +378,12 @@ class LicenseHardeningRouteTests(unittest.TestCase):
                     )
                 self.assertEqual(response.status_code, 409)
                 self.assertEqual(response.json(), {"detail": "License challenge is no longer valid"})
-                self.assertEqual(len(captured.records), 1)
-                self.assertEqual(captured.records[0].getMessage(), f"license_session_conflict reason={reason}")
-                self.assertNotIn("integrity_token", captured.records[0].getMessage())
-                self.assertNotIn("challenge_token", captured.records[0].getMessage())
-                self.assertNotIn(challenge["challenge_token"], captured.records[0].getMessage())
+                conflict_records = [record for record in captured.records if record.getMessage().startswith("license_session_conflict ")]
+                self.assertEqual(len(conflict_records), 1)
+                self.assertEqual(conflict_records[0].getMessage(), f"license_session_conflict reason={reason}")
+                self.assertNotIn("integrity_token", conflict_records[0].getMessage())
+                self.assertNotIn("challenge_token", conflict_records[0].getMessage())
+                self.assertNotIn(challenge["challenge_token"], conflict_records[0].getMessage())
 
     def test_malformed_and_oversized_requests_do_not_call_google(self):
         with patch.dict(os.environ, _env(LICENSE_SESSION_BODY_MAX_BYTES="32"), clear=False):
@@ -341,8 +392,13 @@ class LicenseHardeningRouteTests(unittest.TestCase):
                 malformed = client.post("/license/session", content=b"{bad")
             self.assertEqual(malformed.status_code, 400)
             self.assertEqual(malformed.text, "Malformed license request")
-            self.assertEqual(len(captured.records), 1)
-            self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=request_validation_error")
+            self.assertEqual(len(captured.records), 3)
+            self.assertEqual(
+                captured.records[0].getMessage(),
+                "event=license_ingress_body_v1 chunk_count=one total_size_bucket=1_to_256 more_body_sequence=single utf8_state=valid json_state=invalid content_type_class=missing framing_class=content_length",
+            )
+            self.assertEqual(captured.records[1].getMessage(), "license_session_bad_request reason=request_validation_error")
+            self.assertEqual(captured.records[2].getMessage(), "event=license_validation_error_v1 type=json_invalid location=body")
             self.assertEqual(client.post("/license/session", data="x" * 128).status_code, 413)
             self.assertEqual(CountingVerifier.calls, 0)
 
@@ -357,8 +413,9 @@ class LicenseHardeningRouteTests(unittest.TestCase):
                 )
             self.assertEqual(missing_integrity.status_code, 400)
             self.assertEqual(missing_integrity.json(), {"detail": "Malformed license request"})
-            self.assertEqual(len(captured_integrity.records), 1)
-            self.assertEqual(captured_integrity.records[0].getMessage(), "license_session_bad_request reason=missing_integrity_token")
+            integrity_records = [record for record in captured_integrity.records if record.getMessage().startswith("license_session_bad_request ")]
+            self.assertEqual(len(integrity_records), 1)
+            self.assertEqual(integrity_records[0].getMessage(), "license_session_bad_request reason=missing_integrity_token")
 
             challenge = self._challenge(client)
             with self.assertLogs("noesisfood.license", level="WARNING") as captured_challenge:
@@ -368,8 +425,9 @@ class LicenseHardeningRouteTests(unittest.TestCase):
                 )
             self.assertEqual(missing_challenge.status_code, 400)
             self.assertEqual(missing_challenge.json(), {"detail": "Malformed license request"})
-            self.assertEqual(len(captured_challenge.records), 1)
-            self.assertEqual(captured_challenge.records[0].getMessage(), "license_session_bad_request reason=missing_challenge_token")
+            challenge_records = [record for record in captured_challenge.records if record.getMessage().startswith("license_session_bad_request ")]
+            self.assertEqual(len(challenge_records), 1)
+            self.assertEqual(challenge_records[0].getMessage(), "license_session_bad_request reason=missing_challenge_token")
 
     def test_challenge_and_session_rate_limits_do_not_call_google(self):
         with patch.dict(os.environ, _env(LICENSE_CHALLENGE_RATE_LIMIT_PER_MINUTE="1", LICENSE_SESSION_RATE_LIMIT_PER_MINUTE="1"), clear=False):
