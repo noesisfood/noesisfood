@@ -7,7 +7,7 @@
   <script>
     (function () {
       "use strict";
-      var state = { sessionStarted: false };
+      var state = { portAccepted: false, messageAccepted: false };
       var trustedOrigin = "android-app://noesisfood.app";
       var responseType = "noesisfood.license.integrityToken";
       var errorType = "noesisfood.license.error";
@@ -47,14 +47,12 @@
         });
       }
 
-      window.addEventListener("message", function (event) {
-        if (event.origin !== trustedOrigin || state.sessionStarted) return;
-        if (!event.ports || event.ports.length < 1) return;
-        if (!event.ports[0]) return;
-
+      function handleNativeMessage(event) {
+        if (state.messageAccepted) return;
         var data = parseMessage(event.data);
         if (!data || data.version !== 1) return;
         if (data.type === errorType) {
+          state.messageAccepted = true;
           setStatus("error");
           return;
         }
@@ -68,15 +66,25 @@
           return;
         }
 
-        state.sessionStarted = true;
+        state.messageAccepted = true;
         setStatus("starting");
         postSession(integrityToken, challengeToken).catch(function () {
-          state.sessionStarted = false;
           setStatus("denied");
         }).then(function () {
           integrityToken = "";
           challengeToken = "";
         });
+      }
+
+      window.addEventListener("message", function (event) {
+        if (event.origin !== trustedOrigin || state.portAccepted) return;
+        if (!event.ports || event.ports.length < 1) return;
+        var port = event.ports[0];
+        if (!port || typeof port.postMessage !== "function") return;
+
+        state.portAccepted = true;
+        port.onmessage = handleNativeMessage;
+        if (typeof port.start === "function") port.start();
       });
     })();
   </script>

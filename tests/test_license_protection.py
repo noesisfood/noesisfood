@@ -339,19 +339,37 @@ eval(script);
 function makePort(label) {{
   return {{
     label,
+    onmessage: null,
+    addEventListener(name, callback) {{
+      if (name === "message") this.onmessage = callback;
+    }},
     postMessage() {{}},
     start() {{}},
+    deliver(data) {{
+      if (typeof this.onmessage === "function") {{
+        this.onmessage({{ type: "message", data, ports: [], origin: "" }});
+      }}
+    }},
   }};
 }}
 for (const event of events) {{
-  const ports = event.omitPorts ? undefined : (event.withPort ? [makePort(event.portLabel || "port")] : []);
+  const ports = event.omitPorts
+    ? undefined
+    : (event.invalidPort ? [{{}}] : (event.withPort ? [makePort(event.portLabel || "port")] : []));
   for (const callback of window.listeners.message || []) {{
     callback({{
+      type: "message",
       origin: event.origin,
       data: event.data,
       ports,
       source: null,
     }});
+  }}
+  if (ports && ports[0] && typeof ports[0].deliver === "function") {{
+    const nativeMessages = event.nativeMessages || (
+      Object.prototype.hasOwnProperty.call(event, "nativeData") ? [event.nativeData] : []
+    );
+    for (const nativeData of nativeMessages) ports[0].deliver(nativeData);
   }}
 }}
 setTimeout(() => {{
@@ -387,6 +405,16 @@ setTimeout(() => {{
         data.update(overrides)
         return json.dumps(data)
 
+    def _native_first_twa_delivery(self, native_data, **overrides):
+        event = {
+            "origin": "android-app://noesisfood.app",
+            "data": "",
+            "withPort": True,
+            "nativeData": native_data,
+        }
+        event.update(overrides)
+        return event
+
     def test_landing_contains_el_en_de_fr_and_browser_purchase_flow(self):
         content = Path("app/frontend/landing.html").read_text(encoding="utf-8")
         for text in ["Buy on Google Play", "Αγορά στο Google Play", "Bei Google Play kaufen", "Acheter sur Google Play"]:
@@ -407,7 +435,9 @@ setTimeout(() => {{
         self.assertIn("data.version !== 1", head)
         self.assertIn("parseMessage(event.data)", head)
         self.assertIn("!event.ports || event.ports.length < 1", head)
-        self.assertIn("!event.ports[0]", head)
+        self.assertIn('typeof port.postMessage !== "function"', head)
+        self.assertIn("port.onmessage = handleNativeMessage", head)
+        self.assertIn('typeof port.start === "function"', head)
         self.assertIn('fetch("/license/session"', head)
         self.assertIn('credentials: "include"', head)
         self.assertIn("integrity_token", head)
@@ -420,7 +450,7 @@ setTimeout(() => {{
 
     def test_landing_accepts_only_exact_android_app_origin(self):
         accepted = self._run_landing_handler([
-            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True}
+            self._native_first_twa_delivery(self._native_license_message())
         ])
         self.assertEqual(len(accepted["fetches"]), 1)
 
@@ -434,11 +464,18 @@ setTimeout(() => {{
         for origin in rejected_origins:
             with self.subTest(origin=origin):
                 rejected = self._run_landing_handler([
-                    {"origin": origin, "data": self._native_license_message(), "withPort": True}
+                    self._native_first_twa_delivery(self._native_license_message(), origin=origin)
                 ])
                 self.assertEqual(rejected["fetches"], [])
 
-    def test_landing_requires_first_integrity_token_message_version_and_port(self):
+    def test_real_native_first_twa_port_message_posts_session(self):
+        result = self._run_landing_handler([
+            self._native_first_twa_delivery(self._native_license_message())
+        ])
+        self.assertEqual(len(result["fetches"]), 1)
+        self.assertEqual(result["fetches"][0]["url"], "/license/session")
+
+    def test_landing_rejects_wrong_type_version_malformed_json_and_missing_channel(self):
         rejected_messages = [
             "",
             "ordinary string",
@@ -449,18 +486,22 @@ setTimeout(() => {{
         for data in rejected_messages:
             with self.subTest(data=data):
                 result = self._run_landing_handler([
-                    {"origin": "android-app://noesisfood.app", "data": data, "withPort": True}
+                    self._native_first_twa_delivery(data)
                 ])
                 self.assertEqual(result["fetches"], [])
 
         no_port = self._run_landing_handler([
-            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": False}
+            self._native_first_twa_delivery(self._native_license_message(), withPort=False)
         ])
         self.assertEqual(no_port["fetches"], [])
         missing_ports = self._run_landing_handler([
-            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "omitPorts": True}
+            self._native_first_twa_delivery(self._native_license_message(), omitPorts=True)
         ])
         self.assertEqual(missing_ports["fetches"], [])
+        invalid_port = self._run_landing_handler([
+            self._native_first_twa_delivery(self._native_license_message(), invalidPort=True)
+        ])
+        self.assertEqual(invalid_port["fetches"], [])
 
     def test_landing_rejects_malformed_empty_oversized_and_invalid_tokens(self):
         long_token = "x" * 9000
@@ -478,13 +519,13 @@ setTimeout(() => {{
         for override in invalid_cases:
             with self.subTest(override=override):
                 result = self._run_landing_handler([
-                    {"origin": "android-app://noesisfood.app", "data": self._native_license_message(**override), "withPort": True}
+                    self._native_first_twa_delivery(self._native_license_message(**override))
                 ])
                 self.assertEqual(result["fetches"], [])
 
     def test_landing_posts_session_with_snake_case_credentials_include_and_reloads(self):
         result = self._run_landing_handler([
-            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True}
+            self._native_first_twa_delivery(self._native_license_message())
         ])
         self.assertEqual(len(result["fetches"]), 1)
         self.assertEqual(result["fetches"][0]["url"], "/license/session")
@@ -495,16 +536,31 @@ setTimeout(() => {{
         self.assertEqual(result["fetches"][0]["accept"], "application/json")
         self.assertTrue(result["reloaded"])
 
-    def test_landing_starts_only_one_session_request(self):
+    def test_landing_starts_only_one_session_request_even_after_failure(self):
+        event = self._native_first_twa_delivery(self._native_license_message())
+        event["nativeMessages"] = [self._native_license_message(), self._native_license_message()]
         result = self._run_landing_handler([
-            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True},
-            {"origin": "android-app://noesisfood.app", "data": self._native_license_message(), "withPort": True},
-        ])
+            event,
+        ], fetch_ok=False)
         self.assertEqual(len(result["fetches"]), 1)
+        self.assertFalse(result["reloaded"])
+
+    def test_landing_failed_session_or_response_parse_does_not_reload(self):
+        denied = self._run_landing_handler([
+            self._native_first_twa_delivery(self._native_license_message())
+        ], fetch_ok=False)
+        self.assertEqual(len(denied["fetches"]), 1)
+        self.assertFalse(denied["reloaded"])
+
+        malformed_success = self._run_landing_handler([
+            self._native_first_twa_delivery(self._native_license_message())
+        ], json_ok=False)
+        self.assertEqual(len(malformed_success["fetches"]), 1)
+        self.assertFalse(malformed_success["reloaded"])
 
     def test_landing_normal_browser_remains_passive(self):
         result = self._run_landing_handler([
-            {"origin": "https://noesisfood.app", "data": self._native_license_message(), "withPort": True}
+            self._native_first_twa_delivery(self._native_license_message(), origin="https://noesisfood.app")
         ])
         self.assertEqual(result["fetches"], [])
 
@@ -518,6 +574,9 @@ setTimeout(() => {{
         self.assertNotIn("innerHTML", head)
         self.assertNotIn("textContent = integrityToken", head)
         self.assertNotIn("textContent = challengeToken", head)
+        self.assertNotIn("location.href", head)
+        self.assertNotIn("history.pushState", head)
+        self.assertNotIn("history.replaceState", head)
         self.assertNotIn("/license/challenge", content)
         self.assertNotIn("noesisfood.license.challenge", content)
         self.assertNotIn("window.postMessage(", content)
