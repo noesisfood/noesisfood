@@ -1,5 +1,6 @@
 # app/main.py
 
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -15,6 +16,7 @@ from app.config import get_settings, validate_runtime_settings
 from app.licensing import request_has_active_licensed_session
 
 app = FastAPI(title="NoesisFood API", version="0.3.1")
+logger = logging.getLogger("noesisfood.license")
 
 settings = get_settings()
 validate_runtime_settings(settings)
@@ -37,6 +39,7 @@ async def license_session_body_limit_middleware(request: Request, call_next):
                 if int(content_length) > get_settings().license_session_body_max_bytes:
                     return PlainTextResponse("License request too large", status_code=413, headers=_cache_headers(public=False))
             except ValueError:
+                logger.warning("license_session_bad_request reason=malformed_content_length_middleware")
                 return PlainTextResponse("Malformed license request", status_code=400, headers=_cache_headers(public=False))
     return await call_next(request)
 
@@ -44,6 +47,7 @@ async def license_session_body_limit_middleware(request: Request, call_next):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     if request.url.path == "/license/session":
+        logger.warning("license_session_bad_request reason=request_validation_error")
         return PlainTextResponse("Malformed license request", status_code=400, headers=_cache_headers(public=False))
     return await request_validation_exception_handler(request, exc)
 

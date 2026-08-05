@@ -103,6 +103,7 @@ async def session(
             if int(content_length) > settings.license_session_body_max_bytes:
                 raise HTTPException(status_code=413, detail="License request too large")
         except ValueError:
+            logger.warning("license_session_bad_request reason=malformed_content_length_route")
             raise HTTPException(status_code=400, detail="Malformed license request")
     try:
         response.headers["Cache-Control"] = "no-store"
@@ -118,10 +119,15 @@ async def session(
         try:
             raw = json.loads(body.decode("utf-8"))
         except Exception:
+            logger.warning("license_session_bad_request reason=malformed_json_body")
             raise HTTPException(status_code=400, detail="Malformed license request")
         integrity_token = str(raw.get("integrity_token") or "").strip()
         challenge_token = str(raw.get("challenge_token") or "").strip()
-        if not integrity_token or not challenge_token:
+        if not integrity_token:
+            logger.warning("license_session_bad_request reason=missing_integrity_token")
+            raise HTTPException(status_code=400, detail="Malformed license request")
+        if not challenge_token:
+            logger.warning("license_session_bad_request reason=missing_challenge_token")
             raise HTTPException(status_code=400, detail="Malformed license request")
         digest = token_digest(integrity_token)
         if await limiter.is_invalid_token_denied(digest):

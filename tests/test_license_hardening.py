@@ -6,6 +6,8 @@ import time
 import unittest
 from unittest.mock import patch
 
+from fastapi import Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
 
 from app.config import get_settings, validate_license_secret, validate_runtime_settings
@@ -197,6 +199,99 @@ class LicenseHardeningRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         return response.json()
 
+    @staticmethod
+    def _request_with_headers(headers, body=b""):
+        async def receive():
+            return {"type": "http.request", "body": body, "more_body": False}
+
+        return Request(
+            {
+                "type": "http",
+                "http_version": "1.1",
+                "method": "POST",
+                "scheme": "https",
+                "path": "/license/session",
+                "raw_path": b"/license/session",
+                "query_string": b"",
+                "headers": [(key.encode(), value.encode()) for key, value in headers.items()],
+                "client": ("test", 1),
+                "server": ("test", 443),
+                "root_path": "",
+            },
+            receive,
+        )
+
+    def test_malformed_content_length_middleware_logs_fixed_reason_and_keeps_response(self):
+        import app.main as main
+
+        request = self._request_with_headers({"content-length": "invalid"})
+
+        async def call_next(_request):
+            self.fail("middleware must reject malformed content length")
+
+        with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+            response = asyncio.run(main.license_session_body_limit_middleware(request, call_next))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.body, b"Malformed license request")
+        self.assertEqual(len(captured.records), 1)
+        self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=malformed_content_length_middleware")
+
+    def test_malformed_content_length_route_logs_fixed_reason_and_keeps_response(self):
+        from app.api.routes import license as license_route
+
+        with patch.dict(os.environ, _env(), clear=False):
+            request = self._request_with_headers({"content-length": "invalid"})
+            settings = get_settings()
+            with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+                with self.assertRaises(Exception) as raised:
+                    asyncio.run(
+                        license_route.session(
+                            request,
+                            Response(),
+                            settings=settings,
+                            verifier=CountingVerifier(),
+                            store=self.store,
+                            limiter=self.limiter,
+                        )
+                    )
+            self.assertEqual(raised.exception.status_code, 400)
+            self.assertEqual(raised.exception.detail, "Malformed license request")
+            self.assertEqual(len(captured.records), 1)
+            self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=malformed_content_length_route")
+
+    def test_request_validation_error_logs_fixed_reason_and_keeps_response(self):
+        import app.main as main
+
+        request = self._request_with_headers({})
+        with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+            response = asyncio.run(main.validation_exception_handler(request, RequestValidationError([])))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.body, b"Malformed license request")
+        self.assertEqual(len(captured.records), 1)
+        self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=request_validation_error")
+
+    def test_malformed_json_route_logs_fixed_reason_and_keeps_response(self):
+        from app.api.routes import license as license_route
+
+        with patch.dict(os.environ, _env(), clear=False):
+            request = self._request_with_headers({}, b"{bad")
+            with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+                with self.assertRaises(Exception) as raised:
+                    asyncio.run(
+                        license_route.session(
+                            request,
+                            Response(),
+                            settings=get_settings(),
+                            verifier=CountingVerifier(),
+                            store=self.store,
+                            limiter=self.limiter,
+                        )
+                    )
+            self.assertEqual(raised.exception.status_code, 400)
+            self.assertEqual(raised.exception.detail, "Malformed license request")
+            self.assertEqual(len(captured.records), 1)
+            self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=malformed_json_body")
+
     def test_consumed_challenge_does_not_call_google_again(self):
         with patch.dict(os.environ, _env(), clear=False):
             client = self._client()
@@ -242,9 +337,39 @@ class LicenseHardeningRouteTests(unittest.TestCase):
     def test_malformed_and_oversized_requests_do_not_call_google(self):
         with patch.dict(os.environ, _env(LICENSE_SESSION_BODY_MAX_BYTES="32"), clear=False):
             client = self._client()
-            self.assertEqual(client.post("/license/session", content=b"{bad").status_code, 400)
+            with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+                malformed = client.post("/license/session", content=b"{bad")
+            self.assertEqual(malformed.status_code, 400)
+            self.assertEqual(malformed.text, "Malformed license request")
+            self.assertEqual(len(captured.records), 1)
+            self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=request_validation_error")
             self.assertEqual(client.post("/license/session", data="x" * 128).status_code, 413)
             self.assertEqual(CountingVerifier.calls, 0)
+
+    def test_missing_fields_log_distinct_fixed_reasons_and_keep_400(self):
+        with patch.dict(os.environ, _env(), clear=False):
+            client = self._client()
+            challenge = self._challenge(client)
+            with self.assertLogs("noesisfood.license", level="WARNING") as captured_integrity:
+                missing_integrity = client.post(
+                    "/license/session",
+                    json={"challenge_token": challenge["challenge_token"]},
+                )
+            self.assertEqual(missing_integrity.status_code, 400)
+            self.assertEqual(missing_integrity.json(), {"detail": "Malformed license request"})
+            self.assertEqual(len(captured_integrity.records), 1)
+            self.assertEqual(captured_integrity.records[0].getMessage(), "license_session_bad_request reason=missing_integrity_token")
+
+            challenge = self._challenge(client)
+            with self.assertLogs("noesisfood.license", level="WARNING") as captured_challenge:
+                missing_challenge = client.post(
+                    "/license/session",
+                    json={"integrity_token": "ok"},
+                )
+            self.assertEqual(missing_challenge.status_code, 400)
+            self.assertEqual(missing_challenge.json(), {"detail": "Malformed license request"})
+            self.assertEqual(len(captured_challenge.records), 1)
+            self.assertEqual(captured_challenge.records[0].getMessage(), "license_session_bad_request reason=missing_challenge_token")
 
     def test_challenge_and_session_rate_limits_do_not_call_google(self):
         with patch.dict(os.environ, _env(LICENSE_CHALLENGE_RATE_LIMIT_PER_MINUTE="1", LICENSE_SESSION_RATE_LIMIT_PER_MINUTE="1"), clear=False):
