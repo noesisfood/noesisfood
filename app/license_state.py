@@ -9,11 +9,15 @@ from app.licensing import LicenseError, VerifierUnavailable
 
 
 class ChallengeConsumed(LicenseError):
-    pass
+    def __init__(self, message: str, reason_code: str = "challenge_missing_or_consumed") -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
 
 
 class ChallengeUnavailable(LicenseError):
-    pass
+    def __init__(self, message: str, reason_code: str = "challenge_unavailable") -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
 
 
 @dataclass(frozen=True)
@@ -59,9 +63,9 @@ class MemoryLicenseStateStore:
             self._cleanup_locked()
             record = self._challenges.pop(challenge_id, None)
             if record is None:
-                raise ChallengeConsumed("challenge missing or already consumed")
+                raise ChallengeConsumed("challenge missing or already consumed", "memory_missing_or_consumed")
             if record.expires_at < int(time.time()):
-                raise ChallengeUnavailable("challenge expired")
+                raise ChallengeUnavailable("challenge expired", "memory_expired_state")
             return record
 
     async def revoke_session(self, session_id: str, expires_at: int) -> None:
@@ -115,7 +119,7 @@ class RedisLicenseStateStore:
         except Exception:
             payload = await self._redis.eval("local v=redis.call('GET', KEYS[1]); if v then redis.call('DEL', KEYS[1]); end; return v", 1, key)
         if not payload:
-            raise ChallengeConsumed("challenge missing or already consumed")
+            raise ChallengeConsumed("challenge missing or already consumed", "redis_missing_or_consumed")
         try:
             data = json.loads(payload)
             record = ChallengeRecord(
@@ -126,9 +130,9 @@ class RedisLicenseStateStore:
                 max_attempts=int(data.get("max_attempts") or 1),
             )
         except Exception as exc:
-            raise ChallengeUnavailable("stored challenge malformed") from exc
+            raise ChallengeUnavailable("stored challenge malformed", "redis_malformed_state") from exc
         if record.expires_at < int(time.time()):
-            raise ChallengeUnavailable("challenge expired")
+            raise ChallengeUnavailable("challenge expired", "redis_expired_state")
         return record
 
     async def revoke_session(self, session_id: str, expires_at: int) -> None:

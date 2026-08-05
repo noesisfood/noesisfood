@@ -1,4 +1,5 @@
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
@@ -32,6 +33,16 @@ from app.licensing import (
 
 
 router = APIRouter(prefix="/license", tags=["license"])
+logger = logging.getLogger("noesisfood.license")
+_LICENSE_SESSION_CONFLICT_REASONS = frozenset(
+    {
+        "memory_missing_or_consumed",
+        "memory_expired_state",
+        "redis_missing_or_consumed",
+        "redis_malformed_state",
+        "redis_expired_state",
+    }
+)
 
 
 @router.get("/challenge")
@@ -134,7 +145,11 @@ async def session(
         raise
     except RateLimitExceeded:
         raise HTTPException(status_code=429, detail="Too many license requests")
-    except (ChallengeConsumed, ChallengeUnavailable):
+    except (ChallengeConsumed, ChallengeUnavailable) as exc:
+        reason_code = getattr(exc, "reason_code", "challenge_state_conflict")
+        if reason_code not in _LICENSE_SESSION_CONFLICT_REASONS:
+            reason_code = "challenge_state_conflict"
+        logger.warning("license_session_conflict reason=%s", reason_code)
         raise HTTPException(status_code=409, detail="License challenge is no longer valid")
     except VerifierUnavailable:
         raise HTTPException(status_code=503, detail="Play Integrity verifier unavailable")

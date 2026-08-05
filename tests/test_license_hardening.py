@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import json
 import os
 import time
 import unittest
@@ -9,7 +10,13 @@ from fastapi.testclient import TestClient
 
 from app.config import get_settings, validate_license_secret, validate_runtime_settings
 from app.license_rate_limit import MemoryLicenseRateLimiter
-from app.license_state import ChallengeConsumed, ChallengeRecord, MemoryLicenseStateStore
+from app.license_state import (
+    ChallengeConsumed,
+    ChallengeRecord,
+    ChallengeUnavailable,
+    MemoryLicenseStateStore,
+    RedisLicenseStateStore,
+)
 from app.licensing import COOKIE_NAME, LicenseError, create_challenge
 
 
@@ -62,6 +69,38 @@ class CountingVerifier:
         return self.decoded
 
 
+class ConflictStore:
+    def __init__(self, error):
+        self.error = error
+
+    async def store_challenge(self, record):
+        return None
+
+    async def consume_challenge(self, challenge_id):
+        raise self.error
+
+    async def revoke_session(self, session_id, expires_at):
+        return None
+
+    async def is_session_revoked(self, session_id):
+        return False
+
+
+class FakeRedis:
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def getdel(self, key):
+        return self.payload
+
+
+def _redis_store_with_payload(payload):
+    store = RedisLicenseStateStore.__new__(RedisLicenseStateStore)
+    store._redis = FakeRedis(payload)
+    store._prefix = "nf:license"
+    return store
+
+
 class ChallengeStoreTests(unittest.IsolatedAsyncioTestCase):
     async def test_challenge_is_accepted_once_and_second_use_rejected(self):
         store = MemoryLicenseStateStore()
@@ -85,6 +124,42 @@ class ChallengeStoreTests(unittest.IsolatedAsyncioTestCase):
         results = await asyncio.gather(claim(), claim())
         self.assertEqual(results.count(True), 1)
         self.assertEqual(results.count(False), 1)
+
+    async def test_memory_missing_and_expired_states_have_bounded_reasons(self):
+        store = MemoryLicenseStateStore()
+        with self.assertRaises(ChallengeConsumed) as missing:
+            await store.consume_challenge("missing")
+        self.assertEqual(missing.exception.reason_code, "memory_missing_or_consumed")
+
+        store = MemoryLicenseStateStore()
+        await store.store_challenge(ChallengeRecord("cid", "hash", 1, 100, 1))
+        with patch("app.license_state.time.time", side_effect=[100, 101]):
+            with self.assertRaises(ChallengeUnavailable) as expired:
+                await store.consume_challenge("cid")
+        self.assertEqual(expired.exception.reason_code, "memory_expired_state")
+
+    async def test_redis_state_failures_have_bounded_reasons(self):
+        with self.assertRaises(ChallengeConsumed) as missing:
+            await _redis_store_with_payload(None).consume_challenge("missing")
+        self.assertEqual(missing.exception.reason_code, "redis_missing_or_consumed")
+
+        with self.assertRaises(ChallengeUnavailable) as malformed:
+            await _redis_store_with_payload("not-json").consume_challenge("malformed")
+        self.assertEqual(malformed.exception.reason_code, "redis_malformed_state")
+
+        expired_payload = json.dumps(
+            {
+                "challenge_id": "expired",
+                "request_hash": "hash",
+                "issued_at": 1,
+                "expires_at": 1,
+                "max_attempts": 1,
+            }
+        )
+        with patch("app.license_state.time.time", return_value=2):
+            with self.assertRaises(ChallengeUnavailable) as expired:
+                await _redis_store_with_payload(expired_payload).consume_challenge("expired")
+        self.assertEqual(expired.exception.reason_code, "redis_expired_state")
 
 
 class LicenseHardeningRouteTests(unittest.TestCase):
@@ -137,6 +212,32 @@ class LicenseHardeningRouteTests(unittest.TestCase):
                 409,
             )
             self.assertEqual(CountingVerifier.calls, 1)
+
+    def test_each_conflict_reason_logs_once_without_changing_generic_409(self):
+        reasons = [
+            (ChallengeConsumed("missing", "memory_missing_or_consumed"), "memory_missing_or_consumed"),
+            (ChallengeUnavailable("expired", "memory_expired_state"), "memory_expired_state"),
+            (ChallengeConsumed("missing", "redis_missing_or_consumed"), "redis_missing_or_consumed"),
+            (ChallengeUnavailable("malformed", "redis_malformed_state"), "redis_malformed_state"),
+            (ChallengeUnavailable("expired", "redis_expired_state"), "redis_expired_state"),
+        ]
+        for error, reason in reasons:
+            with self.subTest(reason=reason), patch.dict(os.environ, _env(), clear=False):
+                client = self._client()
+                challenge = self._challenge(client)
+                self.store = ConflictStore(error)
+                with self.assertLogs("noesisfood.license", level="WARNING") as captured:
+                    response = client.post(
+                        "/license/session",
+                        json={"integrity_token": "ok", "challenge_token": challenge["challenge_token"]},
+                    )
+                self.assertEqual(response.status_code, 409)
+                self.assertEqual(response.json(), {"detail": "License challenge is no longer valid"})
+                self.assertEqual(len(captured.records), 1)
+                self.assertEqual(captured.records[0].getMessage(), f"license_session_conflict reason={reason}")
+                self.assertNotIn("integrity_token", captured.records[0].getMessage())
+                self.assertNotIn("challenge_token", captured.records[0].getMessage())
+                self.assertNotIn(challenge["challenge_token"], captured.records[0].getMessage())
 
     def test_malformed_and_oversized_requests_do_not_call_google(self):
         with patch.dict(os.environ, _env(LICENSE_SESSION_BODY_MAX_BYTES="32"), clear=False):
