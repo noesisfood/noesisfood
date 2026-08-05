@@ -4,6 +4,7 @@ import json
 import os
 import time
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 
 from fastapi import Request, Response
@@ -164,6 +165,135 @@ class ChallengeStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(expired.exception.reason_code, "redis_expired_state")
 
 
+class LicenseDependencyContractTests(unittest.TestCase):
+    @staticmethod
+    def _session_route():
+        from fastapi.routing import APIRoute
+
+        from app.main import app
+
+        return next(
+            route
+            for route in app.routes
+            if isinstance(route, APIRoute) and route.path == "/license/session" and "POST" in route.methods
+        )
+
+    @staticmethod
+    def _dependency_body_params(dependant):
+        body_params = []
+        pending = list(dependant.dependencies)
+        while pending:
+            dependency = pending.pop()
+            body_params.extend(dependency.body_params)
+            pending.extend(dependency.dependencies)
+        return body_params
+
+    @staticmethod
+    def _non_enforcing_memory_settings():
+        return replace(
+            get_settings(),
+            app_env="development",
+            app_access_lockdown_enabled=False,
+            play_integrity_enforcement_enabled=False,
+            license_state_backend="memory",
+        )
+
+    def test_session_route_has_no_dependency_generated_body_contract(self):
+        from app.main import app
+
+        route = self._session_route()
+        self.assertEqual(route.dependant.body_params, [])
+        self.assertEqual(self._dependency_body_params(route.dependant), [])
+        self.assertIsNone(route.body_field)
+
+        operation = app.openapi()["paths"]["/license/session"]["post"]
+        self.assertNotIn("requestBody", operation)
+        self.assertNotIn("Settings", json.dumps(operation, sort_keys=True))
+
+    def test_valid_license_object_reaches_route_guard_with_real_store_and_limiter(self):
+        from app.license_rate_limit import get_license_rate_limiter
+        from app.license_state import get_license_state_store
+        from app.main import app
+
+        original_overrides = dict(app.dependency_overrides)
+        try:
+            app.dependency_overrides.clear()
+            app.dependency_overrides[get_settings] = self._non_enforcing_memory_settings
+            self.assertNotIn(get_license_state_store, app.dependency_overrides)
+            self.assertNotIn(get_license_rate_limiter, app.dependency_overrides)
+
+            with TestClient(app, base_url="https://noesisfood.app") as client:
+                response = client.post(
+                    "/license/session",
+                    json={"integrity_token": "placeholder", "challenge_token": "placeholder"},
+                )
+
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.json(), {"detail": "Play Integrity enforcement is disabled"})
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
+
+    def test_provider_selection_preserves_direct_calls_and_singletons(self):
+        import app.license_rate_limit as rate_limit_module
+        import app.license_state as state_module
+
+        settings = self._non_enforcing_memory_settings()
+        self.assertIs(state_module.get_license_state_store(settings), state_module._memory_store)
+        self.assertIs(state_module.get_license_state_store(settings), state_module._memory_store)
+        self.assertIs(rate_limit_module.get_license_rate_limiter(settings), rate_limit_module._memory_limiter)
+        self.assertIs(rate_limit_module.get_license_rate_limiter(settings), rate_limit_module._memory_limiter)
+
+        with patch.object(state_module, "get_settings", return_value=settings):
+            self.assertIs(state_module.get_license_state_store(), state_module._memory_store)
+        with patch.object(rate_limit_module, "get_settings", return_value=settings):
+            self.assertIs(rate_limit_module.get_license_rate_limiter(), rate_limit_module._memory_limiter)
+
+        redis_settings = replace(settings, license_state_backend="redis", redis_url="redis://placeholder")
+        state_marker = object()
+        with (
+            patch.object(state_module, "_redis_store", None),
+            patch.object(state_module, "RedisLicenseStateStore", return_value=state_marker) as state_constructor,
+        ):
+            self.assertIs(state_module.get_license_state_store(redis_settings), state_marker)
+            self.assertIs(state_module.get_license_state_store(redis_settings), state_marker)
+            state_constructor.assert_called_once_with("redis://placeholder")
+
+        limiter_marker = object()
+        with (
+            patch.object(rate_limit_module, "_redis_limiter", None),
+            patch.object(rate_limit_module, "RedisLicenseRateLimiter", return_value=limiter_marker) as limiter_constructor,
+        ):
+            self.assertIs(rate_limit_module.get_license_rate_limiter(redis_settings), limiter_marker)
+            self.assertIs(rate_limit_module.get_license_rate_limiter(redis_settings), limiter_marker)
+            limiter_constructor.assert_called_once_with("redis://placeholder")
+
+    def test_zero_argument_provider_overrides_still_apply(self):
+        from app.license_rate_limit import get_license_rate_limiter
+        from app.license_state import get_license_state_store
+        from app.main import app
+
+        calls = []
+        original_overrides = dict(app.dependency_overrides)
+        try:
+            app.dependency_overrides.clear()
+            app.dependency_overrides[get_settings] = self._non_enforcing_memory_settings
+            app.dependency_overrides[get_license_state_store] = lambda: calls.append("store") or object()
+            app.dependency_overrides[get_license_rate_limiter] = lambda: calls.append("limiter") or object()
+
+            with TestClient(app, base_url="https://noesisfood.app") as client:
+                response = client.post(
+                    "/license/session",
+                    json={"integrity_token": "placeholder", "challenge_token": "placeholder"},
+                )
+
+            self.assertEqual(response.status_code, 503)
+            self.assertCountEqual(calls, ["store", "limiter"])
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
+
+
 class LicenseHardeningRouteTests(unittest.TestCase):
     def setUp(self):
         self.store = MemoryLicenseStateStore()
@@ -318,7 +448,7 @@ class LicenseHardeningRouteTests(unittest.TestCase):
         self.assertIn("license_runtime_shape_v1", message)
         self.assertIn("body_field_present=no", message)
         self.assertIn("body_parameter_count=zero", message)
-        self.assertIn("dependency_body_parameter_count=multiple", message)
+        self.assertIn("dependency_body_parameter_count=zero", message)
 
     def test_malformed_json_route_logs_fixed_reason_and_keeps_response(self):
         from app.api.routes import license as license_route
@@ -391,14 +521,13 @@ class LicenseHardeningRouteTests(unittest.TestCase):
             with self.assertLogs("noesisfood.license", level="WARNING") as captured:
                 malformed = client.post("/license/session", content=b"{bad")
             self.assertEqual(malformed.status_code, 400)
-            self.assertEqual(malformed.text, "Malformed license request")
-            self.assertEqual(len(captured.records), 3)
+            self.assertEqual(malformed.json(), {"detail": "Malformed license request"})
+            self.assertEqual(len(captured.records), 2)
             self.assertEqual(
                 captured.records[0].getMessage(),
                 "event=license_ingress_body_v1 chunk_count=one total_size_bucket=1_to_256 more_body_sequence=single utf8_state=valid json_state=invalid content_type_class=missing framing_class=content_length",
             )
-            self.assertEqual(captured.records[1].getMessage(), "license_session_bad_request reason=request_validation_error")
-            self.assertEqual(captured.records[2].getMessage(), "event=license_validation_error_v1 type=json_invalid location=body")
+            self.assertEqual(captured.records[1].getMessage(), "license_session_bad_request reason=malformed_json_body")
             self.assertEqual(client.post("/license/session", data="x" * 128).status_code, 413)
             self.assertEqual(CountingVerifier.calls, 0)
 

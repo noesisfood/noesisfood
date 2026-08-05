@@ -2,7 +2,9 @@ import asyncio
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Annotated, Any, Protocol
+
+from fastapi import Depends
 
 from app.config import Settings, get_settings
 from app.licensing import LicenseError, VerifierUnavailable
@@ -153,7 +155,9 @@ _memory_store = MemoryLicenseStateStore()
 _redis_store: RedisLicenseStateStore | None = None
 
 
-def get_license_state_store(settings: Settings | None = None) -> LicenseStateStore:
+def get_license_state_store(
+    settings: Annotated[Settings | None, Depends(get_settings)] = None,
+) -> LicenseStateStore:
     global _redis_store
     settings = settings or get_settings()
     if settings.license_state_backend == "memory":

@@ -2,9 +2,9 @@ import asyncio
 import hashlib
 import time
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Annotated, Protocol
 
-from fastapi import Request
+from fastapi import Depends, Request
 
 from app.config import Settings, get_settings
 from app.licensing import VerifierUnavailable
@@ -149,7 +149,9 @@ _memory_limiter = MemoryLicenseRateLimiter()
 _redis_limiter: RedisLicenseRateLimiter | None = None
 
 
-def get_license_rate_limiter(settings: Settings | None = None) -> LicenseRateLimiter:
+def get_license_rate_limiter(
+    settings: Annotated[Settings | None, Depends(get_settings)] = None,
+) -> LicenseRateLimiter:
     global _redis_limiter
     settings = settings or get_settings()
     if settings.license_state_backend == "memory":
