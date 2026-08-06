@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import importlib
 import json
 import os
@@ -6,6 +7,7 @@ import time
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
+from uuid import UUID
 
 from fastapi import Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -294,6 +296,421 @@ class LicenseDependencyContractTests(unittest.TestCase):
             app.dependency_overrides.update(original_overrides)
 
 
+class LicenseIngressDiagnosticTests(unittest.TestCase):
+    @staticmethod
+    def _render_log_call(call):
+        template, *args = call.args
+        return template % tuple(args) if args else template
+
+    def _run_diagnostic(
+        self,
+        messages,
+        *,
+        headers=None,
+        method="POST",
+        path="/license/session",
+        body_limit=16384,
+        downstream=None,
+        scope_state=None,
+    ):
+        import app.main as main
+
+        original_messages = list(messages)
+        forwarded = []
+        receive_index = 0
+
+        async def receive():
+            nonlocal receive_index
+            message = original_messages[receive_index]
+            receive_index += 1
+            return message
+
+        async def default_downstream(_scope, wrapped_receive, _send):
+            while True:
+                message = await wrapped_receive()
+                forwarded.append(message)
+                if message.get("type") != "http.request" or not message.get("more_body", False):
+                    return
+
+        async def send(_message):
+            return None
+
+        scope = {
+            "type": "http",
+            "method": method,
+            "path": path,
+            "headers": headers or [],
+            "client": ("203.0.113.10", 4321),
+        }
+        if scope_state is not None:
+            scope["state"] = scope_state
+        settings = replace(get_settings(), license_session_body_max_bytes=body_limit)
+        with patch.object(main, "get_settings", return_value=settings), patch.object(main.logger, "warning") as warning:
+            asyncio.run(main.LicenseIngressDiagnostics(downstream or default_downstream)(scope, receive, send))
+        logs = [self._render_log_call(call) for call in warning.call_args_list]
+        return scope, forwarded, original_messages, logs
+
+    def _ingress_fields(self, logs):
+        records = [message for message in logs if message.startswith("event=license_session_ingress_v2 ")]
+        self.assertEqual(len(records), 1)
+        return dict(part.split("=", 1) for part in records[0].split())
+
+    def test_valid_object_reports_structure_keys_and_exact_hash(self):
+        body = b'{"integrity_token":"token-placeholder","challenge_token":"challenge-placeholder"}'
+        _scope, forwarded, messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": body, "more_body": False}],
+            headers=[(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+        )
+        fields = self._ingress_fields(logs)
+        UUID(fields["request_id"])
+        self.assertEqual(fields["raw_body_bytes"], str(len(body)))
+        self.assertEqual(fields["body_empty"], "false")
+        self.assertEqual(fields["first_non_whitespace_category"], "object_open")
+        self.assertEqual(fields["last_non_whitespace_category"], "object_close")
+        self.assertEqual(fields["utf8_decode"], "success")
+        self.assertEqual(fields["json_parse"], "success")
+        self.assertEqual(fields["json_top_level_type"], "object")
+        self.assertEqual(fields["has_integrity_token_key"], "true")
+        self.assertEqual(fields["has_challenge_token_key"], "true")
+        self.assertEqual(fields["raw_body_sha256"], hashlib.sha256(body).hexdigest())
+        self.assertIs(forwarded[0], messages[0])
+
+    def test_double_encoded_object_reports_json_string_without_key_flags(self):
+        inner = json.dumps(
+            {"integrity_token": "token-placeholder", "challenge_token": "challenge-placeholder"},
+            separators=(",", ":"),
+        )
+        body = json.dumps(inner, separators=(",", ":")).encode()
+        _scope, _forwarded, _messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": body, "more_body": False}]
+        )
+        fields = self._ingress_fields(logs)
+        self.assertEqual(fields["first_non_whitespace_category"], "quote")
+        self.assertEqual(fields["last_non_whitespace_category"], "quote")
+        self.assertEqual(fields["json_parse"], "success")
+        self.assertEqual(fields["json_top_level_type"], "string")
+        self.assertEqual(fields["has_integrity_token_key"], "not_applicable")
+        self.assertEqual(fields["has_challenge_token_key"], "not_applicable")
+        self.assertEqual(fields["content_type"], "absent")
+        self.assertEqual(fields["content_encoding"], "absent")
+        self.assertEqual(fields["content_length"], "absent")
+
+    def test_truncated_empty_invalid_utf8_backtick_and_backslash_prefixes(self):
+        cases = [
+            ("truncated", b'{"integrity_token":"placeholder"', "object_open", "quote", "success", "failure"),
+            ("empty", b"", "none", "none", "success", "failure"),
+            ("invalid_utf8", b"\xff\xfe", "non_ascii", "non_ascii", "failure", "not_attempted"),
+            ("backtick", b'`{"integrity_token":"placeholder"}', "backtick", "object_close", "success", "failure"),
+            ("backslash_n", b'\\n{"integrity_token":"placeholder"}', "backslash", "object_close", "success", "failure"),
+        ]
+        for name, body, first, last, utf8_state, json_state in cases:
+            with self.subTest(name=name):
+                _scope, _forwarded, _messages, logs = self._run_diagnostic(
+                    [{"type": "http.request", "body": body, "more_body": False}]
+                )
+                fields = self._ingress_fields(logs)
+                self.assertEqual(fields["raw_body_bytes"], str(len(body)))
+                self.assertEqual(fields["body_empty"], "true" if not body else "false")
+                self.assertEqual(fields["first_non_whitespace_category"], first)
+                self.assertEqual(fields["last_non_whitespace_category"], last)
+                self.assertEqual(fields["utf8_decode"], utf8_state)
+                self.assertEqual(fields["json_parse"], json_state)
+                self.assertEqual(fields["json_top_level_type"], "not_available")
+                self.assertEqual(fields["raw_body_sha256"], hashlib.sha256(body).hexdigest())
+
+    def test_headers_are_allowlisted_normalized_bounded_and_classified(self):
+        body = b"{}"
+        headers = [
+            (b"content-type", b" Application/JSON ; charset=UTF-8 "),
+            (b"content-encoding", b" GZIP "),
+            (b"content-length", b"2"),
+        ]
+        _scope, _forwarded, _messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": body, "more_body": False}], headers=headers
+        )
+        fields = self._ingress_fields(logs)
+        self.assertEqual(fields["content_type"], "application/json")
+        self.assertEqual(fields["content_encoding"], "gzip")
+        self.assertEqual(fields["content_length"], "integer")
+
+        long_header = b"private-marker-" + (b"x" * 200)
+        _scope, _forwarded, _messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": body, "more_body": False}],
+            headers=[
+                (b"content-type", long_header),
+                (b"content-encoding", long_header),
+                (b"content-length", b"invalid"),
+            ],
+        )
+        fields = self._ingress_fields(logs)
+        self.assertEqual(fields["content_type"], "other")
+        self.assertEqual(fields["content_encoding"], "other")
+        self.assertEqual(fields["content_length"], "invalid")
+        self.assertNotIn("private-marker", logs[0])
+
+    def test_split_messages_are_forwarded_unchanged_counted_hashed_and_logged_once(self):
+        body_parts = [b'{"integrity_token":"token-', b'placeholder","challenge_token":"challenge-placeholder"}']
+        messages = [
+            {"type": "http.request", "body": body_parts[0], "more_body": True},
+            {"type": "http.request", "body": body_parts[1], "more_body": False},
+        ]
+        body = b"".join(body_parts)
+        _scope, forwarded, originals, logs = self._run_diagnostic(messages)
+        fields = self._ingress_fields(logs)
+        self.assertEqual(len([message for message in logs if message.startswith("event=license_session_ingress_v2 ")]), 1)
+        self.assertEqual(fields["raw_body_bytes"], str(len(body)))
+        self.assertEqual(fields["raw_body_sha256"], hashlib.sha256(body).hexdigest())
+        self.assertEqual(forwarded, originals)
+        for forwarded_message, original_message in zip(forwarded, originals):
+            self.assertIs(forwarded_message, original_message)
+
+    def test_body_over_buffer_limit_is_not_decoded_or_parsed(self):
+        body = b'{"integrity_token":"token-placeholder","challenge_token":"challenge-placeholder"}'
+        _scope, forwarded, messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": body, "more_body": False}], body_limit=8
+        )
+        fields = self._ingress_fields(logs)
+        self.assertEqual(fields["raw_body_bytes"], str(len(body)))
+        self.assertEqual(fields["raw_body_sha256"], hashlib.sha256(body).hexdigest())
+        self.assertEqual(fields["utf8_decode"], "not_attempted")
+        self.assertEqual(fields["json_parse"], "not_attempted")
+        self.assertEqual(fields["json_top_level_type"], "not_available")
+        self.assertEqual(fields["has_integrity_token_key"], "not_applicable")
+        self.assertEqual(fields["has_challenge_token_key"], "not_applicable")
+        self.assertIs(forwarded[0], messages[0])
+
+    def test_log_excludes_body_values_and_unapproved_request_metadata(self):
+        body = (
+            b'{"integrity_token":"integrity-value-never-log",'
+            b'"challenge_token":"challenge-value-never-log","private_marker":"body-text-never-log"}'
+        )
+        headers = [
+            (b"content-type", b"application/json"),
+            (b"cookie", b"cookie-value-never-log"),
+            (b"authorization", b"authorization-value-never-log"),
+            (b"user-agent", b"user-agent-value-never-log"),
+            (b"x-request-id", b"inbound-request-id-never-trust"),
+        ]
+        _scope, _forwarded, _messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": body, "more_body": False}], headers=headers
+        )
+        record = next(message for message in logs if message.startswith("event=license_session_ingress_v2 "))
+        UUID(dict(part.split("=", 1) for part in record.split())["request_id"])
+        for forbidden in (
+            "integrity-value-never-log",
+            "challenge-value-never-log",
+            "body-text-never-log",
+            "private_marker",
+            "cookie-value-never-log",
+            "authorization-value-never-log",
+            "user-agent-value-never-log",
+            "inbound-request-id-never-trust",
+            "203.0.113.10",
+        ):
+            for message in logs:
+                self.assertNotIn(forbidden, message)
+
+    def test_validation_record_uses_same_server_request_id(self):
+        import app.main as main
+
+        async def downstream(scope, wrapped_receive, _send):
+            await wrapped_receive()
+            request = Request(scope, wrapped_receive)
+            await main.validation_exception_handler(request, RequestValidationError([]))
+
+        _scope, _forwarded, _messages, logs = self._run_diagnostic(
+            [{"type": "http.request", "body": b"{}", "more_body": False}], downstream=downstream
+        )
+        ingress_fields = self._ingress_fields(logs)
+        validation_records = [message for message in logs if message.startswith("event=license_validation_error_v1 ")]
+        self.assertEqual(len(validation_records), 1)
+        validation_fields = dict(part.split("=", 1) for part in validation_records[0].split())
+        self.assertEqual(validation_fields["request_id"], ingress_fields["request_id"])
+
+    def test_non_matching_method_and_path_emit_no_v2_record(self):
+        for method, path in (("GET", "/license/session"), ("POST", "/license/status")):
+            with self.subTest(method=method, path=path):
+                _scope, _forwarded, _messages, logs = self._run_diagnostic(
+                    [{"type": "http.request", "body": b"{}", "more_body": False}],
+                    method=method,
+                    path=path,
+                )
+                self.assertFalse(any(message.startswith("event=license_session_ingress_v2 ") for message in logs))
+
+    def test_logger_failure_returns_original_message_and_preserves_downstream_response(self):
+        import app.main as main
+
+        message = {"type": "http.request", "body": b"{}", "more_body": False}
+        received = []
+        sent = []
+
+        async def receive():
+            return message
+
+        async def downstream(_scope, wrapped_receive, send):
+            received.append(await wrapped_receive())
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b""})
+
+        async def send(response_message):
+            sent.append(response_message)
+
+        scope = {"type": "http", "method": "POST", "path": "/license/session", "headers": []}
+        settings = replace(get_settings(), license_session_body_max_bytes=16384)
+        with (
+            patch.object(main, "get_settings", return_value=settings),
+            patch.object(main.logger, "warning", side_effect=RuntimeError),
+        ):
+            asyncio.run(main.LicenseIngressDiagnostics(downstream)(scope, receive, send))
+
+        self.assertEqual(len(received), 1)
+        self.assertIs(received[0], message)
+        self.assertEqual(sent[0]["status"], 204)
+        self.assertEqual(sent[-1]["body"], b"")
+
+    def test_structural_helper_failure_returns_original_message(self):
+        import app.main as main
+
+        message = {"type": "http.request", "body": b"{}", "more_body": False}
+        with patch.object(main, "_body_edge_category", side_effect=RuntimeError):
+            _scope, forwarded, originals, logs = self._run_diagnostic([message])
+        self.assertEqual(len(forwarded), 1)
+        self.assertIs(forwarded[0], originals[0])
+        self.assertFalse(any(record.startswith("event=license_session_ingress_v2 ") for record in logs))
+
+    def test_uuid_and_scope_state_failures_bypass_diagnostics(self):
+        import app.main as main
+
+        message = {"type": "http.request", "body": b"{}", "more_body": False}
+        validation_statuses = []
+
+        async def validation_downstream(scope, wrapped_receive, _send):
+            await wrapped_receive()
+            response = await main.validation_exception_handler(
+                Request(scope, wrapped_receive),
+                RequestValidationError([]),
+            )
+            validation_statuses.append(response.status_code)
+
+        with patch.object(main.uuid, "uuid4", side_effect=RuntimeError):
+            _scope, forwarded, originals, logs = self._run_diagnostic(
+                [message],
+                downstream=validation_downstream,
+            )
+        self.assertEqual(validation_statuses, [400])
+        validation_record = next(record for record in logs if record.startswith("event=license_validation_error_v1 "))
+        self.assertIn("request_id=unavailable", validation_record)
+
+        class RejectingState(dict):
+            def __setitem__(self, _key, _value):
+                raise RuntimeError
+
+        _scope, forwarded, originals, logs = self._run_diagnostic(
+            [message],
+            scope_state=RejectingState(),
+        )
+        self.assertIs(forwarded[0], originals[0])
+        self.assertFalse(any(record.startswith("event=license_session_ingress_v2 ") for record in logs))
+
+    def test_diagnostic_failure_disables_retries_and_forwards_later_chunks(self):
+        import app.main as main
+
+        class FailingHash:
+            def __init__(self):
+                self.update_calls = 0
+
+            def update(self, _body):
+                self.update_calls += 1
+                raise RuntimeError
+
+            def hexdigest(self):
+                raise AssertionError("disabled diagnostics must not emit")
+
+        messages = [
+            {"type": "http.request", "body": b"{", "more_body": True},
+            {"type": "http.request", "body": b"}", "more_body": False},
+        ]
+        failing_hash = FailingHash()
+        with patch.object(main.hashlib, "sha256", return_value=failing_hash):
+            _scope, forwarded, originals, logs = self._run_diagnostic(messages)
+        self.assertEqual(failing_hash.update_calls, 1)
+        self.assertEqual(forwarded, originals)
+        for forwarded_message, original_message in zip(forwarded, originals):
+            self.assertIs(forwarded_message, original_message)
+        self.assertFalse(any(record.startswith("event=license_session_ingress_v2 ") for record in logs))
+
+    def test_original_receive_exception_is_not_swallowed(self):
+        import app.main as main
+
+        class ReceiveFailure(Exception):
+            pass
+
+        async def receive():
+            raise ReceiveFailure
+
+        async def downstream(_scope, wrapped_receive, _send):
+            await wrapped_receive()
+
+        async def send(_message):
+            return None
+
+        scope = {"type": "http", "method": "POST", "path": "/license/session", "headers": []}
+        settings = replace(get_settings(), license_session_body_max_bytes=16384)
+        with patch.object(main, "get_settings", return_value=settings):
+            with self.assertRaises(ReceiveFailure):
+                asyncio.run(main.LicenseIngressDiagnostics(downstream)(scope, receive, send))
+
+    def test_downstream_application_exception_is_not_swallowed(self):
+        import app.main as main
+
+        class DownstreamFailure(Exception):
+            pass
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def downstream(_scope, _wrapped_receive, _send):
+            raise DownstreamFailure
+
+        async def send(_message):
+            return None
+
+        scope = {"type": "http", "method": "POST", "path": "/license/session", "headers": []}
+        settings = replace(get_settings(), license_session_body_max_bytes=16384)
+        with patch.object(main, "get_settings", return_value=settings):
+            with self.assertRaises(DownstreamFailure):
+                asyncio.run(main.LicenseIngressDiagnostics(downstream)(scope, receive, send))
+
+    def test_validation_diagnostic_failures_keep_bounded_response(self):
+        import app.main as main
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "scheme": "https",
+                "path": "/license/session",
+                "raw_path": b"/license/session",
+                "query_string": b"",
+                "headers": [],
+                "server": ("test", 443),
+                "root_path": "",
+            },
+            receive,
+        )
+        for failure_target in ("request_id", "logger"):
+            with self.subTest(failure_target=failure_target):
+                request_id_patch = patch.object(main, "_license_request_id", side_effect=RuntimeError)
+                logger_patch = patch.object(main.logger, "warning", side_effect=RuntimeError)
+                active_patch = request_id_patch if failure_target == "request_id" else logger_patch
+                with active_patch:
+                    response = asyncio.run(main.validation_exception_handler(request, RequestValidationError([])))
+                self.assertEqual(response.status_code, 400)
+
+
 class LicenseHardeningRouteTests(unittest.TestCase):
     def setUp(self):
         self.store = MemoryLicenseStateStore()
@@ -399,7 +816,10 @@ class LicenseHardeningRouteTests(unittest.TestCase):
         self.assertEqual(response.body, b"Malformed license request")
         self.assertEqual(len(captured.records), 2)
         self.assertEqual(captured.records[0].getMessage(), "license_session_bad_request reason=request_validation_error")
-        self.assertEqual(captured.records[1].getMessage(), "event=license_validation_error_v1 type=other location=other")
+        self.assertEqual(
+            captured.records[1].getMessage(),
+            "event=license_validation_error_v1 request_id=unavailable type=other location=other",
+        )
 
     def test_ingress_diagnostics_forwards_split_messages_unchanged(self):
         from app.main import LicenseIngressDiagnostics
@@ -431,12 +851,22 @@ class LicenseHardeningRouteTests(unittest.TestCase):
 
         self.assertEqual(received, messages)
         self.assertEqual(len(captured.records), 1)
-        self.assertEqual(
-            captured.records[0].getMessage(),
-            "event=license_ingress_body_v1 chunk_count=multiple total_size_bucket=1_to_256 more_body_sequence=multiple utf8_state=valid json_state=invalid content_type_class=application_json framing_class=content_length",
-        )
-        self.assertNotIn("integrity_token", captured.records[0].getMessage())
-        self.assertNotIn("x", captured.records[0].getMessage())
+        message = captured.records[0].getMessage()
+        fields = dict(part.split("=", 1) for part in message.split())
+        UUID(fields["request_id"])
+        body = b"".join(item["body"] for item in messages)
+        self.assertEqual(fields["event"], "license_session_ingress_v2")
+        self.assertEqual(fields["raw_body_bytes"], str(len(body)))
+        self.assertEqual(fields["first_non_whitespace_category"], "object_open")
+        self.assertEqual(fields["last_non_whitespace_category"], "letter")
+        self.assertEqual(fields["utf8_decode"], "success")
+        self.assertEqual(fields["json_parse"], "failure")
+        self.assertEqual(fields["raw_body_sha256"], hashlib.sha256(body).hexdigest())
+        self.assertEqual(fields["content_type"], "application/json")
+        self.assertEqual(fields["content_encoding"], "absent")
+        self.assertEqual(fields["content_length"], "integer")
+        self.assertNotIn('"integrity_token"', message)
+        self.assertNotIn('"x"', message)
 
     def test_runtime_route_shape_marker_is_bounded(self):
         import app.main as main
@@ -523,10 +953,18 @@ class LicenseHardeningRouteTests(unittest.TestCase):
             self.assertEqual(malformed.status_code, 400)
             self.assertEqual(malformed.json(), {"detail": "Malformed license request"})
             self.assertEqual(len(captured.records), 2)
-            self.assertEqual(
-                captured.records[0].getMessage(),
-                "event=license_ingress_body_v1 chunk_count=one total_size_bucket=1_to_256 more_body_sequence=single utf8_state=valid json_state=invalid content_type_class=missing framing_class=content_length",
-            )
+            ingress_fields = dict(part.split("=", 1) for part in captured.records[0].getMessage().split())
+            UUID(ingress_fields["request_id"])
+            self.assertEqual(ingress_fields["event"], "license_session_ingress_v2")
+            self.assertEqual(ingress_fields["raw_body_bytes"], "4")
+            self.assertEqual(ingress_fields["first_non_whitespace_category"], "object_open")
+            self.assertEqual(ingress_fields["last_non_whitespace_category"], "letter")
+            self.assertEqual(ingress_fields["utf8_decode"], "success")
+            self.assertEqual(ingress_fields["json_parse"], "failure")
+            self.assertEqual(ingress_fields["raw_body_sha256"], hashlib.sha256(b"{bad").hexdigest())
+            self.assertEqual(ingress_fields["content_type"], "absent")
+            self.assertEqual(ingress_fields["content_encoding"], "absent")
+            self.assertEqual(ingress_fields["content_length"], "integer")
             self.assertEqual(captured.records[1].getMessage(), "license_session_bad_request reason=malformed_json_body")
             self.assertEqual(client.post("/license/session", data="x" * 128).status_code, 413)
             self.assertEqual(CountingVerifier.calls, 0)

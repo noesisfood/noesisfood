@@ -1,8 +1,10 @@
 # app/main.py
 
-import logging
+import hashlib
 import json
+import logging
 import re
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -21,14 +23,98 @@ app = FastAPI(title="NoesisFood API", version="0.3.1")
 logger = logging.getLogger("noesisfood.license")
 
 
-def _size_bucket(size: int) -> str:
-    if size == 0:
-        return "zero"
-    if size <= 256:
-        return "1_to_256"
-    if size <= 1024:
-        return "257_to_1024"
-    return "over_1024"
+_LICENSE_REQUEST_ID_STATE_KEY = "noesisfood_license_request_id"
+_ASCII_WHITESPACE = frozenset(b" \t\r\n\f\v")
+
+
+def _body_edge_category(value: int | None) -> str:
+    if value is None:
+        return "none"
+    categories = {
+        ord("{"): "object_open",
+        ord("}"): "object_close",
+        ord("["): "array_open",
+        ord("]"): "array_close",
+        ord('"'): "quote",
+        ord("`"): "backtick",
+        ord("\\"): "backslash",
+        ord(":"): "colon",
+        ord(","): "comma",
+        ord("-"): "minus",
+    }
+    if value in categories:
+        return categories[value]
+    if ord("a") <= value <= ord("z") or ord("A") <= value <= ord("Z"):
+        return "letter"
+    if ord("0") <= value <= ord("9"):
+        return "digit"
+    if value < 128:
+        return "other_ascii"
+    return "non_ascii"
+
+
+def _content_type_category(headers: dict[bytes, bytes]) -> str:
+    raw = headers.get(b"content-type")
+    if raw is None:
+        return "absent"
+    try:
+        value = raw.decode("ascii").strip().lower()
+    except UnicodeDecodeError:
+        return "invalid"
+    if not value:
+        return "invalid"
+    return "application/json" if value.split(";", 1)[0].strip() == "application/json" else "other"
+
+
+def _content_encoding_category(headers: dict[bytes, bytes]) -> str:
+    raw = headers.get(b"content-encoding")
+    if raw is None:
+        return "absent"
+    try:
+        value = raw.decode("ascii").strip().lower()
+    except UnicodeDecodeError:
+        return "invalid"
+    if value in {"identity", "gzip", "deflate", "br"}:
+        return value
+    return "invalid" if not value else "other"
+
+
+def _content_length_category(headers: dict[bytes, bytes]) -> str:
+    raw = headers.get(b"content-length")
+    if raw is None:
+        return "absent"
+    try:
+        value = raw.decode("ascii").strip()
+    except UnicodeDecodeError:
+        return "invalid"
+    return "integer" if re.fullmatch(r"[0-9]+", value) else "invalid"
+
+
+def _json_top_level_type(value) -> str:
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, bool):
+        return "boolean"
+    if value is None:
+        return "null"
+    if isinstance(value, (int, float)):
+        return "number"
+    return "not_available"
+
+
+def _license_request_id(scope) -> str:
+    state = scope.get("state")
+    candidate = state.get(_LICENSE_REQUEST_ID_STATE_KEY) if isinstance(state, dict) else None
+    if not isinstance(candidate, str):
+        return "unavailable"
+    try:
+        return str(uuid.UUID(candidate))
+    except (ValueError, AttributeError):
+        return "unavailable"
 
 
 def _shape_bucket(count: int) -> str:
@@ -50,86 +136,103 @@ class LicenseIngressDiagnostics:
             await self.app(scope, receive, send)
             return
 
-        headers = {key.lower(): value for key, value in scope.get("headers", [])}
-        content_type = headers.get(b"content-type", b"").split(b";", 1)[0].lower()
-        if content_type == b"application/json":
-            content_type_class = "application_json"
-        elif b"content-type" not in headers:
-            content_type_class = "missing"
-        else:
-            content_type_class = "other"
-        if b"content-length" in headers:
-            framing_class = "content_length"
-        elif b"transfer-encoding" in headers and b"chunked" in headers[b"transfer-encoding"].lower():
-            framing_class = "chunked"
-        elif b"transfer-encoding" in headers:
-            framing_class = "other"
-        else:
-            framing_class = "none"
+        try:
+            headers = {key.lower(): value for key, value in scope.get("headers", [])}
+            request_id = str(uuid.uuid4())
+            state = scope.get("state")
+            if not isinstance(state, dict):
+                state = {}
+                scope["state"] = state
+            state[_LICENSE_REQUEST_ID_STATE_KEY] = request_id
 
-        chunk_count = 0
-        total_size = 0
-        retained = bytearray()
-        retained_truncated = False
-        more_body_count = 0
-        more_body_invalid = False
-        finalized = False
-        max_bytes = get_settings().license_session_body_max_bytes
+            total_size = 0
+            retained = bytearray()
+            retained_truncated = False
+            first_non_whitespace = None
+            last_non_whitespace = None
+            raw_body_hash = hashlib.sha256()
+            finalized = False
+            max_bytes = max(0, get_settings().license_session_body_max_bytes)
+        except Exception:
+            await self.app(scope, receive, send)
+            return
+
+        diagnostic_failed = False
 
         def emit():
             nonlocal finalized
             if finalized:
                 return
             finalized = True
+            json_top_level_type = "not_available"
+            has_integrity_token_key = "not_applicable"
+            has_challenge_token_key = "not_applicable"
             if retained_truncated:
-                utf8_state = "valid"
-                json_state = "invalid"
-            elif not retained:
-                utf8_state = "valid"
-                json_state = "empty"
+                utf8_state = "not_attempted"
+                json_state = "not_attempted"
             else:
                 try:
                     decoded = bytes(retained).decode("utf-8")
-                    utf8_state = "valid"
+                    utf8_state = "success"
                     try:
                         parsed = json.loads(decoded)
-                        json_state = "valid_object" if isinstance(parsed, dict) else "valid_non_object"
+                        json_state = "success"
+                        json_top_level_type = _json_top_level_type(parsed)
+                        if isinstance(parsed, dict):
+                            has_integrity_token_key = "true" if "integrity_token" in parsed else "false"
+                            has_challenge_token_key = "true" if "challenge_token" in parsed else "false"
                     except Exception:
-                        json_state = "invalid"
+                        json_state = "failure"
                 except UnicodeDecodeError:
-                    utf8_state = "invalid"
-                    json_state = "invalid"
+                    utf8_state = "failure"
+                    json_state = "not_attempted"
             logger.warning(
-                "event=license_ingress_body_v1 chunk_count=%s total_size_bucket=%s more_body_sequence=%s utf8_state=%s json_state=%s content_type_class=%s framing_class=%s",
-                _shape_bucket(chunk_count),
-                _size_bucket(total_size),
-                "invalid" if more_body_invalid else ("single" if more_body_count <= 1 else "multiple"),
+                "event=license_session_ingress_v2 request_id=%s raw_body_bytes=%s body_empty=%s first_non_whitespace_category=%s last_non_whitespace_category=%s utf8_decode=%s json_parse=%s json_top_level_type=%s has_integrity_token_key=%s has_challenge_token_key=%s raw_body_sha256=%s content_type=%s content_encoding=%s content_length=%s",
+                request_id,
+                total_size,
+                "true" if total_size == 0 else "false",
+                _body_edge_category(first_non_whitespace),
+                _body_edge_category(last_non_whitespace),
                 utf8_state,
                 json_state,
-                content_type_class,
-                framing_class,
+                json_top_level_type,
+                has_integrity_token_key,
+                has_challenge_token_key,
+                raw_body_hash.hexdigest(),
+                _content_type_category(headers),
+                _content_encoding_category(headers),
+                _content_length_category(headers),
             )
 
         async def diagnostic_receive():
-            nonlocal chunk_count, total_size, more_body_count, more_body_invalid, retained_truncated
+            nonlocal diagnostic_failed, total_size, retained_truncated, first_non_whitespace, last_non_whitespace
             message = await receive()
-            if message.get("type") != "http.request":
-                more_body_invalid = True
-                emit()
+            if diagnostic_failed:
                 return message
-            body = message.get("body", b"")
-            if body:
-                chunk_count += 1
-                total_size += len(body)
-                if len(retained) < max_bytes:
-                    retained.extend(body[: max_bytes - len(retained)])
-                if len(retained) >= max_bytes and total_size > max_bytes:
-                    retained_truncated = True
-            if not isinstance(message.get("more_body", False), bool):
-                more_body_invalid = True
-            more_body_count += 1
-            if not message.get("more_body", False):
-                emit()
+            try:
+                if finalized or message.get("type") != "http.request":
+                    return message
+                body = message.get("body", b"")
+                if body:
+                    total_size += len(body)
+                    raw_body_hash.update(body)
+                    if first_non_whitespace is None:
+                        first_non_whitespace = next((value for value in body if value not in _ASCII_WHITESPACE), None)
+                    chunk_last_non_whitespace = next(
+                        (value for value in reversed(body) if value not in _ASCII_WHITESPACE),
+                        None,
+                    )
+                    if chunk_last_non_whitespace is not None:
+                        last_non_whitespace = chunk_last_non_whitespace
+                    remaining = max_bytes - len(retained)
+                    if remaining > 0:
+                        retained.extend(body[:remaining])
+                    if total_size > max_bytes:
+                        retained_truncated = True
+                if not message.get("more_body", False):
+                    emit()
+            except Exception:
+                diagnostic_failed = True
             return message
 
         await self.app(scope, diagnostic_receive, send)
@@ -166,18 +269,26 @@ app.add_middleware(LicenseIngressDiagnostics)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     if request.url.path == "/license/session":
-        logger.warning("license_session_bad_request reason=request_validation_error")
-        errors = exc.errors()
-        error_type = "other"
-        location = "other"
-        if errors:
-            candidate_type = errors[0].get("type")
-            if isinstance(candidate_type, str) and re.fullmatch(r"[a-z0-9_.-]{1,64}", candidate_type):
-                error_type = candidate_type
-            candidate_location = (errors[0].get("loc") or [None])[0]
-            if candidate_location in {"body", "header", "query", "path"}:
-                location = candidate_location
-        logger.warning("event=license_validation_error_v1 type=%s location=%s", error_type, location)
+        try:
+            logger.warning("license_session_bad_request reason=request_validation_error")
+            errors = exc.errors()
+            error_type = "other"
+            location = "other"
+            if errors:
+                candidate_type = errors[0].get("type")
+                if isinstance(candidate_type, str) and re.fullmatch(r"[a-z0-9_.-]{1,64}", candidate_type):
+                    error_type = candidate_type
+                candidate_location = (errors[0].get("loc") or [None])[0]
+                if candidate_location in {"body", "header", "query", "path"}:
+                    location = candidate_location
+            logger.warning(
+                "event=license_validation_error_v1 request_id=%s type=%s location=%s",
+                _license_request_id(request.scope),
+                error_type,
+                location,
+            )
+        except Exception:
+            pass
         return PlainTextResponse("Malformed license request", status_code=400, headers=_cache_headers(public=False))
     return await request_validation_exception_handler(request, exc)
 
