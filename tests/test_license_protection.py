@@ -204,8 +204,10 @@ class LicensingTests(unittest.TestCase):
     def test_feature_flags_off_preserve_browser_app_access_and_enforcement_off_blocks_session_creation(self):
         with patch.dict(os.environ, _env(APP_ACCESS_LOCKDOWN_ENABLED="false", PLAY_INTEGRITY_ENFORCEMENT_ENABLED="false"), clear=False):
             client, app, deps = self._client()
-            self.assertEqual(client.get("/").status_code, 200)
-            self.assertIn("NoesisFood", client.get("/").text)
+            root = client.get("/")
+            self.assertEqual(root.status_code, 200)
+            self.assertIn('window.__NF_BUILD__ = "2026-08-02-licensed-shell-v3"', root.text)
+            self.assertIn('trustedOrigin = "android-app://noesisfood.app"', root.text)
             challenge = client.get("/license/challenge").json()
             self.assertEqual(
                 client.post(
@@ -266,9 +268,19 @@ class LicensingStaticTests(unittest.TestCase):
         end = head.index("</script>", start)
         return head[start:end]
 
-    def _run_landing_handler(self, events, fetch_ok=True, json_ok=True):
+    def _index_head(self):
+        content = Path("app/frontend/index.html").read_text(encoding="utf-8")
+        return content[content.index("<head>"):content.index("</head>")]
+
+    def _index_early_catcher_script(self):
+        head = self._index_head()
+        start = head.index("<script>") + len("<script>")
+        end = head.index("</script>", start)
+        return head[start:end]
+
+    def _run_receiver_handler(self, receiver_script, events, fetch_ok=True, json_ok=True):
         harness = f"""
-const script = {json.dumps(self._landing_early_catcher_script())};
+const script = {json.dumps(receiver_script)};
 const events = {json.dumps(events)};
 const fetches = [];
 const statuses = [];
@@ -320,6 +332,7 @@ global.fetch = async function (url, options) {{
     url,
     credentials: options && options.credentials,
     method: options && options.method,
+    cache: options && options.cache,
     bodyKeys: Object.keys(JSON.parse(options.body)).sort(),
     contentType: options && options.headers && options.headers["Content-Type"],
     accept: options && options.headers && options.headers.Accept,
@@ -401,6 +414,22 @@ setTimeout(() => {{
             Path(temp_path).unlink(missing_ok=True)
         return json.loads(result.stdout)
 
+    def _run_landing_handler(self, events, fetch_ok=True, json_ok=True):
+        return self._run_receiver_handler(
+            self._landing_early_catcher_script(),
+            events,
+            fetch_ok=fetch_ok,
+            json_ok=json_ok,
+        )
+
+    def _run_index_handler(self, events, fetch_ok=True, json_ok=True):
+        return self._run_receiver_handler(
+            self._index_early_catcher_script(),
+            events,
+            fetch_ok=fetch_ok,
+            json_ok=json_ok,
+        )
+
     def _native_license_message(self, **overrides):
         data = {
             "type": "noesisfood.license.integrityToken",
@@ -465,6 +494,94 @@ setTimeout(() => {{
         self.assertNotIn("sessionStorage", head)
         self.assertNotIn("indexedDB", head)
 
+    def test_index_installs_the_exact_landing_receiver_early_in_head(self):
+        head = self._index_head()
+        receiver = self._index_early_catcher_script()
+        self.assertLess(head.index('trustedOrigin = "android-app://noesisfood.app"'), head.index("<title>"))
+        self.assertEqual(receiver, self._landing_early_catcher_script())
+        self.assertEqual(receiver.count("JSON.stringify("), 1)
+        self.assertIn(
+            "body: JSON.stringify({ integrity_token: integrityToken, challenge_token: challengeToken })",
+            receiver,
+        )
+
+    def test_index_initial_transfer_posts_one_session_with_existing_fetch_contract(self):
+        result = self._run_index_handler([
+            self._initial_twa_transfer_delivery(self._native_license_message())
+        ])
+        self.assertEqual(len(result["fetches"]), 1)
+        request = result["fetches"][0]
+        self.assertEqual(request["url"], "/license/session")
+        self.assertEqual(request["method"], "POST")
+        self.assertEqual(request["credentials"], "include")
+        self.assertEqual(request["cache"], "no-store")
+        self.assertEqual(request["bodyKeys"], ["challenge_token", "integrity_token"])
+        self.assertEqual(request["contentType"], "application/json")
+        self.assertEqual(request["accept"], "application/json")
+        self.assertTrue(result["reloaded"])
+        self.assertEqual(result["reloadCount"], 1)
+
+    def test_index_later_port_payload_and_duplicate_delivery_post_once(self):
+        later = self._run_index_handler([
+            self._native_first_twa_delivery(self._native_license_message())
+        ])
+        self.assertEqual(len(later["fetches"]), 1)
+
+        payload = self._native_license_message()
+        duplicate = self._initial_twa_transfer_delivery(payload)
+        duplicate["nativeMessages"] = [payload, payload]
+        repeated = self._run_index_handler([duplicate, self._initial_twa_transfer_delivery(payload)])
+        self.assertEqual(len(repeated["fetches"]), 1)
+        self.assertEqual(repeated["reloadCount"], 1)
+
+    def test_index_receiver_rejects_invalid_transfer_and_message_shapes(self):
+        payload = self._native_license_message()
+        rejected_events = {
+            "wrong_origin": self._initial_twa_transfer_delivery(payload, origin="https://noesisfood.app"),
+            "zero_ports": self._initial_twa_transfer_delivery(payload, withPort=False),
+            "multiple_ports": self._initial_twa_transfer_delivery(payload, portCount=2),
+            "malformed_json": self._initial_twa_transfer_delivery("{bad"),
+            "object_payload": self._initial_twa_transfer_delivery(json.loads(payload)),
+            "wrong_type": self._initial_twa_transfer_delivery(self._native_license_message(type="wrong")),
+            "wrong_version": self._initial_twa_transfer_delivery(self._native_license_message(version=2)),
+            "missing_keys": self._initial_twa_transfer_delivery(
+                json.dumps({"type": "noesisfood.license.integrityToken", "version": 1})
+            ),
+            "empty_integrity": self._initial_twa_transfer_delivery(
+                self._native_license_message(integrityToken="")
+            ),
+            "oversized_integrity": self._initial_twa_transfer_delivery(
+                self._native_license_message(integrityToken="x" * 9000)
+            ),
+            "empty_challenge": self._initial_twa_transfer_delivery(
+                self._native_license_message(challengeToken="")
+            ),
+            "oversized_challenge": self._initial_twa_transfer_delivery(
+                self._native_license_message(challengeToken="x" * 9000)
+            ),
+            "one_segment_challenge": self._initial_twa_transfer_delivery(
+                self._native_license_message(challengeToken="one_segment")
+            ),
+            "three_segment_challenge": self._initial_twa_transfer_delivery(
+                self._native_license_message(challengeToken="one.two.three")
+            ),
+        }
+        for case, event in rejected_events.items():
+            with self.subTest(case=case):
+                result = self._run_index_handler([event])
+                self.assertEqual(result["fetches"], [])
+                self.assertEqual(result["reloadCount"], 0)
+
+    def test_index_receiver_remains_passive_in_an_ordinary_browser(self):
+        result = self._run_index_handler([
+            self._native_first_twa_delivery(
+                self._native_license_message(),
+                origin="https://noesisfood.app",
+            )
+        ])
+        self.assertEqual(result["fetches"], [])
+        self.assertEqual(result["reloadCount"], 0)
+
     def test_first_twa_transfer_event_with_payload_posts_session(self):
         payload = self._native_license_message()
         result = self._run_landing_handler([
@@ -475,6 +592,7 @@ setTimeout(() => {{
         self.assertEqual(result["fetches"][0]["url"], "/license/session")
         self.assertEqual(result["fetches"][0]["method"], "POST")
         self.assertEqual(result["fetches"][0]["credentials"], "include")
+        self.assertEqual(result["fetches"][0]["cache"], "no-store")
         self.assertEqual(result["fetches"][0]["bodyKeys"], ["challenge_token", "integrity_token"])
         self.assertTrue(result["reloaded"])
         self.assertEqual(result["reloadCount"], 1)
